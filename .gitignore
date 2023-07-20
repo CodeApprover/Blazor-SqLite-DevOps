@@ -6,4 +6,3 @@ Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/
 # Ignore all files in the Database directory except for database.db
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*
 !Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/database.db
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*.db

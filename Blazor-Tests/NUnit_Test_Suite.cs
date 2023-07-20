@@ -1,11 +1,11 @@
 using Blazor_SqlLite_Golf_Club.Models;
-using NUnit.Framework;
 using System.ComponentModel.DataAnnotations;
+using NUnit.Framework;
 
 namespace Blazor_SqlLite_Golf_Club.Tests
 {
     /// <summary>
-    ///  NUnit test suite for the <see cref="Player"/> class.
+    /// NUnit test suite for the <see cref="Player"/> class.
     /// </summary>
     [TestFixture]
         public class PlayerTests
@@ -197,4 +197,3 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             }
         }
     }
-

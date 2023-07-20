@@ -8,17 +8,14 @@ namespace Blazor_SqlLite_Golf_Club.Services;
 internal class PlayerService
 {
     // private Fields
-    private readonly DatabaseContext _databaseContext;
-    private bool _boolAscending;
+    readonly DatabaseContext _databaseContext;
+    bool _boolAscending;
 
     /// <summary>
     ///     Initialises database connection.
     /// </summary>
     /// <param name="databaseContext"></param>
-    public PlayerService(DatabaseContext databaseContext)
-    {
-        _databaseContext = databaseContext;
-    }
+    public PlayerService(DatabaseContext databaseContext) => _databaseContext = databaseContext;
 
     /// <summary>
     ///     Creates a new player and adds them to the database.
@@ -61,13 +58,16 @@ internal class PlayerService
     {
         var allGames = await _databaseContext.Games.ToListAsync();
         var allPlayers = await _databaseContext.Players.ToListAsync();
+
         var playersGames = (from game in allGames
                             where player.PlayerId == game.Captain
                                   || player.PlayerId == game.Player2
                                   || player.PlayerId == game.Player3
                                   || player.PlayerId == game.Player4
                             select game).ToList();
+
         _databaseContext.Players.Update(player);
+
         for (var i = 0; i < allPlayers.Count; i++)
         {
             if (allPlayers[i].PlayerId != player.PlayerId) continue;
@@ -91,12 +91,14 @@ internal class PlayerService
     internal async Task Delete(Player player)
     {
         var allGames = await _databaseContext.Games.ToListAsync();
+
         var playersGames = (from game in allGames
                             where player.PlayerId == game.Captain
                                   || player.PlayerId == game.Player2
                                   || player.PlayerId == game.Player3
                                   || player.PlayerId == game.Player4
                             select game).ToList();
+
         foreach (var game in playersGames) _databaseContext.Games.Remove(game);
         _databaseContext.Players.Remove(player);
 
@@ -107,10 +109,7 @@ internal class PlayerService
     ///     Retrieves all players from the database.
     /// </summary>
     /// <returns>A list of all players in the database, or null if the operation fails.</returns>
-    internal async Task<List<Player>?> GetAll()
-    {
-        return await _databaseContext.Players.ToListAsync();
-    }
+    internal Task<List<Player>?> GetAll() => _databaseContext.Players.ToListAsync();
 
     /// <summary>
     ///     Sorts the list of players in the database by the specified column.
@@ -124,6 +123,7 @@ internal class PlayerService
     {
         var allPlayers = await _databaseContext.Players.ToListAsync();
         _boolAscending = !_boolAscending;
+
         return column switch
         {
             "Id" => _boolAscending
@@ -153,7 +153,7 @@ internal class PlayerService
     /// </summary>
     /// <param name="name">The name to validate.</param>
     /// <returns>True if the first name or surname is valid, false otherwise.</returns>
-    private static bool IsValidString(string name)
+    static bool IsValidString(string name)
     {
         if (string.IsNullOrEmpty(name) || name.Length is > 10 or < 1) return false;
         var nameRegex = new Regex("^[a-zA-Z\\s\\-]*$");
@@ -165,7 +165,7 @@ internal class PlayerService
     /// </summary>
     /// <param name="email">The email address to validate.</param>
     /// <returns>True if the email address is valid, false otherwise.</returns>
-    private static bool IsValidEmail(string email)
+    static bool IsValidEmail(string email)
     {
         if (string.IsNullOrEmpty(email) || email.Length is > 31 or < 5) return false;
         var emailRegex = new Regex(@"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
