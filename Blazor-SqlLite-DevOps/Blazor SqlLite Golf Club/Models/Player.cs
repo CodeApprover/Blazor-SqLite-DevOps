@@ -39,7 +39,7 @@ public class Player
     ///     Gets or sets the player's gender.
     /// </summary>
     [Required(ErrorMessage = "Gender is required.")]
-    [StringLength(1, MinimumLength = 1, ErrorMessage = "Gender must be either M, F or O")]
+    [StringLength(1, MinimumLength = 1, ErrorMessage = "Gender must be either M, F or O.")]
     public string Gender { get; set; } = string.Empty;
 
     /// <summary>
