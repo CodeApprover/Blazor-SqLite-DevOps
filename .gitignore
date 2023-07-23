@@ -1,10 +1,13 @@
 Blazor-SqlLite-DevOps/.vs/
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/bin/
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/
+Blazor SqlLite Golf Club/Blazor-SqlLite-DevOps/html
+
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*
 !Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/database.db
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*.db
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj.DotSettings.user
+
+Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj.*
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/libman.json
+
 Blazor-Tests/bin/
 Blazor-Tests/obj/
