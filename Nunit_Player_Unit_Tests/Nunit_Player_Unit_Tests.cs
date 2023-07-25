@@ -1,13 +1,14 @@
 using Blazor_SqlLite_Golf_Club.Models;
 using System.ComponentModel.DataAnnotations;
-using NUnit.Framework;
 
-namespace Blazor_SqlLite_Golf_Club.Tests
+namespace Nunit_Player_Unit_Tests
 {
-    /// <summary>
-    /// NUnit test suite for the <see cref="Player"/> class.
-    /// </summary>
-    [TestFixture]
+    public class Nunit_Player_Unit_Tests
+    {
+        /// <summary>
+        /// NUnit test suite for the <see cref="Player"/> class.
+        /// </summary>
+        [TestFixture]
         public class PlayerTests
         {
             /// <summary>
@@ -17,7 +18,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Firstname_Set_Correctly()
             {
                 // Arrange
-                string expectedFirstname = "Andy";
+                var expectedFirstname = "Andy";
 
                 // Act
                 var player = new Player { Firstname = expectedFirstname };
@@ -33,7 +34,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Firstname_MinimumLength_Fail()
             {
                 // Arrange
-                string invalidFirstname = "";
+                var invalidFirstname = "";
 
                 // Act
                 var player = new Player { Firstname = invalidFirstname };
@@ -49,7 +50,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Surname_Set_Correctly()
             {
                 // Arrange
-                string expectedSurname = "Smith";
+                var expectedSurname = "Smith";
 
                 // Act
                 var player = new Player { Surname = expectedSurname };
@@ -65,7 +66,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Surname_MinimumLength_Fail()
             {
                 // Arrange
-                string invalidSurname = "";
+                var invalidSurname = "";
 
                 // Act
                 var player = new Player { Surname = invalidSurname };
@@ -81,7 +82,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Email_Set_Correctly()
             {
                 // Arrange
-                string expectedEmail = "andy@example.com";
+                var expectedEmail = "andy@example.com";
 
                 // Act
                 var player = new Player { Email = expectedEmail };
@@ -97,7 +98,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Email_Format_Validation_Fail()
             {
                 // Arrange
-                string invalidEmail = "invalid_email_format";
+                var invalidEmail = "invalid_email_format";
                 var player = new Player { Email = invalidEmail };
                 var emailPropertyName = nameof(Player.Email);
                 var emailProperty = typeof(Player).GetProperty(emailPropertyName) ?? throw new InvalidOperationException($"Property '{emailPropertyName}' not found on type '{nameof(Player)}'.");
@@ -123,7 +124,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Gender_Set_Correctly()
             {
                 // Arrange
-                string expectedGender = "M";
+                var expectedGender = "M";
 
                 // Act
                 var player = new Player { Gender = expectedGender };
@@ -139,7 +140,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Gender_Length_Validation_Fail()
             {
                 // Arrange
-                string invalidGender = "Female";
+                var invalidGender = "Female";
                 var player = new Player { Gender = invalidGender };
                 var genderPropertyName = nameof(Player.Gender);
                 var genderProperty = typeof(Player).GetProperty(genderPropertyName);
@@ -171,7 +172,7 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             public void Player_Handicap_Set_Correctly()
             {
                 // Arrange
-                double expectedHandicap = 12.5;
+                var expectedHandicap = 12.5;
 
                 // Act
                 var player = new Player { Handicap = expectedHandicap };
@@ -197,3 +198,4 @@ namespace Blazor_SqlLite_Golf_Club.Tests
             }
         }
     }
+}

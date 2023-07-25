@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace Blazor_SqlLite_Golf_Club.Services;
 
-internal class PlayerService
+public class PlayerService
 {
     // private Fields
     readonly DatabaseContext _databaseContext;
@@ -54,7 +54,7 @@ internal class PlayerService
     ///     Updates an existing player in the database.
     /// </summary>
     /// <param name="player">The player to be updated.</param>
-    internal async Task Edit(Player player)
+    internal async Task Edit(Player player, GameService gameService)
     {
         var allGames = await _databaseContext.Games.ToListAsync();
         var allPlayers = await _databaseContext.Players.ToListAsync();
@@ -77,7 +77,7 @@ internal class PlayerService
 
         foreach (var game in playersGames)
         {
-            game.GameCard = await GameService.GameCard(game);
+            game.GameCard = await gameService.GameCard(game);
             _databaseContext.Games.Update(game);
         }
 
@@ -109,7 +109,7 @@ internal class PlayerService
     ///     Retrieves all players from the database.
     /// </summary>
     /// <returns>A list of all players in the database, or null if the operation fails.</returns>
-    internal Task<List<Player>?> GetAll() => _databaseContext.Players.ToListAsync();
+    internal Task<List<Player>> GetAll() => _databaseContext.Players.ToListAsync();
 
     /// <summary>
     ///     Sorts the list of players in the database by the specified column.

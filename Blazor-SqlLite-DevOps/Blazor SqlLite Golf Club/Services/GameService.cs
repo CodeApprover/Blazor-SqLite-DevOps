@@ -8,10 +8,10 @@ namespace Blazor_SqlLite_Golf_Club.Services;
 /// <summary>
 ///     Provides functionality to manage games in the database.
 /// </summary>
-internal class GameService
+public class GameService
 {
     // private Fields
-    static DatabaseContext? _databaseContext;
+    readonly DatabaseContext? _databaseContext;
     bool _boolAscending;
 
     /// <summary>
@@ -25,7 +25,7 @@ internal class GameService
     /// </summary>
     /// <param name="game">The game to create.</param>
     /// <returns>A string representing the game card for the new game.</returns>
-    internal async Task<string> Create(Game game)
+    public async Task<string> Create(Game game)
     {
         var playerIds = new List<int> { game.Captain, game.Player2, game.Player3, game.Player4 };
 
@@ -62,7 +62,7 @@ internal class GameService
     ///     Edits an existing game in the database.
     /// </summary>
     /// <param name="game">The game to edit.</param>
-    internal async Task Edit(Game game)
+    public async Task Edit(Game game) // not internal for Blazor-Tests
     {
         await _databaseContext!.Players.ToListAsync();
         var allGames = await _databaseContext.Games.ToListAsync();
@@ -87,7 +87,7 @@ internal class GameService
     ///     Deletes a game from the database.
     /// </summary>
     /// <param name="game">The game to be deleted.</param>
-    internal async Task Delete(Game game)
+    public async Task Delete(Game game)  // not internal for Blazor-Tests
     {
         _databaseContext!.Games.Remove(game);
         await _databaseContext.SaveChangesAsync();
@@ -104,7 +104,7 @@ internal class GameService
     /// </summary>
     /// <param name="game">The game for which to generate a card.</param>
     /// <returns>A Task string containing the game card.</returns>
-    internal static async Task<string> GameCard(Game game)
+    internal async Task<string> GameCard(Game game)
     {
         var allPlayers = await _databaseContext!.Players.ToListAsync();
 

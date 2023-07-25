@@ -1,4 +1,6 @@
 Blazor-SqlLite-DevOps/.vs/
+Blazor-SqlLite-DevOps/.vscode/
+
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/bin/
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/
 Blazor SqlLite Golf Club/Blazor-SqlLite-DevOps/html
@@ -9,5 +11,11 @@ Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj.*
 Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/libman.json
 
-Blazor-Tests/bin/
-Blazor-Tests/obj/
+Nunit_Player_Unit_Tests/bin/
+Nunit_Player_Unit_Tests/obj/
+
+Xunit_Game_Unit_Tests/bin/
+Xunit_Game_Unit_Tests/obj/
+
+MSTest_Integration_Tests/bin
+MSTest_Integration_Tests/obj

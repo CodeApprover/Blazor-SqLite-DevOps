@@ -362,7 +362,7 @@
                 var title = $"{_playerState} Player {_player.PlayerId} {_player.Firstname} {_player.Surname}";
                 var message = $"This edits all game cards for {_player.Firstname} {_player.Surname}.";
                 await DialogService.Alert(message, title);
-                await PlayerService.Edit(_player);
+                await PlayerService.Edit(_player, GameService);
                 break;
             }
             case Game game:

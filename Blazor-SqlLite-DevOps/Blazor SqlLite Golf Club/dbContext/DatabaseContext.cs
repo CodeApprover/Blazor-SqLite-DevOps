@@ -3,17 +3,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blazor_SqlLite_Golf_Club.dbContext;
 
-internal class DatabaseContext : DbContext
+public class DatabaseContext : DbContext // not internal for Blazor-Tests
 {
+    private readonly bool _useInMemoryDatabase = false;
+
+    public DatabaseContext(DbContextOptions options, bool useInMemoryDatabase = false) : base(options)
+    {
+        _useInMemoryDatabase = useInMemoryDatabase;
+    }
+
     /// <summary>
     ///     Gets or sets database Players.
     /// </summary>
-    protected internal DbSet<Player> Players { get; set; } = null!;
+    public DbSet<Player> Players { get; set; } = null!; // not protected internal for Blazor-Tests
 
     /// <summary>
     ///     Gets or sets database Games.
     /// </summary>
-    protected internal DbSet<Game> Games { get; set; } = null!;
+    public DbSet<Game> Games { get; set; } = null!; // not protected internal for Blazor-Tests
 
     /// <summary>
     ///     Configures database context options for SQLite.
@@ -21,6 +28,9 @@ internal class DatabaseContext : DbContext
     /// <param name="optionsBuilder">The options builder used to configure the context.</param>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite(@"Data Source=Database\database.db");
+        if (!_useInMemoryDatabase)
+        {
+            optionsBuilder.UseSqlite(@"Data Source=Database//database.db");
+        }
     }
 }
