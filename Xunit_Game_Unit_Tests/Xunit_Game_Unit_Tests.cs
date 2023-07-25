@@ -1,9 +1,8 @@
-using System.ComponentModel.DataAnnotations;
-using Blazor_SqlLite_Golf_Club.Models;
-using Xunit;
-
 namespace Xunit_Game_Unit_Tests
 {
+    using Blazor_SqlLite_Golf_Club.Models;
+    using System.ComponentModel.DataAnnotations;
+
     public class Xunit_Game_Unit_Tests
     {
         /// <summary>
@@ -76,6 +75,7 @@ namespace Xunit_Game_Unit_Tests
                 // Assert
                 Assert.True(isValid, "Game should be invalid without player IDs.");
                 Assert.NotEqual(4, validationResults.Count);
+
                 foreach (var validationResult in validationResults)
                 {
                     Console.WriteLine($"Error in member: {string.Join(", ", validationResult.MemberNames)}");

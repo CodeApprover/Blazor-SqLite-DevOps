@@ -16,8 +16,6 @@
 
         <!-- VIEW RESULTS -->
         <RadzenCard Style="margin-top: 20px;" Visible="@_resultsVisible">
-            <RadzenCardHeader Text="@_selectedMethod"/>
-            <RadzenCardContent>
                 @if (_results != null)
                 {
                     <RadzenDataList Data="@_results" TItem="string">
@@ -26,7 +24,6 @@
                         </Template>
                     </RadzenDataList>
                 }
-            </RadzenCardContent>
         </RadzenCard>
 
     </div>
@@ -42,8 +39,6 @@
 
         <!-- VIEW PLAYERS GAMES -->
         <RadzenCard Style="margin-top: 20px;" Visible="@_gamesVisible">
-            <RadzenCardHeader Text="Games For Player @_playerId"/>
-            <RadzenCardContent>
                 @if (GameCards.Any())
                 {
                     <table>
@@ -61,7 +56,6 @@
                 {
                     <p>No games found for player @_playerId.</p>
                 }
-            </RadzenCardContent>
         </RadzenCard>
     </div>
 

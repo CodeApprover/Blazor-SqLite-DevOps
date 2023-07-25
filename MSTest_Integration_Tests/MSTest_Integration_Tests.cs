@@ -1,4 +1,4 @@
-using Blazor_SqlLite_Golf_Club.dbContext;
+using Blazor_SqlLite_Golf_Club.DbContext;
 using Blazor_SqlLite_Golf_Club.Models;
 using Blazor_SqlLite_Golf_Club.Services;
 using Microsoft.EntityFrameworkCore;
