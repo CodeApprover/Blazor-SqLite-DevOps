@@ -37,6 +37,21 @@ jobs:
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
 
+    # Cache the CodeQL trap for csharp
+    - name: Cache CodeQL trap for csharp
+      uses: actions/cache@v2
+      with:
+        path: /home/runner/work/_temp/codeql_databases/csharp
+        key: codeql-trap-1-2.14.0-csharp-${{ github.sha }}
+      
+    # Cache the CodeQL trap for typescript
+    - name: Cache CodeQL trap for typescript
+      uses: actions/cache@v2
+      with:
+        path: /home/runner/work/_temp/codeql_databases/typescript
+        key: codeql-trap-1-2.14.0-typescript-${{ github.sha }}
+      
+    # Perform CodeQL Analysis
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:
