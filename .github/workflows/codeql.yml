@@ -70,6 +70,6 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.login "${{ secrets.LOGIN }}"
         
-        git add "$source_file"
+        git add "$source_zip"
         git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # Skip workflow runs
         git push origin main
