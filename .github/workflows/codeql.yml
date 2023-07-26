@@ -1,33 +1,16 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-#
 name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "code-development", "code-production", "code-staging" ]
+    branches: ["main", "code-development", "code-production", "code-staging"]
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
     - cron: '29 20 * * 2'
 
 jobs:
   analyze:
     name: Analyze
-    # Runner size impacts CodeQL analysis time. To learn more, please see:
-    #   - https://gh.io/recommended-hardware-resources-for-running-codeql
-    #   - https://gh.io/supported-runners-and-hardware-resources
-    #   - https://gh.io/using-larger-runners
-    # Consider using larger runners for possible analysis time improvements.
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
@@ -38,11 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp', 'javascript', 'typescript' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby', 'swift' ]
-        # Use only 'java' to analyze code written in Java, Kotlin or both
-        # Use only 'javascript' to analyze code written in JavaScript, TypeScript or both
-        # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
+        language: ['csharp', 'javascript', 'typescript']
 
     steps:
     - name: Checkout repository
@@ -53,28 +32,10 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
 
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        # queries: security-extended,security-and-quality
-
-
-    # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
-    # If this step fails, then you should remove it and run the build manually (see below)
+    # Autobuild attempts to build any compiled languages.
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-    #   If the Autobuild fails above, remove it and uncomment the following three lines.
-    #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-    # - run: |
-    #     echo "Run, Build Application using script"
-    #     ./location_of_script_within_repo/buildscript.sh
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
@@ -84,11 +45,63 @@ jobs:
     # Save the CodeQL results zip to the repository
     - name: Save CodeQL results
       run: |
+        output_file="./results/codeql/codeql_results_${{ matrix.language }}_$(date '+%Y%m%d%H%M%S').zip"
         mkdir -p ./results/codeql
-        cp /home/runner/work/_temp/codeql_databases/csharp.zip ./results/codeql/codeql_results_$(date '+%Y%m%d%H%M%S').zip
+        
+        # Determine the correct source zip file based on the matrix language
+        case ${{ matrix.language }} in
+          csharp)
+            source_zip="/home/runner/work/_temp/codeql_databases/csharp.zip"
+            ;;
+          javascript)
+            source_zip="/home/runner/work/_temp/codeql_databases/javascript.zip"
+            ;;
+          typescript)
+            source_zip="/home/runner/work/_temp/codeql_databases/typescript.zip"
+            ;;
+          *)
+            echo "Invalid language: ${{ matrix.language }}"
+            exit 1
+            ;;
+        esac
+        
+        cp "$source_zip" "$output_file"
+        
         git config --global user.email "github-actions@github.com"
         git config --global user.name "GitHub Actions"
-        git add ./results/codeql
-        git commit -m "Add CodeQL results [skip ci]"  # Add [skip ci] to skip workflow runs
+        git add "$output_file"
+        git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # Skip workflow runs
         git push
-    
+
+  save_results:
+    runs-on: ubuntu-latest
+    steps:
+      # Download the CodeQL results artifact from the previous workflow run
+      - name: Download CodeQL results artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: codeql-results
+
+      # Save the downloaded artifact to the main repository .results/codeql/ directory
+      - name: Save CodeQL results to main repository
+        run: |
+           mkdir -p ./.results/codeql
+           cp ${{ runner.temp }}/codeql-results/codeql_results_*.zip ./.results/codeql/
+      
+      # Commit and push the changes to the main repository
+      - name: Commit and Push CodeQL results to main repository
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          # Set the GitHub username and personal access token from the secrets as environment variables
+          export GH_USERNAME=$LOGIN
+          export GH_TOKEN=$TOKEN
+
+          # Add and commit the changes
+          git add .results/codeql
+          git commit -m "Add CodeQL results from workflow run ${{ github.run_number }} [skip ci]"
+          
+          # Authenticate using the GitHub personal access token and push the changes
+          git remote set-url origin "https://${GH_USERNAME}:${GH_TOKEN}@github.com/${{ github.repository }}"
+          git push origin main
