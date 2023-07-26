@@ -63,6 +63,10 @@ jobs:
             ;;
         esac
   
+        # Move the source_zip file to the repository's results/codeql directory
+        mkdir -p ./results/codeql
+        cp "$source_zip" ./results/codeql/
+        
         # Set the personal access token as an environment variable for git
         export GH_TOKEN="${{ secrets.TOKEN }}"
         
@@ -70,6 +74,6 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.login "${{ secrets.LOGIN }}"
         
-        git add "$source_zip"
+        git add ./results/codeql/
         git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # Skip workflow runs
         git push origin main
