@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "code-development", "code-production", "code-staging" ]
 
-# Environment variables are accessible to all jobs
+# Environment variables accessible to all jobs
 env:
   MSBUILDDIAGNOSTIC: true # DEBUG: Show detailed MSBuild output
 
@@ -87,4 +87,9 @@ jobs:
       name: production
 
     steps:
-      # Docker build and push steps here
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Placeholder step (replace with actual Docker build and push commands)
+      - name: Build and push Docker image
+        run: echo "Docker build and push commands"
