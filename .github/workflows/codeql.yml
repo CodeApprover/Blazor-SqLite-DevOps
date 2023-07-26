@@ -80,3 +80,15 @@ jobs:
       uses: github/codeql-action/analyze@v2
       with:
         category: "/language:${{matrix.language}}"
+    
+    # Save the CodeQL results zip to the repository
+    - name: Save CodeQL results
+      run: |
+        mkdir -p ./results/codeql
+        cp /home/runner/work/_temp/codeql_databases/csharp.zip ./results/codeql/codeql_results_$(date '+%Y%m%d%H%M%S').zip
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add ./results/codeql
+        git commit -m "Add CodeQL results [skip ci]"  # Add [skip ci] to skip workflow runs
+        git push
+    
