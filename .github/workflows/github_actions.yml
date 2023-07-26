@@ -1,14 +1,46 @@
 name: CI/CD Workflow
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CodeQL"]
     branches: [ "main", "code-development", "code-production", "code-staging" ]
+    types:
+      - completed
 
 # Environment variables accessible to all jobs
 env:
   MSBUILDDIAGNOSTIC: true # DEBUG: Show detailed MSBuild output
 
 jobs:
+
+  # Run the CodeQL workflow first before other jobs
+  codeql:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(['main', 'code-development', 'code-production', 'code-staging'], github.ref) }}
+    steps:
+      - name: Checkout CodeQL analysis results
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          path: codeql-analysis-results
+
+  # Define reusable setup steps
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Install project dependencies
+        run: dotnet restore ./Blazor-SqlLite-Golf-Club/Blazor-SqlLite-Golf-Club.csproj     
+      
+  
   # StyleCop C# Linting - Run on every commit
   stylecop-linting:
     runs-on: ubuntu-latest
@@ -23,7 +55,7 @@ jobs:
           dotnet-version: '7.0.x'
 
       - name: Install project dependencies
-        run: dotnet restore ./Blazor-SqlLite-Golf-Club/Blazor-SqlLite-Golf-Club.csproj ./StyleCop_CSharp_Linting/StyleCop_CSharp_Linting.csproj
+        run: dotnet restore ./StyleCop_CSharp_Linting/StyleCop_CSharp_Linting.csproj
 
       - name: Install StyleCop
         run: dotnet tool install -g StyleCop.Analyzers --version 1.3.1
@@ -46,13 +78,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '7.0.x'
-
-      - name: Install project dependencies
-        run: dotnet restore ./Blazor-SqlLite-Golf-Club/Blazor-SqlLite-Golf-Club.csproj ./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj ./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj
+      - name: Install Nunit dependencies
+        run: dotnet restore ./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj
+        
+      - name: Install Xunit dependencies
+        run: dotnet restore ./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj
 
       - name: Run XUnit and NUnit unit tests
         run: dotnet test ./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj ./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj --no-restore --logger:"console;verbosity=detailed"
@@ -68,13 +98,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '7.0.x'
-
-      - name: Install project dependencies
-        run: dotnet restore ./Blazor-SqlLite-Golf-Club/Blazor-SqlLite-Golf-Club.csproj ./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj
+      - name: Install MSTest dependencies
+        run: dotnet restore ./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj
 
       - name: Run integration tests
         run: dotnet test ./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
