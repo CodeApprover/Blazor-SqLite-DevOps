@@ -2,10 +2,14 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "code-development", "code-production", "code-staging" ]
+    branches:
+      - main
+      - code-development
+      - code-staging
+      - code-production
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches:
+      - main
   schedule:
     - cron: '29 20 * * 2'
 
@@ -47,13 +51,8 @@ jobs:
     # - run: |
     #     echo "Run, Build Application using script"
     #     ./location_of_script_within_repo/buildscript.sh
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
-
-    # Verify Git configuration
+    
+     # Verify Git configuration
     - name: Verify Git Config
       run: |
         # REMOVE ME
@@ -68,7 +67,7 @@ jobs:
         git config --local user.email "${{ secrets.USER }}"
         git config --local user.name "${{ secrets.EMAIL }}"
 
-        # Remove the global credential helper if previously set
+        # Unset the global credential helper if previously set
         git config --global --unset credential.helper
 
         # Set up the Git credential helper to use your personal access token only for the current repository
@@ -76,27 +75,37 @@ jobs:
         git config user.email
         git config user.name
         git credential-cache exit
+        
+    # Perform CodeQL Analysis
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:${{matrix.language}}"
     
     # Save the CodeQL results zip to the repository
     - name: Commit results to repository
+      if: ${{ github.ref == 'refs/heads/main' }}
       run: |    
         source_zip="/home/runner/work/_temp/codeql_databases/${{matrix.language}}.zip"
+        target_branch="${{ github.ref }}"
+        echo "${{ target_branch }}"
         
         # Clone the repository to the runner
         git clone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
 
-        # Copy the results to the repository directory
-        mkdir -p Blazor-SqLite-DevOps/results/codeql
-        cp "$source_zip" Blazor-SqLite-DevOps/results/codeql/
-        
-        # Change directory to the cloned repository
+        # Switch to the target branch
         cd Blazor-SqLite-DevOps
+        git checkout ${{ target_branch }}
+
+        # Copy the results to the repository directory
+        mkdir -p results/codeql
+        cp "$source_zip" results/codeql/
         
         # Stage results for commit.
         git add .
 
         # Commit your changes with a message
-        git commit -m "Add CodeQL results for ${{matrix.language}} [skip ci]"  # skip CI/CD pipelines
+        git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # skip CI/CD pipelines
 
         # Push your changes to the repository
-        git push origin "${{ github.ref }}"  # Push to the branch that triggered the workflow
+        git push origin "${{ target_branch }}"  # Push to the branch that triggered the workflow
