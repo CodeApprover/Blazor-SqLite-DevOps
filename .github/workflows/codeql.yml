@@ -87,15 +87,15 @@ jobs:
       if: ${{ github.ref == 'refs/heads/main' }}
       run: |    
         source_zip="/home/runner/work/_temp/codeql_databases/${{matrix.language}}.zip"
-        target_branch="${{ github.ref }}"
-        echo "${{ target_branch }}"
+        target_branch="${{github.ref}}"
+        echo "${{github.ref}}"
         
         # Clone the repository to the runner
         git clone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
 
         # Switch to the target branch
         cd Blazor-SqLite-DevOps
-        git checkout ${{ target_branch }}
+        git checkout ${{target_branch}}
 
         # Copy the results to the repository directory
         mkdir -p results/codeql
@@ -105,7 +105,7 @@ jobs:
         git add .
 
         # Commit your changes with a message
-        git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # skip CI/CD pipelines
+        git commit -m "Add CodeQL results for ${{matrix.language}} [skip ci]"  # skip CI/CD pipelines
 
         # Push your changes to the repository
-        git push origin "${{ target_branch }}"  # Push to the branch that triggered the workflow
+        git push origin "${{target_branch}}"  # Push to the branch that triggered the workflow
