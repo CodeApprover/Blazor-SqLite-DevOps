@@ -47,7 +47,26 @@ jobs:
       run: |
         output_file="./results/codeql/codeql_results_${{ matrix.language }}_$(date '+%Y%m%d%H%M%S').zip"
         mkdir -p ./results/codeql
-        cp /home/runner/work/_temp/codeql_databases/csharp.zip "$output_file"
+        
+        # Determine the correct source zip file based on the matrix language
+        case ${{ matrix.language }} in
+          csharp)
+            source_zip="/home/runner/work/_temp/codeql_databases/csharp.zip"
+            ;;
+          javascript)
+            source_zip="/home/runner/work/_temp/codeql_databases/javascript.zip"
+            ;;
+          typescript)
+            source_zip="/home/runner/work/_temp/codeql_databases/typescript.zip"
+            ;;
+          *)
+            echo "Invalid language: ${{ matrix.language }}"
+            exit 1
+            ;;
+        esac
+        
+        cp "$source_zip" "$output_file"
+        
         git config --global user.email "github-actions@github.com"
         git config --global user.name "GitHub Actions"
         git add "$output_file"
@@ -55,7 +74,6 @@ jobs:
         git push
 
   save_results:
-    needs: analyze
     runs-on: ubuntu-latest
     steps:
       # Download the CodeQL results artifact from the previous workflow run
@@ -75,6 +93,15 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
+          
+          # Set the GitHub username and personal access token from the secrets as environment variables
+          export GH_USERNAME=$LOGIN
+          export GH_TOKEN=$TOKEN
+
+          # Add and commit the changes
           git add .results/codeql
-          git commit -m "Add CodeQL results from workflow run ${{ github.run_number }}"
+          git commit -m "Add CodeQL results from workflow run ${{ github.run_number }} [skip ci]"
+          
+          # Authenticate using the GitHub personal access token and push the changes
+          git remote set-url origin "https://${GH_USERNAME}:${GH_TOKEN}@github.com/${{ github.repository }}"
           git push origin main
