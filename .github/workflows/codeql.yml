@@ -12,18 +12,12 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
     permissions:
       actions: read
       contents: read
       security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'csharp' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby', 'swift' ]
 
     steps:
     - name: Checkout repository
@@ -33,49 +27,18 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: csharp
 
-    # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
-    # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-    #   If the Autobuild fails above, remove it and uncomment the following three lines.
-    #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-    # - run: |
-    #     echo "Run, Build Application using script"
-    #     ./location_of_script_within_repo/buildscript.sh
-
+    # Perform CodeQL Analysis
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:
-        category: "/language:${{matrix.language}}"
+        category: "/language:csharp"
 
-   # Save the CodeQL results zip to the repository
+    # Save the CodeQL results zip to the repository
     - name: Save CodeQL results
       run: |    
-        # Determine the correct source zip file based on the matrix language
-        case ${{ matrix.language }} in
-          csharp)
-            source_zip="/home/runner/work/_temp/codeql_databases/csharp.zip"
-            ;;
-          javascript)
-            source_zip="/home/runner/work/_temp/codeql_databases/javascript.zip"
-            ;;
-          typescript)
-            source_zip="/home/runner/work/_temp/codeql_databases/typescript.zip"
-            ;;
-          *)
-            echo "Invalid language: ${{ matrix.language }}"
-            exit 1
-            ;;
-        esac
-  
-        # Move the source_zip file to the repository's results/codeql directory
+        source_zip="/home/runner/work/_temp/codeql_databases/csharp.zip"
         mkdir -p ./results/codeql
         cp "$source_zip" ./results/codeql/
         
@@ -84,8 +47,7 @@ jobs:
         
         git config --global user.email "github-actions@github.com"
         git config --global user.name "GitHub Actions"
-        git config --global user.login "${{ secrets.LOGIN }}"
         
         git add ./results/codeql/
-        git commit -m "Add CodeQL results for ${{ matrix.language }} [skip ci]"  # Skip workflow runs
-        git push origin main
+        git commit -m "Add CodeQL results for csharp [skip ci]"  # Skip workflow runs
+        git push origin "${{ github.ref }}"  # Push to the branch that triggered the workflow
