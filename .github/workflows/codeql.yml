@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main", "code-development", "code-production", "code-staging" ]
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ "main" ]
   schedule:
     - cron: '29 20 * * 2'
@@ -12,18 +11,12 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
     permissions:
       actions: read
       contents: read
       security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'csharp' ]
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby', 'swift' ]
 
     steps:
     - name: Checkout repository
@@ -33,41 +26,47 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
-        languages: ${{ matrix.language }}
+        languages: csharp
 
-    # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
-    # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    # ℹ️ Command-line programs to run using the OS shell.
-    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-    #   If the Autobuild fails above, remove it and uncomment the following three lines.
-    #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-    # - run: |
-    #     echo "Run, Build Application using script"
-    #     ./location_of_script_within_repo/buildscript.sh
-
+    # Perform CodeQL Analysis
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:
-        category: "/language:${{matrix.language}}"
+         category: "/language:${{matrix.language}}"
 
     # Save the CodeQL results zip to the repository
     - name: Save CodeQL results
       run: |    
         source_zip="/home/runner/work/_temp/codeql_databases/${{matrix.language}}.zip"
-        mkdir -p ./results/codeql
-        cp "$source_zip" ./results/codeql/
-        
+             
         # Set the personal access token as an environment variable for git
         export GH_TOKEN="${{ secrets.TOKEN }}"
+
+        # Configure Git with your GitHub username and email
+        git config --global user.email "${{ secrets.USER }}"
+        git config --global user.name "${{ secrets.EMAIL }}"
+
+        # Set up the Git credential helper to use your personal access token
+        git config --global credential.helper store
+        git config user.email
+        git config user.name
+        git credential-cache exit
         
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
+        # Clone the repository to the runner
+        git clone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
+
+        # Copy the results to the repository directory
+        mkdir -p Blazor-SqLite-DevOps/results/codeql
+        cp "$source_zip" Blazor-SqLite-DevOps/results/codeql/
         
-        git add ./results/codeql/
-        git commit -m "Add CodeQL results for csharp [skip ci]"  # Skip workflow runs
+        # Change directory to the cloned repository
+        cd Blazor-SqLite-DevOps
+        
+        # Stage results for commit.
+        git add .
+
+        # Commit your changes with a message
+        git commit -m "Add CodeQL results for csharp [skip ci]"  # skip CI/CD pipelines
+
+        # Push your changes to the repository
         git push origin "${{ github.ref }}"  # Push to the branch that triggered the workflow
