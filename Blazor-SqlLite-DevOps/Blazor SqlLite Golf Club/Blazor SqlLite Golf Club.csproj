@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Blazor_SqlLite_Golf_Club</RootNamespace>
     <UserSecretsId>9e023fdf-1e0c-453c-8c98-54aeadc74b14</UserSecretsId>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
