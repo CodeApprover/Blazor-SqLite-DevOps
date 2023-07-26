@@ -4,11 +4,10 @@
 
 namespace StyleCop_CSharp_Linting
 {
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
     using System;
     using System.Diagnostics;
     using System.IO;
-    using System.Reflection;
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     /// <summary>
     /// Test class for StyleCop linting on the main project.
@@ -30,7 +29,7 @@ namespace StyleCop_CSharp_Linting
             Console.WriteLine($"Navigating to: {mainProjectFilePath}");
 
             // Execute build command on the main project
-            string buildCommand = $"dotnet build \"{Path.GetFullPath(mainProjectFilePath)}\"";
+            var buildCommand = $"dotnet build \"{Path.GetFullPath(mainProjectFilePath)}\"";
 
             var processInfo = new ProcessStartInfo
             {
