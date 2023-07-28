@@ -25,15 +25,12 @@ jobs:
     steps:
       - name: clean-up
         run: |
-          gh extension install actions/gh-actions-cache
-          
+          dotnet nuget locals all --clear
+          gh extension install actions/gh-actions-cache       
           REPO=${{ github.repository }}
           BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
-
           echo "Fetching list of cache key"
           cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
-
-          ## Setting this to not fail the workflow while deleting cache keys. 
           set +e
           echo "Deleting caches..."
           for cacheKey in $cacheKeysForPR
@@ -54,7 +51,7 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
+          ls ${{ github.workspace }}/*
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
   # Setup dotnet for main project
@@ -66,11 +63,15 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: List files in the repository
+      - name: list files in cloned repository
         run: |
+          echo
           ls /home/runner/work/Blazor-SqLite-DevOps/
+          echo
+          ls ${{ github.workspace }}/*
+          echo
       - name: Install project dependencies
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        #run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
