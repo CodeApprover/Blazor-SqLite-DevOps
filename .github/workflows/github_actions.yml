@@ -53,6 +53,7 @@ jobs:
       - name: list-cloned-repository
         run: |
           ls -la ${{ github.workspace }}/*/*
+          ls ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
   setup-main-app-dotnet:
@@ -64,7 +65,7 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: list-files
-        run: ls "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/*"
+        run: ls ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
       - name: install-project-dependencies
         #run: dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         #run: "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club.sln"
