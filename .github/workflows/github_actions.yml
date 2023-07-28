@@ -58,23 +58,25 @@ jobs:
     - name: find-csproj-file
       id: find-csproj
       run: |
-        csproj_path=$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)
-        echo "::set-output name=csproj_path::$csproj_path"
+        csproj_path=$(find /home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps -type f -name "*.csproj" -print -quit)
+        echo "CS_PROJ_PATH=${{ csproj_path }}" >> $GITHUB_ENV
+        echo "MAIN_PATH=$(dirname "${{ csproj_path }}")"
     - name: restore-dependencies
-      run: dotnet restore "${{ steps.find-csproj.outputs.csproj_path }}"
+      run: dotnet restore "${{ CS_PROJ_PATH }}"
     - name: Build
-      run: dotnet build --no-restore "${{ steps.find-csproj.outputs.csproj_path }}"
+      run: dotnet build --no-restore "${{ CS_PROJ_PATH }}"
 
   run-super-linter:
     needs: setup-main-app-dotnet
     runs-on: ubuntu-latest
     steps:
+      - name: superlint-checkout-code
+        uses: actions/checkout@v3
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
       - name: Lint Code Base
         uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: ${{ github.ref }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   stylecop-linting:
     runs-on: ubuntu-latest
