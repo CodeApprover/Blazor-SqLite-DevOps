@@ -1,18 +1,61 @@
-﻿name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+﻿---
+name: CI/CD Workflow
+run-name: ${{ github.actor }} using GitHub Actions 🚀
+
+on:
+  push:
+    branches: ["code-development", "code-staging", "code-production"]
+
+# Environment variables accessible to all jobs
+env:
+  VALIDATE_ALL_CODEBASE: false
+  MSBUILDDIAGNOSTIC: "true" # DEBUG
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  DEFAULT_BRANCH: "${{ github.ref }}"
+  GIT_DISCOVERY_ACROSS_FILESYSTEM: true
+
 jobs:
-  Explore-GitHub-Actions:
+
+  unit-tests:
+  
     runs-on: ubuntu-latest
+    
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      name: development
+    
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+    
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: Install Nunit dependencies
+        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        
+      - name: Install Xunit dependencies
+        run: dotnet restore "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
+        
+      - name: Run NUnit unit tests
+        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+        
+      - name: Run XUnit unit tests
+        run: dotnet test "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+
+  integration-tests:
+  
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'    
+    environment:
+      name: staging
+    steps:
+    
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
+      - name: Install MSTest dependencies
+        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        
+      - name: Run integration tests
+        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
