@@ -68,7 +68,7 @@ jobs:
           dotnet-version: '7.0.x'
       - name: List files in the repository
         run: |
-          ls "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club"
+          ls "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor SqlLite Golf Club"
       - name: Install project dependencies
         run: dotnet restore "./Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
