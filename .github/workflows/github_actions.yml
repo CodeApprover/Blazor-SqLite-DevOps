@@ -70,11 +70,8 @@ jobs:
         run: |
           ls "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club"
       - name: Install project dependencies
-        run: dotnet restore "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Install project dependencies
-        #run: dotnet restore "./Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        #run: dotnet restore "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         run: dotnet restore "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        #run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps//Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
@@ -91,7 +88,7 @@ jobs:
   # MSTest tests - StyleCop C# Linting for all environments
   stylecop-linting:
     runs-on: ubuntu-latest
-    needs: setup-main-dotnet
+    needs: run-super-linter
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
