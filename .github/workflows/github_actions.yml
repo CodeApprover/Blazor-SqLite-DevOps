@@ -64,7 +64,10 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: install-project-dependencies
-        run: dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - run: |
+          ls ${{ github.workspace }}/Blazor-SqlLite Golf Club/
+          echo "PATH: ${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
