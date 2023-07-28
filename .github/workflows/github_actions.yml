@@ -1,3 +1,6 @@
+
+
+
 name: CI/CD Workflow
 run-name: ${{ github.actor }} testing GitHub Actions 🚀
 
@@ -42,32 +45,20 @@ jobs:
           done
           echo "Done"
 
-  check-out-repository-code:
-    needs: clean-up
-    runs-on: ubuntu-latest
-    steps:
-      - name: check-out-repository-code
-        uses: actions/checkout@v3
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: list-cloned-repository
-        run: |
-          ls -la ${{ github.workspace }}/*
-      - run: echo "🍏 This job's status is ${{ job.status }}."
-
   setup-main-app-dotnet:
-    needs: check-out-repository-code
-    runs-on: ubuntu-latest
-    steps:  
-      - name: setup-dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '7.0.x'
-      - name: list-files
-        run: ls -la "${{ github.workspace }}/Blazor SqlLite Golf Club/"
-      - name: install-project-dependencies
-        run: "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        
+    needs: clean-up
+    runs-on: ubuntu-latest    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+
   # Run Super-linter
   run-super-linter:
     needs: setup-main-app-dotnet
