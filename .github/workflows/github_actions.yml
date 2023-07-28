@@ -1,14 +1,29 @@
-﻿name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: CI/CD Workflow
+run-name: ${{ github.actor }} testing GitHub Actions 🚀
+
+on:
+  push:
+    branches: [ "main", "code-development", "code-production", "code-staging" ]
+    #branches: [ $default-branch ]
+
+# Environment variables accessible to all jobs
+env:
+  MSBUILDDIAGNOSTIC: true # DEBUG: Show detailed MSBuild output
+
 jobs:
-  Explore-GitHub-Actions:
+
+  report-usage:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
+      - run: echo "🎉 The job was automatically triggered by ${{ github.event_name }}"
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub."
+      - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}."
+      
+  check-out-repository-code:
+    needs: report-usage
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-out-repository-code
         uses: actions/checkout@v3
       - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
@@ -16,3 +31,57 @@ jobs:
         run: |
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
+
+  # Setup dotnet for main project
+  setup-main-dotnet:
+    runs-on: ubuntu-latest
+    needs: check-out-repository-code
+    steps:
+        - name: Setup .NET
+          uses: actions/setup-dotnet@v3
+          with:
+            dotnet-version: '7.0.x'
+        - name: Install project dependencies
+          run: dotnet restore "./Blazor-SqlLite-DevOps/'Blazor SqlLite Golf Club'/Blazor-SqlLite-Golf-Club.csproj"
+
+ # MSTest tests - StyleCop C# Linting for all environments
+  stylecop-linting:
+    runs-on: ubuntu-latest
+    needs: setup-main-dotnet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install MSTest dependencies
+        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+      - name: Run MSTest unit tests
+        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+
+  # Unit tests (XUnit and NUnit) - Run in code-development environment
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: stylecop-linting
+    environment:
+      name: development
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Nunit dependencies
+        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"   
+      - name: Install Xunit dependencies
+        run: dotnet restore "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
+      - name: Run XUnit and NUnit unit tests
+        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+
+  # Integration tests - Run in code-staging environment
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    environment:
+      name: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install MSTest dependencies
+        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+      - name: Run integration tests
+        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
