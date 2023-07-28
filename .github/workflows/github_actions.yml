@@ -4,7 +4,7 @@ run-name: ${{ github.actor }} using GitHub Actions 🚀
 
 on:
   push:
-    branches: ["code-development", "code-staging", "code-production"]
+    branches: ["main", "code-development", "code-production", "code-staging"]
 
 # Environment variables accessible to all jobs
 env:
@@ -26,20 +26,20 @@ jobs:
     
     steps:
     
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: checkout-repository
+        uses: actions/checkout@v2
         
-      - name: Install Nunit dependencies
-        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-        
-      - name: Install Xunit dependencies
-        run: dotnet restore "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
-        
-      - name: Run NUnit unit tests
-        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
-        
-      - name: Run XUnit unit tests
-        run: dotnet test "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+      - name: install-nunit-dependencies
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)"     
+    
+      - name: run-nUnit-unit-tests
+        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+    
+      - name: install-xunit-dependencies
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Xunit_Player_Unit_Tests.csproj" -print -quit)"
+    
+      - name: run-xUnit-unit-tests
+        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Xunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
 
   integration-tests:
   
@@ -51,11 +51,11 @@ jobs:
       name: staging
     steps:
     
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: checkout-repository
+        uses: actions/checkout@v2
         
-      - name: Install MSTest dependencies
-        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+      - name: install-MSTest-dependencies
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)"
         
-      - name: Run integration tests
-        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+      - name: run-integration-tests
+        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
