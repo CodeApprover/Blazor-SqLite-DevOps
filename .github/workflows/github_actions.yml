@@ -17,7 +17,7 @@ env:
 jobs:
 
   report-usage:
-    if: false # Disables job
+    if: false # Disables all jobs
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by ${{ github.event_name }}"
@@ -26,7 +26,6 @@ jobs:
       
   clean-up:
     needs: report-usage
-    if: false # Disables job
     runs-on: ubuntu-latest
     steps:
       - name: clean-up-nuget-cache
@@ -48,7 +47,6 @@ jobs:
           echo "Done"
           
   setup-main-app-dotnet:
-    if: false # Disables job
     needs: clean-up
     runs-on: ubuntu-latest    
     steps:
@@ -65,6 +63,7 @@ jobs:
       run: dotnet build --no-restore "$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
 
   run-super-linter:
+    if: true # Enables all jobs
     needs: setup-main-app-dotnet
     runs-on: ubuntu-latest
     steps:
