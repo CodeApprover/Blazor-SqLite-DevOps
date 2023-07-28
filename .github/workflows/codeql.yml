@@ -2,7 +2,18 @@
 
 on:
   push:
+<<<<<<< HEAD
     branches: ["main", "code-development", "code-production", "code-staging"]
+=======
+    branches:
+      - main
+      - code-development
+      - code-staging
+      - code-production
+  pull_request:
+    branches:
+      - main
+>>>>>>> 531edba1c198c1e7fd153e7fb392be35dcba1b05
   schedule:
     - cron: '29 20 * * 2'
 
@@ -19,7 +30,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+<<<<<<< HEAD
         language: [ 'csharp', 'javascript' ]
+=======
+        language: [ 'csharp' ]
+        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby', 'swift' ]
+        
+>>>>>>> 531edba1c198c1e7fd153e7fb392be35dcba1b05
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -28,11 +45,81 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 531edba1c198c1e7fd153e7fb392be35dcba1b05
     - name: Autobuild
       uses: github/codeql-action/autobuild@v2
 
+    # ℹ️ Command-line programs to run using the OS shell.
+    # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+
+    #   If the Autobuild fails above, remove it and uncomment the following three lines.
+    #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
+
+    # - run: |
+    #     echo "Run, Build Application using script"
+    #     ./location_of_script_within_repo/buildscript.sh
+    
+     # Verify Git configuration
+    - name: Verify Git Config
+      run: |
+        # REMOVE ME
+        echo "USER: ${{ secrets.USER }}"
+        echo "EMAIL: ${{ secrets.EMAIL }}"
+        echo "TOKEN: ${{ secrets.TOKEN }}"
+             
+        # Set the personal access token as an environment variable for git
+        export GH_TOKEN="${{ secrets.TOKEN }}"
+
+        # Configure Git with your GitHub username and email for the current repository
+        git config --local user.email "${{ secrets.USER }}"
+        git config --local user.name "${{ secrets.EMAIL }}"
+
+        # Unset the global credential helper if previously set
+        git config --global --unset credential.helper
+
+        # Set up the Git credential helper to use your personal access token only for the current repository
+        git config --local credential.helper store
+        git config user.email
+        git config user.name
+        git credential-cache exit
+        
+    # Perform CodeQL Analysis
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:
+<<<<<<< HEAD
         category: "/language:${{matrix.language}}"
+=======
+        category: "/language:${{matrix.language}}"
+    
+    # Save the CodeQL results zip to the repository
+    - name: Commit results to repository
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: |    
+        source_zip="/home/runner/work/_temp/codeql_databases/${{matrix.language}}.zip"
+        echo "${{github.ref}}"
+        
+        # Clone the repository to the runner
+        git clone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
+
+        # Switch to the target branch
+        cd Blazor-SqLite-DevOps
+        git checkout ${{github.ref}}
+
+        # Copy the results to the repository directory
+        mkdir -p results/codeql
+        cp "$source_zip" results/codeql/
+        
+        # Stage results for commit.
+        git add .
+
+        # Commit your changes with a message
+        git commit -m "Add CodeQL results for ${{matrix.language}} [skip ci]"  # skip CI/CD pipelines
+
+        # Push your changes to the repository
+        git push origin "${{github.ref}}"  # Push to the branch that triggered the workflow
+>>>>>>> 531edba1c198c1e7fd153e7fb392be35dcba1b05
