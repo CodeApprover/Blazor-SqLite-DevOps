@@ -65,11 +65,11 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: list-files
-        run: ls ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
+        run: ls -la "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: install-project-dependencies
         #run: dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        #run: "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club.sln"
-        run: dotnet restore ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
+        run: "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        #run: dotnet restore ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
