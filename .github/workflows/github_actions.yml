@@ -52,8 +52,7 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: list-cloned-repository
         run: |
-          ls -la ${{ github.workspace }}/*/*
-          ls ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
+          ls -la ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
   setup-main-app-dotnet:
@@ -67,10 +66,8 @@ jobs:
       - name: list-files
         run: ls -la "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: install-project-dependencies
-        #run: dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         run: "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        #run: dotnet restore ".\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj"
-
+        
   # Run Super-linter
   run-super-linter:
     needs: setup-main-app-dotnet
