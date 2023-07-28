@@ -16,46 +16,42 @@ env:
 
 jobs:
 
-  unit-tests:
-  
+  nunit-tests:
     runs-on: ubuntu-latest
-    
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     environment:
       name: development
-    
     steps:
-    
       - name: checkout-repository
         uses: actions/checkout@v2
-        
       - name: install-nunit-dependencies
-        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)"     
-    
+        run: dotnet restore "$(find "${{ github.workspace }}/Nunit_Player_Unit_Tests/" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)"
       - name: run-nUnit-unit-tests
-        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
-    
+        run: dotnet test "$(find "${{ github.workspace }}/Nunit_Player_Unit_Tests/" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+
+  xunit-tests:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      name: development
+    steps:
+      - name: checkout-repository
+        uses: actions/checkout@v2
       - name: install-xunit-dependencies
-        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Xunit_Player_Unit_Tests.csproj" -print -quit)"
-    
+        run: dotnet restore dotnet restore "${{ github.workspace }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
       - name: run-xUnit-unit-tests
-        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Xunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test dotnet restore "${{ github.workspace }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
   integration-tests:
-  
     runs-on: ubuntu-latest
-    needs: unit-tests
-    
-    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'    
+    needs: nunit-tests
+    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     environment:
       name: staging
     steps:
-    
       - name: checkout-repository
         uses: actions/checkout@v2
-        
       - name: install-MSTest-dependencies
-        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)"
-        
+        run: dotnet restore "$(find "${{ github.workspace }}/MSTest_Integration_Tests/" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)"
       - name: run-integration-tests
-        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(find "${{ github.workspace }}/MSTest_Integration_Tests/" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
