@@ -55,15 +55,10 @@ jobs:
         dotnet-version: 7.0.x
     - name: List files in the repository
       run: ls -la ${{ github.workspace }}
-    - name: find-csproj-file
-      id: find-csproj
-      run: |
-        csproj_path=$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)
-        echo "CSPROJ FILE => ${{ steps.find-csproj.outputs.csproj_path }}"
     - name: restore-dependencies
-      run: dotnet restore "${{ steps.find-csproj.outputs.csproj_path }}"
-    - name: Build
-      run: dotnet build --no-restore "${{ steps.find-csproj.outputs.csproj_path }}"
+      run: dotnet restore "$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)"
+    - name: build-main-application
+      run: dotnet build --no-restore "$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)"
 
   run-super-linter:
     needs: setup-main-app-dotnet
