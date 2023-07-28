@@ -10,13 +10,14 @@ on:
 env:
   VALIDATE_ALL_CODEBASE: false
   MSBUILDDIAGNOSTIC: true # DEBUG
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   DEFAULT_BRANCH: ${{ github.ref }}
   GIT_DISCOVERY_ACROSS_FILESYSTEM: true
   
 jobs:
 
   report-usage:
+    if: false # Disables job
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by ${{ github.event_name }}"
@@ -25,6 +26,7 @@ jobs:
       
   clean-up:
     needs: report-usage
+    if: false # Disables job
     runs-on: ubuntu-latest
     steps:
       - name: clean-up-nuget-cache
@@ -44,7 +46,9 @@ jobs:
               gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
           done
           echo "Done"
+          
   setup-main-app-dotnet:
+    if: false # Disables job
     needs: clean-up
     runs-on: ubuntu-latest    
     steps:
