@@ -52,7 +52,7 @@ jobs:
       - run: echo "🖥️ The workflow is now ready to test your code on the runner."
       - name: list-cloned-repository
         run: |
-          ls ${{ github.workspace }}/Blazor-SqlLite Golf Club/
+          ls -la ${{ github.workspace }}/*/*
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
   setup-main-app-dotnet:
