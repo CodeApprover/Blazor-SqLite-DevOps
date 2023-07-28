@@ -56,9 +56,9 @@ jobs:
     - name: List files in the repository
       run: ls -la ${{ github.workspace }}
     - name: restore-dependencies
-      run: dotnet restore "$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)"
+      run: dotnet restore "$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
     - name: build-main-application
-      run: dotnet build --no-restore "$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)"
+      run: dotnet build --no-restore "$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
 
   run-super-linter:
     needs: setup-main-app-dotnet
