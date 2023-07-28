@@ -9,6 +9,7 @@ on:
 # Environment variables accessible to all jobs
 env:
   MSBUILDDIAGNOSTIC: true # DEBUG: Show detailed MSBuild output
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
 
@@ -23,14 +24,16 @@ jobs:
     needs: report-usage
     runs-on: ubuntu-latest
     steps:
-      - name: clean-up
+      - name: clean-up-nuget-cache
+        run: dotnet nuget locals all --clear
+      - name: clean-up-github-actions-cache
         run: |
-          dotnet nuget locals all --clear
-          gh extension install actions/gh-actions-cache       
+          gh extension install actions/gh-actions-cache
           REPO=${{ github.repository }}
           BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
           echo "Fetching list of cache key"
           cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
+          ## Setting this to not fail the workflow while deleting cache keys. 
           set +e
           echo "Deleting caches..."
           for cacheKey in $cacheKeysForPR
@@ -38,9 +41,7 @@ jobs:
               gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
           done
           echo "Done"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
   check-out-repository-code:
     needs: clean-up
     runs-on: ubuntu-latest
@@ -54,28 +55,24 @@ jobs:
           ls ${{ github.workspace }}/*
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
-  # Setup dotnet for main project
-  setup-main-dotnet:
+  setup-main-app-dotnet:
     needs: check-out-repository-code
     runs-on: ubuntu-latest
     steps:
-      - name: Setup .NET
+      - name: setup-dotnet
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: list files in cloned repository
+      - name: list-cloned-repository
         run: |
-          echo
-          ls /home/runner/work/Blazor-SqLite-DevOps/
-          echo
           ls ${{ github.workspace }}/*
-          echo
+          ls /home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/
       - name: Install project dependencies
         #run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
-    needs: setup-main-dotnet
+    needs: setup-main-app-dotnet
     runs-on: ubuntu-latest
     steps:
       - name: Lint Code Base
