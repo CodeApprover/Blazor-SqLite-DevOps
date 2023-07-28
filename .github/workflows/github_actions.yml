@@ -59,6 +59,7 @@ jobs:
         id: find-csproj
         run: |
           csproj_path=$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+          echo "::set-output name=csproj_path::$csproj_path"
           echo "CS_PROJ_PATH=${{ csproj_path }}" >> $GITHUB_ENV
           echo "MAIN_PATH=$(dirname "${{ csproj_path }}")" >> $GITHUB_ENV
       - name: restore-dependencies
