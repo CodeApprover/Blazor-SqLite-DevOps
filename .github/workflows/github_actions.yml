@@ -13,16 +13,15 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   DEFAULT_BRANCH: ${{ github.ref }}
   GIT_DISCOVERY_ACROSS_FILESYSTEM: true
-  
-jobs:
 
+jobs:
   report-usage:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by ${{ github.event_name }}"
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub."
       - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}."
-      
+
   clean-up:
     needs: report-usage
     runs-on: ubuntu-latest
@@ -35,36 +34,37 @@ jobs:
           REPO=${{ github.repository }}
           BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
           echo "Fetching list of cache key"
-          cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
-          ## Setting this to not fail the workflow while deleting cache keys. 
+          cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1)
+          ## Setting this to not fail the workflow while deleting cache keys.
           set +e
           echo "Deleting caches..."
           for cacheKey in $cacheKeysForPR
           do
-              gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
+            gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
           done
           echo "Done"
+
   setup-main-app-dotnet:
     needs: clean-up
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: setup-dotnet
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 7.0.x
-    - name: List files in the repository
-      run: ls -la ${{ github.workspace }}
-    - name: find-csproj-file
-      id: find-csproj
-      run: |
-        csproj_path=$(find /home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps -type f -name "*.csproj" -print -quit)
-        echo "CS_PROJ_PATH=${{ csproj_path }}" >> $GITHUB_ENV
-        echo "MAIN_PATH=$(dirname "${{ csproj_path }}")"
-    - name: restore-dependencies
-      run: dotnet restore "${{ env.CS_PROJ_PATH }}"
-    - name: Build
-      run: dotnet build --no-restore "${{ env.CS_PROJ_PATH }}"
+      - uses: actions/checkout@v3
+      - name: setup-dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0.x
+      - name: List files in the repository
+        run: ls -la "${{ github.workspace }}/*"
+      - name: find-csproj-file
+        id: find-csproj
+        run: |
+          csproj_path=$(find ${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqLite-Golf-Club -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+          echo "CS_PROJ_PATH=${csproj_path}" >> $GITHUB_ENV
+          echo "MAIN_PATH=$(dirname "${csproj_path}")" >> $GITHUB_ENV
+      - name: restore-dependencies
+        run: dotnet restore "${{ env.CS_PROJ_PATH }}"
+      - name: Build
+        run: dotnet build --no-restore "${{ env.CS_PROJ_PATH }}"
 
   run-super-linter:
     needs: setup-main-app-dotnet
@@ -98,7 +98,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "${{ env.MAIN_PATH }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"   
+        run: dotnet restore "${{ env.MAIN_PATH }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Install Xunit dependencies
         run: dotnet restore "${{ env.MAIN_PATH }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
       - name: Run XUnit and NUnit unit tests
@@ -116,4 +116,3 @@ jobs:
         run: dotnet restore "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run integration tests
         run: dotnet test "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
-        
