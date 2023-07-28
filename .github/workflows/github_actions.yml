@@ -31,6 +31,31 @@ jobs:
         run: |
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
+      
+  clean-up:
+    needs: report-usage
+    runs-on: ubuntu-latest
+    steps:
+      - name: clean-up
+        run: |
+          gh extension install actions/gh-actions-cache
+          
+          REPO=${{ github.repository }}
+          BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
+
+          echo "Fetching list of cache key"
+          cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH -L 100 | cut -f 1 )
+
+          ## Setting this to not fail the workflow while deleting cache keys. 
+          set +e
+          echo "Deleting caches..."
+          for cacheKey in $cacheKeysForPR
+          do
+              gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
+          done
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Setup dotnet for main project
   setup-main-dotnet:
@@ -42,7 +67,7 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Install project dependencies
-        run: dotnet restore "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor-SqlLite-Golf-Club.csproj"
+        run: dotnet restore "./Blazor-SqLite-DevOps/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
