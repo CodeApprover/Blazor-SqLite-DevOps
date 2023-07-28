@@ -27,24 +27,24 @@ jobs:
     needs: report-usage
     runs-on: ubuntu-latest
     steps:
-    
       - name: clean-up-nuget-cache
         run: dotnet nuget locals all --clear
-        
+
       - name: Install gh-actions-cache extension
         run: gh extension install actions/gh-actions-cache
-        
+
       - name: set-github-cache-variables
         run: |
+          local REPO
+          local BRANCH
+          local cacheKeysForPR
           REPO="${{ github.repository }}"
           BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
-          export cacheKeysForPR=$(gh actions-cache list -R "$REPO" -B "$BRANCH" -L 100 | cut -f 1)
-          set +e
-          
-      - name: delete-github-caches
-        run: |
-          REPO="${{ github.repository }}"
-          BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
+          cacheKeysForPR=$(gh actions-cache list -R "$REPO" -B "$BRANCH" -L 100 | cut -f 1)
+          echo "REPO=$REPO" >> $GITHUB_ENV
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          echo "cacheKeysForPR=$cacheKeysForPR" >> $GITHUB_ENV
+          set +e|
           for cacheKey in $cacheKeysForPR; do
             gh actions-cache delete "$cacheKey" -R "$REPO" -B "$BRANCH" --confirm
           done
