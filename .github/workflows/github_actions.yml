@@ -60,8 +60,6 @@ jobs:
       run: |
         csproj_path=$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)
         echo "CSPROJ FILE => ${{ steps.find-csproj.outputs.csproj_path }}"
-        echo "CS_PROJ_PATH=${{ csproj_path }}" >> $GITHUB_ENV
-        echo "MAIN_PATH=$(dirname "${{ csproj_path }}")" >> $GITHUB_ENV
     - name: restore-dependencies
       run: dotnet restore "${{ steps.find-csproj.outputs.csproj_path }}"
     - name: Build
