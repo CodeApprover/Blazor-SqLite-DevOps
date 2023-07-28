@@ -43,6 +43,8 @@ jobs:
           
       - name: delete-github-caches
         run: |
+          REPO="${{ github.repository }}"
+          BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
           for cacheKey in $cacheKeysForPR; do
             gh actions-cache delete "$cacheKey" -R "$REPO" -B "$BRANCH" --confirm
           done
