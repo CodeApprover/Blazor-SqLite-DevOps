@@ -38,9 +38,9 @@ jobs:
       - name: checkout-repository
         uses: actions/checkout@v2
       - name: install-xunit-dependencies
-        run: dotnet restore "${{ github.workspace }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "${{ github.workspace }}/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: run-xUnit-unit-tests
-        run: dotnet test "${{ github.workspace }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ github.workspace }}/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
   integration-tests:
     runs-on: ubuntu-latest
