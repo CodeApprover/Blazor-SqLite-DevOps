@@ -1,6 +1,6 @@
 ---
 name: CI/CD Workflow
-run-name: ${{ github.actor }} using GitHub Actions 🚀
+run-name: "${{ github.actor }}" using GitHub Actions 🚀
 
 on:
   push:
@@ -9,13 +9,12 @@ on:
 # Environment variables accessible to all jobs
 env:
   VALIDATE_ALL_CODEBASE: false
-  MSBUILDDIAGNOSTIC: true # DEBUG
+  MSBUILDDIAGNOSTIC: "true" # DEBUG
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  DEFAULT_BRANCH: ${{ github.ref }}
+  DEFAULT_BRANCH: "${{ github.ref }}"
   GIT_DISCOVERY_ACROSS_FILESYSTEM: true
 
 jobs:
-
   report-usage:
     runs-on: ubuntu-latest
     steps:
@@ -41,7 +40,7 @@ jobs:
           echo "Deleting caches..."
           for cacheKey in "$cacheKeysForPR"
           do
-              gh actions-cache delete $cacheKey -R "$REPO" -B "$BRANCH" --confirm
+              gh actions-cache delete "$cacheKey" -R "$REPO" -B "$BRANCH" --confirm
           done
           echo "Done"
 
@@ -55,11 +54,11 @@ jobs:
         with:
           dotnet-version: 7.0.x
       - name: List files in the repository
-        run: ls -la ${{ github.workspace }}
+        run: ls -la "${{ github.workspace }}"
       - name: restore-dependencies
-        run: dotnet restore "$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
       - name: build-main-application
-        run: dotnet build --no-restore "$(find ${{ github.workspace }} -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+        run: dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
 
   run-super-linter:
     needs: setup-main-app-dotnet
