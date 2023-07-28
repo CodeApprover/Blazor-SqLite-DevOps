@@ -40,9 +40,8 @@ jobs:
             local BRANCH
             local cacheKeysForPR
             REPO="CodeApprover/Blazor-SqLite-DevOps"
-            BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
+            BRANCH="refs/pull/$github.event.pull_request.number/merge"
             cacheKeysForPR=$(gh actions-cache list -R "$REPO" -B "$BRANCH" -L 100 | cut -f 1)
-            echo "cacheKeysForPR=$cacheKeysForPR" >> $GITHUB_ENV
             set +e
             for cacheKey in $cacheKeysForPR; do
               gh actions-cache delete "$cacheKey" -R "$REPO" -B "$BRANCH" --confirm
