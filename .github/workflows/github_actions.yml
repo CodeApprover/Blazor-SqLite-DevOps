@@ -63,8 +63,6 @@ jobs:
         run: |
           ls /home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps
           ls "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-/Blazor SqlLite Golf Club.csproj
-
       - name: setup-dotnet
         uses: actions/setup-dotnet@v3
         with:
