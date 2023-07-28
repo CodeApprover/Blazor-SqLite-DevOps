@@ -64,7 +64,7 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: install-project-dependencies
-        run: dotnet restore "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore "${{ github.workspace }}/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
