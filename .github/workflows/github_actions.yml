@@ -1,11 +1,6 @@
 name: CI/CD Workflow
 
 on:
-  #workflow_run:
-    #workflows: ["CodeQL"]
-    #branches: [ "main", "code-development", "code-production", "code-staging" ]
-    #types:
-      #- completed
   push:
     branches: [ "main", "code-development", "code-production", "code-staging" ]
 
@@ -28,7 +23,7 @@ jobs:
           dotnet-version: '7.0.x'
 
       - name: Install project dependencies
-        run: dotnet restore "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor-SqlLite-Golf-Club.csproj"
+        run: dotnet restore "./Blazor-SqlLite-DevOps/'Blazor SqlLite Golf Club'/Blazor-SqlLite-Golf-Club.csproj"
         
   # MSTest tests - StyleCop C# Linting
   stylecop-linting:
@@ -42,10 +37,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install MSTest dependencies
-        run: dotnet restore "./MSTest_Player_Unit_Tests/MSTest_Player_Unit_Tests.csproj"
+        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
 
       - name: Run MSTest unit tests
-        run: dotnet test "./MSTest_Player_Unit_Tests/MSTest_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
   # Unit tests (XUnit and NUnit) - Run in code-development environment
   unit-tests:
