@@ -54,7 +54,7 @@ jobs:
         with:
           dotnet-version: 7.0.x
       - name: List files in the repository
-        run: ls -la "${{ github.workspace }}/*"
+        run: ls -la "${{ github.workspace }}"
       - name: find-csproj-file
         id: find-csproj
         run: |
