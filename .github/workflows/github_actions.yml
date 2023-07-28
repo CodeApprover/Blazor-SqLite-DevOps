@@ -61,7 +61,7 @@ jobs:
     steps:  
       - name: list-cloned-repository
         run: |
-          ls -la /home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/*
+          ls -la /home/runner/work/Blazor-SqLite-DevOps/*
       - name: setup-dotnet
         uses: actions/setup-dotnet@v3
         with:
