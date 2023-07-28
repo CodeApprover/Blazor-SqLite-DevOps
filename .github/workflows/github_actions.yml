@@ -64,9 +64,7 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: list-files
-        run: ls "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps"
-      - name: echo-path
-        run: echo "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: ls "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: install-project-dependencies
         run: dotnet restore "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
