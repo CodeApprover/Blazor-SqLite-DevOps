@@ -2,7 +2,7 @@ name: CI/CD Workflow
 
 on:
   workflow_run:
-    workflows: ["CodeQL"]
+    #workflows: ["CodeQL"]
     branches: [ "main", "code-development", "code-production", "code-staging" ]
     types:
       - completed
