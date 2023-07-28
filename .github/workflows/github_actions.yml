@@ -62,9 +62,9 @@ jobs:
         echo "CS_PROJ_PATH=${{ csproj_path }}" >> $GITHUB_ENV
         echo "MAIN_PATH=$(dirname "${{ csproj_path }}")"
     - name: restore-dependencies
-      run: dotnet restore "${{ CS_PROJ_PATH }}"
+      run: dotnet restore "${{ env.CS_PROJ_PATH }}"
     - name: Build
-      run: dotnet build --no-restore "${{ CS_PROJ_PATH }}"
+      run: dotnet build --no-restore "${{ env.CS_PROJ_PATH }}"
 
   run-super-linter:
     needs: setup-main-app-dotnet
@@ -85,9 +85,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install MSTest dependencies
-        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run MSTest unit tests
-        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -98,11 +98,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"   
+        run: dotnet restore "${{ env.MAIN_PATH }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"   
       - name: Install Xunit dependencies
-        run: dotnet restore "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "${{ env.MAIN_PATH }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj"
       - name: Run XUnit and NUnit unit tests
-        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" "./Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ env.MAIN_PATH }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" "${{ env.MAIN_PATH }}/Xunit_Player_Unit_Tests/Xunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install MSTest dependencies
-        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run integration tests
-        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ env.MAIN_PATH }}/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
         
