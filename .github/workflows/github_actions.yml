@@ -44,9 +44,6 @@ jobs:
       - name: Install project dependencies
         run: dotnet restore ./StyleCop_CSharp_Linting/StyleCop_CSharp_Linting.csproj
 
-      - name: Install StyleCop
-        run: dotnet tool install -g StyleCop.Analyzers
-
       - name: Lint with StyleCop
         run: dotnet stylecop
         
