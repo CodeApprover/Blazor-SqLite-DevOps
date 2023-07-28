@@ -37,14 +37,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: check-out-repository-code
     steps:
-        - name: Setup .NET
-          uses: actions/setup-dotnet@v3
-          with:
-            dotnet-version: '7.0.x'
-        - name: Install project dependencies
-          run: dotnet restore "./Blazor-SqlLite-DevOps/'Blazor SqlLite Golf Club'/Blazor-SqlLite-Golf-Club.csproj"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+      - name: Install project dependencies
+        run: dotnet restore "./Blazor-SqlLite-DevOps/'Blazor SqlLite Golf Club'/Blazor-SqlLite-Golf-Club.csproj"
 
- # MSTest tests - StyleCop C# Linting for all environments
+  # MSTest tests - StyleCop C# Linting for all environments
   stylecop-linting:
     runs-on: ubuntu-latest
     needs: setup-main-dotnet
