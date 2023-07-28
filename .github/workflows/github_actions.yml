@@ -27,7 +27,7 @@ jobs:
     steps:
     
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         
       - name: Install Nunit dependencies
         run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
@@ -52,7 +52,7 @@ jobs:
     steps:
     
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         
       - name: Install MSTest dependencies
         run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
