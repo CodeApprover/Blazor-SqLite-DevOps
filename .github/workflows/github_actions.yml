@@ -8,11 +8,12 @@ on:
 
 # Environment variables accessible to all jobs
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   VALIDATE_ALL_CODEBASE: false
-  GIT_DISCOVERY_ACROSS_FILESYSTEM: true
   MSBUILDDIAGNOSTIC: true # DEBUG
-
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  DEFAULT_BRANCH: ${{ github.ref }}
+  GIT_DISCOVERY_ACROSS_FILESYSTEM: true
+  
 jobs:
 
   report-usage:
@@ -43,34 +44,37 @@ jobs:
               gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
           done
           echo "Done"
-
   setup-main-app-dotnet:
     needs: clean-up
     runs-on: ubuntu-latest    
     steps:
     - uses: actions/checkout@v3
-    - name: Setup .NET
+    - name: setup-dotnet
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
     - name: List files in the repository
-      run: ls -la ${{ github.workspace }}/*
+      run: ls -la ${{ github.workspace }}
     - name: find-csproj-file
       id: find-csproj
       run: |
         csproj_path=$(find ${{ github.workspace }} -type f -name "*.csproj" -print -quit)
-        echo "csproj_path=$csproj_path" >> $GITHUB_ENV
+        echo "::set-output name=csproj_path::$csproj_path"
     - name: restore-dependencies
-      run: dotnet restore $csproj_path
+      run: dotnet restore "${{ steps.find-csproj.outputs.csproj_path }}"
     - name: Build
-      run: dotnet build --no-restore "${{ csproj_path }}"
+      run: dotnet build --no-restore "${{ steps.find-csproj.outputs.csproj_path }}"
 
   run-super-linter:
     needs: setup-main-app-dotnet
     runs-on: ubuntu-latest
     steps:
-      - name: super-lint-code-base
+      - name: Lint Code Base
         uses: github/super-linter@v4
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   stylecop-linting:
     runs-on: ubuntu-latest
