@@ -1,11 +1,13 @@
 name: CI/CD Workflow
 
 on:
-  workflow_run:
+  #workflow_run:
     #workflows: ["CodeQL"]
+    #branches: [ "main", "code-development", "code-production", "code-staging" ]
+    #types:
+      #- completed
+  push:
     branches: [ "main", "code-development", "code-production", "code-staging" ]
-    types:
-      - completed
 
 # Environment variables accessible to all jobs
 env:
