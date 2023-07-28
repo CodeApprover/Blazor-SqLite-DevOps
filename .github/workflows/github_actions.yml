@@ -68,9 +68,9 @@ jobs:
           dotnet-version: '7.0.x'
       - name: List files in the repository
         run: |
-          ls "${{ github.workspace }}/Blazor-SqLite-DevOps/Blazor SqlLite Golf Club"
+          ls /home/runner/work/
       - name: Install project dependencies
-        run: dotnet restore "./Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/Blazor-SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   # Run Super-linter
   run-super-linter:
