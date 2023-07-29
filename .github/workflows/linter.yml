@@ -4,8 +4,11 @@ run-name: "Linting ${{ github.event.head_commit.message }}"
 
 on:
   push:
-    branches: ["code-development", "code-production", "code-staging"]
-    paths-ignore: [".github/workflows/*"]
+    branches-ignore:
+      - "main"
+
+#    branches: ["code-development", "code-production", "code-staging"]
+#    paths-ignore: [".github/workflows/*"]
 #    branches-ignore: ["main"]
 #    branches: [ "do-not-trigger" ]
 #  schedule:
