@@ -3,10 +3,12 @@
   run-name: "${{ github.actor }} is using GitHub Actions 🚀"
 
   on:
-    workflow_run:
-      workflows: ["CodeQL", "main"]
-      types:
-        - completed
+    push:
+      branches: [ "do-not-trigger" ]
+#    workflow_run:
+#      workflows: ["CodeQL"]
+#      types:
+#        - completed
 
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
