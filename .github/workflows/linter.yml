@@ -5,141 +5,114 @@ on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
-#    branches-ignore: ["main"]
-#    
-#    paths-ignore: [".github/workflows/*"]
-#    branches-ignore: ["main"]
-#    branches: [ "do-not-trigger" ]
-#  schedule:
-#    - cron: '29 20 * * 2'
-
-env:
-    DEFAULT_BRANCH: ${{ github.ref }}
-    GITHUB_TOKEN: ${{ secrets.TOKEN }}
-
 jobs:
-
+  ##############################################################################################################
+  # Report usage
+  ##############################################################################################################
+  report:
+    name: 1. Report
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 Job triggered by a ${{ github.event_name }}"
+      - run: echo "🐧 Running ${{ runner.os }} server on GitHub Actions."
+      - run: echo "🔎 Branch ${{ github.ref }}. Repository ${{ github.repository }}"
 
 ##############################################################################################################
-# Report usage
+# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
 ##############################################################################################################
-
-  report-usage:
-      runs-on: ubuntu-latest
-      steps:
-        - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
-        - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
-        - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}"
-
-
+  stylecop-linting:
+    name: 2. StyleCop Linting
+    runs-on: ubuntu-latest
+    needs: report
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0.x
+      - name: Restore Dependencies
+        run: |
+          dotnet restore --no-cache "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: StyleCop dotnet build
+        run: |
+          dotnet build --no-restore /p:StyleCopEnabled=true "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
 ##############################################################################################################
 # Run CodeQL Linter - https://github.com/github/codeql.
-# Auto-read languages API for main repository.
 # Set CodeQL supported languages.
 # Checkout code-base.
-# Lint code0vase.
+# Lint code-base.
 # Generate PDF report.
 ##############################################################################################################
-  
-  set-codeql-languages:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.languages }}
-    steps:
-      - name: Get languages from repo
-        id: set-matrix
-        uses: advanced-security/set-codeql-language-matrix@v1.1.0
-        with:
-          access-token: ${{ secrets.GITHUB_TOKEN }}
-          endpoint: ${{ github.event.repository.languages_url }}
-
   analyze:
-    needs: set-codeql-languages
-    if: ${{ needs.create-matrix.outputs.matrix != '[]' }}
-    name: Analyze
-    runs-on: ubuntu-latest
+    name: 3. CodeQL Analysis
+    needs: stylecop-linting
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
       actions: read
       contents: read
       security-events: write
     strategy:
       fail-fast: false
-      matrix: 
-        language: ${{ fromJSON(needs.create-matrix.outputs.matrix) }}
- 
+      matrix:
+        language: ['csharp']
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    # Initialise CodeQL tools for scanning
-    - name: Initialise CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
- 
-    # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
-
-    # CodeQL and Dependabot PDF Report
-    # https://github.com/marketplace/actions/codeql-and-dependabot-report-action
-    - name: Generate Security Report
-      uses: rsdmike/github-security-report-action@v3.0.4
-      with:
-        token: ${{ GITHUB_TOKEN }}
-
-
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
 
 ##############################################################################################################
-  # Run SuperLinter - https://github.com/marketplace/actions/super-linter
+# Run SuperLinter - https://github.com/marketplace/actions/super-linter
 ##############################################################################################################
-
   super-linter:
+    name: 4. Super Linter
     needs: analyze
     runs-on: ubuntu-latest
-
     steps:
-      - name: superlint-checkout-code
+      - name: Superlint checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: lint-code-base
-        #uses: github/super-linter@v4
+      - name: Lint code-base
         uses: super-linter/super-linter@v5
         env:
           VALIDATE_ALL_CODEBASE: false
-
-
+          DEFAULT_BRANCH: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
 ##############################################################################################################
-# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+# Run SuperLinter - https://github.com/marketplace/actions/super-linter
 ##############################################################################################################
+  development-environment-unit-tests:
+    needs: super-linter
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      name: development
 
-  stylecop-linting:
-      runs-on: ubuntu-latest
-      needs: super-linter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
-          
-        - name: Setup .NET environment
-          uses: actions/setup-dotnet@v3
-          with:
-            dotnet-version: 7.0.x
+      - name: Install Nunit dependencies
+        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
 
-        - name: Restore dependencies
-          run: dotnet restore
+      - name: Run NUnit unit tests
+        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
-        - name: Install StyleCop.MSBuild
-          run: dotnet add package StyleCop.MSBuild --version 6.2.0
+      - name: Install Xunit dependencies
+        run: dotnet restore "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
 
-        - name: Run StyleCop analysis
-          run: dotnet build /p:StyleCopEnabled=true
+      - name: Run XUnit unit tests
+        run: dotnet test "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
