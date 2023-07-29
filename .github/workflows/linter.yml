@@ -90,3 +90,29 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+
+##############################################################################################################
+# Run SuperLinter - https://github.com/marketplace/actions/super-linter
+##############################################################################################################
+  development-environment-unit-tests:
+    needs: super-linter
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      name: development
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Nunit dependencies
+        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+
+      - name: Run NUnit unit tests
+        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+
+      - name: Install Xunit dependencies
+        run: dotnet restore "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+
+      - name: Run XUnit unit tests
+        run: dotnet test "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
