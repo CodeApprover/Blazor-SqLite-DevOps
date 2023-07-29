@@ -33,10 +33,10 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+          dotnet restore --no-cache "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) /p:StyleCopEnabled=true
+          dotnet build --no-restore /p:StyleCopEnabled=true "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
 ##############################################################################################################
 # Run CodeQL Linter - https://github.com/github/codeql.
