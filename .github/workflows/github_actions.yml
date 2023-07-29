@@ -1,12 +1,10 @@
 ﻿---
 name: CI/CD Workflow
-run-name: ${{ github.actor }} using GitHub Actions 🚀
+run-name: "${{ github.actor }} is using GitHub Actions 🚀"
 
 on:
-  workflow_run:
-    workflows: ["Workflow 1"]
-    types:
-      - completed
+  push:
+    branches: ["code-development", "code-staging", "code-production"]
 
 env:
   VALIDATE_ALL_CODEBASE: false
@@ -24,7 +22,7 @@ jobs:
 
     steps:
     
-      - run: echo "🎉 The job was automatically triggered by ${{ github.event_name }}"
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub."
       - run: "echo '🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}.'"
 
@@ -119,7 +117,6 @@ jobs:
   # development-environment-unit-tests
   development-environment-unit-tests:
     runs-on: ubuntu-latest
-    needs: stylecop-linting
     if: (startsWith(github.ref, 'refs/heads/code-development')) && github.event_name == 'push'
     environment:
       name: development
@@ -129,17 +126,11 @@ jobs:
       - name: checkout-repository
         uses: actions/checkout@v3
 
-      - name: install-xunit-dependencies
-        run: dotnet restore "${{ github.workspace }}/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+      - name: install-xunit-or-mstest-dependencies
+        run: dotnet restore "${{ github.workspace }}/${{ startsWith(github.ref, 'refs/heads/code-development') && 'Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj' || 'MSTest_Integration_Tests/MSTest_Integration_Tests.csproj' }}"
 
-      - name: run-xUnit-integration-tests
-        run: dotnet test "${{ github.workspace }}/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
-
-      - name: install-nunit-dependencies
-        run: dotnet restore "${{ github.workspace }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-
-      - name: run-nUnit-integration-tests
-        run: dotnet test "${{ github.workspace }}/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
+      - name: run-xUnit-or-integration-tests
+        run: dotnet test "${{ github.workspace }}/${{ startsWith(github.ref, 'refs/heads/code-development') && 'Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj' || 'MSTest_Integration_Tests/MSTest_Integration_Tests.csproj' }}" --no-restore --logger:"console;verbosity=detailed"
 
 
   # staging-environment-integration-tests
