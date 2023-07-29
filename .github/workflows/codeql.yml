@@ -1,5 +1,6 @@
 ---
 name: "CodeQL"
+run-name: "CodeQL => ${{ github.event.head_commit.message }}"
 # https://github.com/github/codeql-action
 
 on:
