@@ -9,7 +9,8 @@ jobs:
   ##############################################################################################################
   # Report usage
   ##############################################################################################################
-  Report:
+  report:
+    name: Report
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 Job triggered by a ${{ github.event_name }}"
@@ -24,8 +25,8 @@ jobs:
   # Generate PDF report.
   ##############################################################################################################
   analyze:
-    name: Analyze
-    needs: Report
+    name: CodeQL Analysis
+    needs: report
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
@@ -54,6 +55,7 @@ jobs:
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
   ##############################################################################################################
   super-linter:
+    name: SupperLinter
     needs: analyze
     runs-on: ubuntu-latest
     steps:
@@ -92,18 +94,8 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
-      - name: Restore dependencies
-        run: dotnet restore --no-cache
-      - name: Install StyleCop.MSBuild
-        run: dotnet add package StyleCop.MSBuild --version 6.2.0
-      - name: Run StyleCop analysis
+      - name: Run StyleCop enabled dotnet build
         run: |
-          # Find the project file (Blazor SqlLite Golf Club.csproj) in the repository
           project_file=$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
-          # Ensure the project file exists before running StyleCop
-          if [ -f "$project_file" ]; then
-            dotnet build "$project_file" /p:StyleCopEnabled=true
-          else
-            echo "Project file not found: Blazor SqlLite Golf Club.csproj"
-            exit 1
-          fi
+          run: dotnet restore --no-cache "${{ project_file }}"
+          dotnet build --no-restore "${{ project_file }}" /p:StyleCopEnabled=true
