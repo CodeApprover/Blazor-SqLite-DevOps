@@ -13,10 +13,6 @@ on:
 #  schedule:
 #    - cron: '29 20 * * 2'
 
-env:
-    DEFAULT_BRANCH: ${{ github.ref }}
-    GITHUB_TOKEN: ${{ secrets.TOKEN }}
-
 jobs:
 
 
@@ -92,7 +88,7 @@ jobs:
     - name: Generate Security Report
       uses: rsdmike/github-security-report-action@v3.0.4
       with:
-        token: ${{ GITHUB_TOKEN }}
+        token: ${{ secrets.TOKEN }}
 
 
 
@@ -115,6 +111,8 @@ jobs:
         uses: super-linter/super-linter@v5
         env:
           VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
 
 
