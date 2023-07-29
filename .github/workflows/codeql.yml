@@ -5,8 +5,8 @@ run-name: "CodeQL => ${{ github.event.head_commit.message }}"
 
 on:
   push:
-    branches: ["code-development", "code-production", "code-staging", "main" ]
-    #branches: [ "do-not-trigger" ]
+#    branches: ["code-development", "code-production", "code-staging", "main" ]
+    branches: [ "do-not-trigger" ]
   #schedule:
     #- cron: '29 20 * * 2'
 
