@@ -8,13 +8,8 @@
       types:
         - completed
 
-
   env:
-    VALIDATE_ALL_CODEBASE: false
-    MSBUILDDIAGNOSTIC: "true" # DEBUG
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    DEFAULT_BRANCH: "${{ github.ref }}"
-    GIT_DISCOVERY_ACROSS_FILESYSTEM: true
 
   jobs:
 
