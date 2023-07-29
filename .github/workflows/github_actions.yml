@@ -149,8 +149,7 @@
 
 
     # staging-environment-integration-tests
-    staging-environment-integration-tests:
-    
+    staging-environment-integration-tests:    
       runs-on: ubuntu-latest
       needs: development
       
