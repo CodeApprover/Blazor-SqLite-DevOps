@@ -1,18 +1,18 @@
-# Ignore this .ignore to allow each branch an unique .gitignore
-/.gitignore
 
-# Ignore code-development .gitignore
+# Ignore this .ignore to allow each branch an unique .gitignore
 /.github/workflows/.gitignore
+
+# Ignore unnecessary files
+/.vscode/
+/Blazor-SqlLite-DevOps/.vs/
+/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
+
+# Ignore html help-dir
+/Html/
 
 # Ignore Visual Studio Code settings directory
 /.vscode/
 /Blazor-SqlLite-DevOps/.vs/
-
-# Ignore Visual Studio solution user options file
-/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
-
-# Ignore html help-file directory at the root of the repository
-/Html/
 
 # Ignore all database-related files
 /Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
@@ -23,14 +23,12 @@
 # Ignore bin and obj directories
 /Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
 /Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/MSTest_Integration_Tests/bin/
-/MSTest_Integration_Tests/obj/
-/Nunit_Player_Unit_Tests/bin/
-/Nunit_Player_Unit_Tests/obj/
-/StyleCop_CSharp_Linting/bin/
-/StyleCop_CSharp_Linting/obj/
-/Xunit_Game_Unit_Tests/bin/
-/Xunit_Game_Unit_Tests/obj/
+
+# Ignore code testing directories
+/Xunit_Game_Unit_Tests/
+/Nunit_Player_Unit_Tests/
+/MSTest_Integration_Tests/
+/StyleCop_CSharp_Linting/
 
 # Ignore files inside "Blazor SqlLite Golf Club"
 /Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/libman.json
