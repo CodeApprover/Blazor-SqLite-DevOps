@@ -1,5 +1,6 @@
 ---
 name: "CodeQL"
+run-name: "CodeQL => ${{ github.event.head_commit.message }}"
 # https://github.com/github/codeql-action
 
 on:
@@ -10,6 +11,16 @@ on:
     #- cron: '29 20 * * 2'
 
 jobs:
+
+  # report-usage
+  report-usage:
+      runs-on: ubuntu-latest
+
+      steps:
+        - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
+        - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
+        - run: "echo '🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}.'"
+
   analyse:
     name: codeql-analyse-code-base
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
@@ -25,27 +36,18 @@ jobs:
         language: [ 'csharp', 'javascript' ]
 
     steps:
-    - name: Checkout repository
+    - name: checkout-repository
       uses: actions/checkout@v3
 
-    - name: Initialize CodeQL
+    - name: initialise-CodeQL
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
-    - name: Autobuild
+    - name: autobuild
       uses: github/codeql-action/autobuild@v2
 
-    - name: Perform CodeQL Analysis
+    - name: perform-CodeQL-analysis
       uses: github/codeql-action/analyze@v2
       with:
         category: "/language:${{matrix.language}}"
-
-    - name: Save commit message to a file
-      run: echo "${{ github.event.head_commit.message }}" > commit_message
-
-    - name: Upload commit message artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: commit-message-artifact
-        path: commit_message
