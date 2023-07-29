@@ -17,13 +17,31 @@ jobs:
       - run: echo "🐧 Running ${{ runner.os }} server on GitHub Actions."
       - run: echo "🔎 Branch ${{ github.ref }}. Repository ${{ github.repository }}"
 
-  ##############################################################################################################
-  # Run CodeQL Linter - https://github.com/github/codeql.
-  # Set CodeQL supported languages.
-  # Checkout code-base.
-  # Lint code-base.
-  # Generate PDF report.
-  ##############################################################################################################
+##############################################################################################################
+# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+##############################################################################################################
+  stylecop-linting:
+    runs-on: ubuntu-latest
+    needs: super-linter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0.x
+      - name: Run StyleCop enabled dotnet build
+        run: |
+          dotnet restore --no-cache $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+          dotnet build --no-restore $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) /p:StyleCopEnabled=true
+
+##############################################################################################################
+# Run CodeQL Linter - https://github.com/github/codeql.
+# Set CodeQL supported languages.
+# Checkout code-base.
+# Lint code-base.
+# Generate PDF report.
+##############################################################################################################
   analyze:
     name: CodeQL Analysis
     needs: report
@@ -51,9 +69,9 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
-  ##############################################################################################################
-  # Run SuperLinter - https://github.com/marketplace/actions/super-linter
-  ##############################################################################################################
+##############################################################################################################
+# Run SuperLinter - https://github.com/marketplace/actions/super-linter
+##############################################################################################################
   super-linter:
     name: SupperLinter
     needs: analyze
@@ -69,32 +87,3 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
-  
-################################################################################################################
-# Clear nuget package cache for clean install
-################################################################################################################
-  clean-up:
-    name: Clean up Nuget
-    needs: super-linter
-    runs-on: ubuntu-latest
-    steps:
-      - name: clean-up-nuget-cache
-        run: dotnet nuget locals all --clear  
-
-##############################################################################################################
-# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-##############################################################################################################
-  stylecop-linting:
-    runs-on: ubuntu-latest
-    needs: super-linter
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 7.0.x
-      - name: Run StyleCop enabled dotnet build
-        run: |
-          dotnet restore --no-cache $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
-          dotnet build --no-restore $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) /p:StyleCopEnabled=true
