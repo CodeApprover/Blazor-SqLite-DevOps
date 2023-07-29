@@ -19,7 +19,7 @@ jobs:
       steps:
         - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
         - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
-        - run: "echo '🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}.'"
+        - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}"
 
   analyse:
     name: codeql-analyse-code-base
