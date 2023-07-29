@@ -4,15 +4,12 @@ run-name: "CodeQL => ${{ github.event.head_commit.message }}"
 # https://github.com/github/codeql-action
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CodeQL"]
     branches:
-      - "code-development"
-      - "code-production"
-      - "code-staging"
-      - "main"
-    #branches: [ "do-not-trigger" ]
-  #schedule:
-    #- cron: '29 20 * * 2'
+      - code-development
+    types:
+      - completed
 
 jobs:
 
