@@ -3,10 +3,10 @@ name: "Linter"
 
 on:
   push:
-    branches-ignore:
-      - "main"
+    branches: ["code-development", "code-production", "code-staging"]
 
-#    branches: ["code-development", "code-production", "code-staging"]
+#    branches-ignore: ["main"]
+#    
 #    paths-ignore: [".github/workflows/*"]
 #    branches-ignore: ["main"]
 #    branches: [ "do-not-trigger" ]
