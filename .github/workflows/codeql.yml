@@ -4,12 +4,12 @@ on:
   push:
     branches: [ "code-development", "code-production", "code-staging" ]
     # branches: [ "do-not-trigger" ]
-  schedule:
-    - cron: '29 20 * * 2'
+  #schedule:
+    #- cron: '29 20 * * 2'
 
 jobs:
-  analyze:
-    name: Analyze
+  analyse:
+    name: codeql-analyse-code-base
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
     permissions:
