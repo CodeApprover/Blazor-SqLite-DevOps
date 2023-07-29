@@ -1,42 +1,27 @@
----
 name: "Linter"
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
-#    branches-ignore: ["main"]
-#    
-#    paths-ignore: [".github/workflows/*"]
-#    branches-ignore: ["main"]
-#    branches: [ "do-not-trigger" ]
-#  schedule:
-#    - cron: '29 20 * * 2'
-
 jobs:
-
-
-##############################################################################################################
-# Report usage
-##############################################################################################################
-
+  ##############################################################################################################
+  # Report usage
+  ##############################################################################################################
   report-usage:
-      runs-on: ubuntu-latest
-      steps:
-        - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
-        - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
-        - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
+      - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
+      - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}"
 
-
-
-##############################################################################################################
-# Run CodeQL Linter - https://github.com/github/codeql.
-# Set CodeQL supported languages.
-# Checkout code-base.
-# Lint code0vase.
-# Generate PDF report.
-##############################################################################################################
-  
+  ##############################################################################################################
+  # Run CodeQL Linter - https://github.com/github/codeql.
+  # Set CodeQL supported languages.
+  # Checkout code-base.
+  # Lint code-base.
+  # Generate PDF report.
+  ##############################################################################################################
   analyze:
     name: Analyze
     needs: report-usage
@@ -46,77 +31,58 @@ jobs:
       actions: read
       contents: read
       security-events: write
-
     strategy:
       fail-fast: false
       matrix:
         language: ['csharp']
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
-
-
-
-##############################################################################################################
+  ##############################################################################################################
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
-##############################################################################################################
-
+  ##############################################################################################################
   super-linter:
     needs: analyze
     runs-on: ubuntu-latest
-
     steps:
       - name: superlint-checkout-code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
       - name: lint-code-base
-        #uses: github/super-linter@v4
         uses: super-linter/super-linter@v5
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
-
-
-##############################################################################################################
-# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-##############################################################################################################
-
+  ##############################################################################################################
+  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+  ##############################################################################################################
   stylecop-linting:
-      runs-on: ubuntu-latest
-      needs: super-linter
-
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
-          
-        - name: Setup .NET environment
-          uses: actions/setup-dotnet@v3
-          with:
-            dotnet-version: 7.0.x
-
-        - name: Restore dependencies
-          run: dotnet restore
-
-        - name: Install StyleCop.MSBuild
-          run: dotnet add package StyleCop.MSBuild --version 6.2.0
-
-        - name: Run StyleCop analysis
-          run: dotnet build /p:StyleCopEnabled=true
+    runs-on: ubuntu-latest
+    needs: super-linter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0.x
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Install StyleCop.MSBuild
+        run: dotnet add package StyleCop.MSBuild --version 6.2.0
+      - name: Run StyleCop analysis
+        run: dotnet build /p:StyleCopEnabled=true
