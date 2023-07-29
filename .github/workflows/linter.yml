@@ -5,8 +5,8 @@ on:
   push:
     branches-ignore:
       - "main"
-    branches: ["code-development", "code-production", "code-staging"]
 
+#    branches: ["code-development", "code-production", "code-staging"]
 #    paths-ignore: [".github/workflows/*"]
 #    branches-ignore: ["main"]
 #    branches: [ "do-not-trigger" ]
