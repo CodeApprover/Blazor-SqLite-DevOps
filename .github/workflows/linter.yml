@@ -49,7 +49,7 @@ jobs:
         with:
           access-token: ${{ secrets.GITHUB_TOKEN }}
           endpoint: ${{ github.event.repository.languages_url }}
-
+          
   analyze:
     needs: create-matrix
     if: ${{ needs.create-matrix.outputs.matrix != '[]' }}
@@ -59,17 +59,18 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
     strategy:
       fail-fast: false
       matrix: 
         language: ${{ fromJSON(needs.create-matrix.outputs.matrix) }}
- 
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Initialise CodeQL tools for scanning
-    - name: Initialise CodeQL
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
