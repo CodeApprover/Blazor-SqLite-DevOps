@@ -1,5 +1,5 @@
 # Ignore all workflows including this
-!.github/workflows/
+.github/workflows/
 
 # Ignore Visual Studio Code settings directory
 /.vscode/
