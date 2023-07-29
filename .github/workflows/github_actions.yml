@@ -114,8 +114,8 @@ jobs:
         run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
 
-  # nunit-tests
-  nunit-tests:
+  # nunit-development-environment-tests
+  nunit-development-environment-tests:
     runs-on: ubuntu-latest
     needs: stylecop-linting
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
@@ -134,10 +134,10 @@ jobs:
         run: dotnet test "$(find "${{ github.workspace }}/Nunit_Player_Unit_Tests/" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
 
 
-  # xunit tests
-  xunit-tests:
+  # xunit-development-environment-tests
+  xunit-development-environment-tests:
     runs-on: ubuntu-latest
-    needs: nunit-tests
+    needs: nunit-development-environment-tests
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     environment:
       name: development
@@ -151,8 +151,8 @@ jobs:
         run: dotnet test "${{ github.workspace }}/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --no-restore --logger:"console;verbosity=detailed"
 
 
-  # integration-tests
-  integration-tests:
+  # staging-environment-integration-tests
+  staging-environment-integration-tests:
     runs-on: ubuntu-latest
     needs: stylecop-linting
     if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
