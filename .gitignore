@@ -1,9 +1,6 @@
 # Ignore this .ignore to allow each branch an unique .gitignore
 /.gitignore
 
-# Ignore code-development .gitignore
-/.github/workflows/.gitignore
-
 # Ignore Visual Studio Code settings directory
 /.vscode/
 /Blazor-SqlLite-DevOps/.vs/
