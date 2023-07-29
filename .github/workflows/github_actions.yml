@@ -3,8 +3,11 @@
   run-name: "${{ github.actor }} is using GitHub Actions 🚀"
 
   on:
-    push:
-      branches: ["code-development", "code-staging", "code-production"]
+    workflow_run:
+      workflows: ["CodeQL"]
+      types:
+        - completed
+
 
   env:
     VALIDATE_ALL_CODEBASE: false
