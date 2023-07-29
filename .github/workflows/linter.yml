@@ -31,9 +31,11 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
-      - name: Run StyleCop enabled dotnet build
+      - name: Restore Dependencies
         run: |
           dotnet restore --no-cache $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+      - name: StyleCop dotnet build
+        run: |
           dotnet build --no-restore $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) /p:StyleCopEnabled=true
 
 ##############################################################################################################
