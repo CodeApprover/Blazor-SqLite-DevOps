@@ -92,9 +92,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
 ##############################################################################################################
-# Run SuperLinter - https://github.com/marketplace/actions/super-linter
+# Run Development Environment tests
 ##############################################################################################################
-  development-environment-unit-tests:
+  development-environment-tests:
+    name: Development environment tests
     needs: super-linter
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
@@ -104,15 +105,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Install Nunit dependencies
         run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-
       - name: Run NUnit unit tests
         run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
-
       - name: Install Xunit dependencies
         run: dotnet restore "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-
       - name: Run XUnit unit tests
         run: dotnet test "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+
+##############################################################################################################
+# Run Staging Environment tests
+##############################################################################################################
+  staging-environment-tests:
+    name: Staging environment tests
+    needs: super-linter
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
+    environment:
+      name: staging
+      
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+        - name: Install MSTest dependencies
+          run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        - name: Run integration tests
+          run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+  
