@@ -1,0 +1,145 @@
+---
+name: "Linter"
+
+on:
+  push:
+    branches-ignore:
+      - "main"
+
+#    branches: ["code-development", "code-production", "code-staging"]
+#    paths-ignore: [".github/workflows/*"]
+#    branches-ignore: ["main"]
+#    branches: [ "do-not-trigger" ]
+#  schedule:
+#    - cron: '29 20 * * 2'
+
+env:
+    DEFAULT_BRANCH: ${{ github.ref }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+
+
+##############################################################################################################
+# Report usage
+##############################################################################################################
+
+  report-usage:
+      runs-on: ubuntu-latest
+      steps:
+        - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }}"
+        - run: echo "🐧 CodeQL is running on a ${{ runner.os }} server hosted by GitHub Actions."
+        - run: echo "🔎 Branch name is ${{ github.ref }}. Repository is ${{ github.repository }}"
+
+
+
+##############################################################################################################
+# Run CodeQL Linter - https://github.com/github/codeql.
+# Auto-read languages API for main repository.
+# Set CodeQL supported languages.
+# Checkout code-base.
+# Lint code0vase.
+# Generate PDF report.
+##############################################################################################################
+  
+  set-codeql-languages:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.languages }}
+    steps:
+      - name: Get languages from repo
+        id: set-matrix
+        uses: advanced-security/set-codeql-language-matrix@v1.1.0
+        with:
+          access-token: ${{ secrets.GITHUB_TOKEN }}
+          endpoint: ${{ github.event.repository.languages_url }}
+
+  analyze:
+    needs: set-codeql-languages
+    if: ${{ needs.create-matrix.outputs.matrix != '[]' }}
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix: 
+        language: ${{ fromJSON(needs.create-matrix.outputs.matrix) }}
+ 
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Initialise CodeQL tools for scanning
+    - name: Initialise CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+ 
+    # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v2
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:${{matrix.language}}"
+
+    # CodeQL and Dependabot PDF Report
+    # https://github.com/marketplace/actions/codeql-and-dependabot-report-action
+    - name: Generate Security Report
+      uses: rsdmike/github-security-report-action@v3.0.4
+      with:
+        token: ${{ GITHUB_TOKEN }}
+
+
+
+##############################################################################################################
+  # Run SuperLinter - https://github.com/marketplace/actions/super-linter
+##############################################################################################################
+
+  super-linter:
+    needs: analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: superlint-checkout-code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: lint-code-base
+        #uses: github/super-linter@v4
+        uses: super-linter/super-linter@v5
+        env:
+          VALIDATE_ALL_CODEBASE: false
+
+
+
+##############################################################################################################
+# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+##############################################################################################################
+
+  stylecop-linting:
+      runs-on: ubuntu-latest
+      needs: super-linter
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+          
+        - name: Setup .NET environment
+          uses: actions/setup-dotnet@v3
+          with:
+            dotnet-version: 7.0.x
+
+        - name: Restore dependencies
+          run: dotnet restore
+
+        - name: Install StyleCop.MSBuild
+          run: dotnet add package StyleCop.MSBuild --version 6.2.0
+
+        - name: Run StyleCop analysis
+          run: dotnet build /p:StyleCopEnabled=true
