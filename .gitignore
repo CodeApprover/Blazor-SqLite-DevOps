@@ -25,14 +25,7 @@
 # Ignore bin and obj directories
 /Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
 /Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/MSTest_Integration_Tests/bin/
-/MSTest_Integration_Tests/obj/
-/Nunit_Player_Unit_Tests/bin/
-/Nunit_Player_Unit_Tests/obj/
-/StyleCop_CSharp_Linting/bin/
-/StyleCop_CSharp_Linting/obj/
-/Xunit_Game_Unit_Tests/bin/
-/Xunit_Game_Unit_Tests/obj/
-
-# Ignore files inside "Blazor SqlLite Golf Club"
-/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/libman.json
+/MSTest_Integration_Tests/
+/Nunit_Player_Unit_Tests/
+/StyleCop_CSharp_Linting/
+/Xunit_Game_Unit_Tests/
