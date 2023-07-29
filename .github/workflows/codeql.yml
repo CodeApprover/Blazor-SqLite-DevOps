@@ -1,5 +1,6 @@
 ---
 name: "CodeQL"
+# https://github.com/github/codeql-action
 
 on:
   push:
@@ -39,3 +40,12 @@ jobs:
       uses: github/codeql-action/analyze@v2
       with:
         category: "/language:${{matrix.language}}"
+
+    - name: Save commit message to a file
+      run: echo "${{ github.event.head_commit.message }}" > commit_message
+
+    - name: Upload commit message artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: commit-message-artifact
+        path: commit_message
