@@ -1,12 +1,29 @@
-.vscode/
-Blazor-SqlLite-DevOps/.vs/
+# Ignore Visual Studio Code settings directory
+/.vscode/
+/Blazor-SqlLite-DevOps/.vs/
 
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/bin/
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/
-Blazor SqlLite Golf Club/Blazor-SqlLite-DevOps/html
+# Ignore Visual Studio solution user options file
+/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
 
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/*
-!Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Database/database.db
+# Ignore html help-file directory at the root of the repository
+/Html/
 
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj.*
-Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/libman.json
+# Ignore all database-related files
+/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
+
+# Except for the "database.db" file inside the "Database" directory
+!/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
+
+# Ignore bin and obj directories
+/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+
+# Ignore files inside "Blazor SqlLite Golf Club"
+/Blazor-SqlLite-Golf-Club/Blazor\ SqlLite\ Golf\ Club.csproj.*
+/Blazor-SqlLite-Golf-Club/libman.json
+
+# Ignore code testing directories
+/Xunit_Game_Unit_Tests/
+/Nunit_Player_Unit_Tests/
+/MSTest_Integration_Tests/
+/StyleCop_CSharp_Linting/
