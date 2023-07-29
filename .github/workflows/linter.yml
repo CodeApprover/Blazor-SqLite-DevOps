@@ -96,7 +96,5 @@ jobs:
           dotnet-version: 7.0.x
       - name: Run StyleCop enabled dotnet build
         run: |
-          # Find the project file (Blazor SqlLite Golf Club.csproj) in the repository
-          project_file=$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
-          dotnet restore --no-cache "${{ project_file }}"
-          dotnet build --no-restore "${{ project_file }}" /p:StyleCopEnabled=true
+          dotnet restore --no-cache $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)
+          dotnet build --no-restore $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) /p:StyleCopEnabled=true
