@@ -38,7 +38,7 @@ jobs:
 # Generate PDF report.
 ##############################################################################################################
   
-  set-codeql-languages:
+  create-matrix:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.languages }}
@@ -51,7 +51,7 @@ jobs:
           endpoint: ${{ github.event.repository.languages_url }}
 
   analyze:
-    needs: set-codeql-languages
+    needs: create-matrix
     if: ${{ needs.create-matrix.outputs.matrix != '[]' }}
     name: Analyze
     runs-on: ubuntu-latest
