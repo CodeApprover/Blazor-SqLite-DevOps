@@ -117,6 +117,7 @@ jobs:
   # nunit-tests
   nunit-tests:
     runs-on: ubuntu-latest
+    needs: stylecop-linting
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     environment:
       name: development
@@ -136,6 +137,7 @@ jobs:
   # xunit tests
   xunit-tests:
     runs-on: ubuntu-latest
+    needs: numit-tests
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     environment:
       name: development
@@ -152,7 +154,7 @@ jobs:
   # integration-tests
   integration-tests:
     runs-on: ubuntu-latest
-    needs: nunit-tests
+    needs: stylecop-linting
     if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     environment:
       name: staging
