@@ -6,9 +6,9 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-  ##############################################################################################################
-  # Report usage
-  ##############################################################################################################
+##############################################################################################################
+# Report usage
+##############################################################################################################
   report:
     name: 1. Report
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
 ##############################################################################################################
-# Run Development Environment tests
+# Development Environment tests
 ##############################################################################################################
   development-environment-tests:
     name: Development environment tests
@@ -115,7 +115,7 @@ jobs:
         run: dotnet test "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
 ##############################################################################################################
-# Run Staging Environment tests
+# Staging Environment tests
 ##############################################################################################################
   staging-environment-tests:
     name: Staging environment tests
@@ -126,10 +126,25 @@ jobs:
       name: staging
       
     steps:
-        - name: Checkout repository
-          uses: actions/checkout@v3
-        - name: Install MSTest dependencies
-          run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
-        - name: Run integration tests
-          run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install MSTest dependencies
+        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+      - name: Run integration tests
+        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
   
+##############################################################################################################
+# Production Environment tests
+##############################################################################################################
+  production-environment-tests:
+    name: Production environment tests
+    needs: super-linter
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
+    environment:
+      name: production
+
+    #steps:
+    #  - name: Checkout repository
+    #    uses: actions/checkout@v3
+      
