@@ -69,13 +69,6 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
 
-    # CodeQL and Dependabot PDF Report
-    # https://github.com/marketplace/actions/codeql-and-dependabot-report-action
-    - name: Generate Security Report
-      uses: rsdmike/github-security-report-action@v3.0.4
-      with:
-        token: ${{ secrets.TOKEN }}
-
 
 
 ##############################################################################################################
