@@ -4,8 +4,8 @@ on:
   push:
     branches: [ "code-development", "code-production", "code-staging" ]
     #branches: [ "do-not-trigger" ]
-  schedule:
-    - cron: '29 20 * * 2'
+  #schedule:
+    #- cron: '29 20 * * 2'
 
 jobs:
   analyze:
