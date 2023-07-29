@@ -126,11 +126,17 @@ jobs:
       - name: checkout-repository
         uses: actions/checkout@v3
 
-      - name: install-xunit-or-mstest-dependencies
-        run: dotnet restore "${{ github.workspace }}/${{ startsWith(github.ref, 'refs/heads/code-development') && 'Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj' || 'MSTest_Integration_Tests/MSTest_Integration_Tests.csproj' }}"
+      - name: install-xunit-dependencies
+        run: dotnet restore "$(find "${{ github.workspace }}/Xunit_Game_Unit_Tests/" -type f -name "Xunit_Game_Unit_Tests" -print -quit)"
 
-      - name: run-xUnit-or-integration-tests
-        run: dotnet test "${{ github.workspace }}/${{ startsWith(github.ref, 'refs/heads/code-development') && 'Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj' || 'MSTest_Integration_Tests/MSTest_Integration_Tests.csproj' }}" --no-restore --logger:"console;verbosity=detailed"
+      - name: run-xUnit-integration-tests
+        run: dotnet test dotnet restore "$(find "${{ github.workspace }}/Xunit_Game_Unit_Tests/" -type f -name "Xunit_Game_Unit_Tests" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+
+      - name: install-nunit-dependencies
+        run: dotnet restore "$(find "${{ github.workspace }}/Nunit_Player_Unit_Tests/" -type f -name "Nunit_Player_Unit_Tests" -print -quit)"
+
+      - name: run-nUnit-integration-tests
+        run: dotnet test "$(find "${{ github.workspace }}/Nunit_Player_Unit_Tests/" -type f -name "Nunit_Player_Unit_Tests" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
 
 
   # staging-environment-integration-tests
