@@ -1,6 +1,5 @@
 ---
 name: "Linter"
-run-name: "Linting ${{ github.event.head_commit.message }}"
 
 on:
   push:
