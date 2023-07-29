@@ -1,8 +1,10 @@
+# CODE-DEVELOPMENT
+
 # Ignore this .ignore to allow each branch an unique .gitignore
 /.gitignore
 
-# Ignore all workflows except this
-!.github/workflows/run_main_linter.yml
+# Ignore all workflows including this
+!.github/workflows/
 
 # Ignore Visual Studio Code settings directory
 /.vscode/
