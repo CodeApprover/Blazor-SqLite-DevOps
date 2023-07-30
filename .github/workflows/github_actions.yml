@@ -13,16 +13,16 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-      - name: Runner
-        run: echo "Running a ${{ runner.os }} server on GitHub Actions."
-      - name: Repository
-        run: echo "${{ github.repository }} repository"
-      - name: Environment
-        run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
-      - name: Branch
-        run: echo "${{ github.ref }}"
-      - name: Trigger
-        run: echo "Job triggered by a ${{ github.event_name }}"
+    - name: Runner
+      run: echo "Running a ${{ runner.os }} server on GitHub Actions."
+    - name: Repository
+      run: echo "${{ github.repository }} repository"
+    - name: Environment
+      run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
+    - name: Branch
+      run: echo "${{ github.ref }}"
+    - name: Trigger
+      run: echo "Job triggered by a ${{ github.event_name }}"
 
   
   ##############################################################################################################
@@ -33,75 +33,46 @@ jobs:
     runs-on: ubuntu-latest
     needs: report
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 7.0.x
-      - name: Restore Dependencies
-        run: |
-          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-      - name: StyleCop dotnet build
-        run: |
-          dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+    - name: Restore Dependencies
+      run: |
+        dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+    - name: StyleCop dotnet build
+      run: |
+        dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
-  
+
   #############################################################################################################
   # Run CodeQL Linter - https://github.com/github/codeql
   ##############################################################################################################
   codeql:
-    name: Build custom bundle and CodeQL lint
+    name: 3. CodeQL Linting
     runs-on: ubuntu-latest
+    needs: stylecop-linting
+    strategy:
+      matrix:
+        language: ['caharp']
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Download custom CodeQL bundle
-        uses: advanced-security/codeql-bundle-action/download-bundle@v2
-        id: download-bundle
-        with:
-          tag: "latest"
-      - name: Create custom CodeQL bundle
-        uses: advanced-security/codeql-bundle-action/create-bundle@v2
-        id: create-bundle
-        with:
-          bundle-path: ${{ steps.download-bundle.outputs.bundle-path }}
-          packs: "octo/cpp-queries,octo/cpp-all,octo/cpp-customizations"
-
-      - name: Upload custom CodeQL bundle as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: codeql-bundle.tar.gz
-          path: ${{ steps.create-bundle.outputs.output-path }}
-
-      - name: CodeQL linter
-        run: |
-          # Set up environment variables
-          BUNDLE_PATH=${{ steps.create-bundle.outputs.output-path }}
-          BUNDLE_TAG=custom-bundle
-
-          # Upload the custom CodeQL bundle as a GitHub release artifact
-          if gh release view $BUNDLE_TAG; then
-            gh release upload --clobber $BUNDLE_TAG $BUNDLE_PATH
-          else
-            gh release create $BUNDLE_TAG $BUNDLE_PATH --generate-notes
-          fi
-
-          # Checkout the repository
-          git checkout ${{ github.ref }}
-
-          # Initialize CodeQL with the custom bundle
-          codeql database init codeql-db --language=cpp --source-root=. --codeql-bundle=$BUNDLE_PATH
-
-          # Run CodeQL analysis
-          codeql analyze codeql-db/qlpack/ql-java-security-and-quality@1.1
-
-          # Fail the build on CodeQL analysis errors
-          if [ $? -eq 2 ]; then
-            echo "CodeQL analysis found issues."
-            exit 1
-          fi
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+        config-file: ./.github/codeql/codeql-config.yml
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v1
+    - name: Analyze
+      uses: github/codeql-action/analyze@v1
+    - name: Upload SARIF results
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: codeql-analysis.sarif
 
 
   ##############################################################################################################
