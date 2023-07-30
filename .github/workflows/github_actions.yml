@@ -13,13 +13,15 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-      - name: Running server
+      - name: Runner
         run: echo "Running a ${{ runner.os }} server on GitHub Actions."
-      - name: Repository information
+      - name: Repository
         run: echo "${{ github.repository }} repository"
-      - name: Environment branch
-        run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//') branch."
-      - name: Triggered event
+      - name: Environment
+        run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
+      - name: Branch
+        run: echo "${{ github.ref }}
+      - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
 
   
@@ -37,6 +39,8 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
+      - name: Install dotnet-format
+        run: dotnet tool install -g dotnet-format
       - name: Run StyleCop
         run: dotnet stylecop # -p:StyleCopEnabled=true
       - name: Generate StyleCop Report
