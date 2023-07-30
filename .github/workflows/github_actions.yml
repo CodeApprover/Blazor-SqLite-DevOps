@@ -4,19 +4,23 @@ on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
+##############################################################################################################
+# Set environment variables
+##############################################################################################################
+env:
+  BRANCH_NAME:  branch_name::$(echo ${{ github.ref }} | sed 's/.*\///')"
+
 jobs:
-  ##############################################################################################################
-  # Report usage
-  ##############################################################################################################
+
+##############################################################################################################
+# Report usage
+##############################################################################################################
   report:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
       - name: Extract branch name
-        id: extract-branch-name
-        run: echo "::set-output name=branch_name::$(echo ${{ github.ref }} | sed 's/.*\///')"
-      - run: echo "🎉 Job triggered by a ${{ github.event_name }}"
-      - run: echo "🐧 Running ${{ runner.os }} server on GitHub Actions."
-      - run: echo "🔎 Branch ${{ github.ref }}. Repository ${{ github.repository }}"
-
- 
+      - run: echo "Job triggered by a ${{ github.event_name }}"
+      - run: echo "Running a ${{ runner.os }} server on GitHub Actions."
+      - run: echo "${{ github.repository }} repository"
+      - run: echo "${{ BRANCH_NAME }} branch."
