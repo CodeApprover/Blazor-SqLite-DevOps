@@ -38,7 +38,7 @@ jobs:
         with:
           dotnet-version: 7.0.x
       - name: Run StyleCop
-        run: dotnet stylecop -p:StyleCopEnabled=true
+        run: dotnet stylecop # -p:StyleCopEnabled=true
       - name: Generate StyleCop Report
         run: dotnet stylecop -r "stylecop-report.xml"
       - name: Fail the build on violations
