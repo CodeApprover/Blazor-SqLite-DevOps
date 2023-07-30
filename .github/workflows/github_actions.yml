@@ -17,8 +17,6 @@ jobs:
           # Save branch name as environment variable BRANCH_NAME
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-      - name: Report usage
-        run: echo "Branch name ${{ env.BRANCH_NAME }}"
       - name: Triggered event
         run: echo "Job triggered by a ${{ github.event_name }}"
       - name: Running server
@@ -27,3 +25,9 @@ jobs:
         run: echo "${{ github.repository }} repository"
       - name: Environment branch
         run: echo "${{ env.BRANCH_NAME }} branch."
+
+  test:
+    runs-on: ubuntu-server
+    steps:
+      - name: test env var
+        run: echo ${{ BRANCH_NAME }}
