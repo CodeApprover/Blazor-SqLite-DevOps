@@ -74,8 +74,17 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+    - name: Restore Dependencies
+      run: |
+        dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+    - name: Dotnet build
+      run: |
+        dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+    - name: Perform CodeQL Analysis
+      run: |
+        codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
+        codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
+
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
