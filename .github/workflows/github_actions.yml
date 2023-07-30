@@ -20,7 +20,7 @@ jobs:
       - name: Environment
         run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
       - name: Branch
-        run: echo "${{ github.ref }}
+        run: echo "${{ github.ref }}"
       - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
 
