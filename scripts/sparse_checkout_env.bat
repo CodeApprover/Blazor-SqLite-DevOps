@@ -75,7 +75,7 @@ if /i "%~1" neq "main" (
     git sparse-checkout disable
 
     REM Set sparse-checkout configuration with desired directories
-    git sparse-checkout set --skip-checks %~1/ docs/ scripts/ LICENCE README.md
+    git sparse-checkout set --skip-checks %~1/ docs/ scripts/ LICENCE README.md howto
 
     REM Reapply the sparse-checkout specifications
     git sparse-checkout reapply
