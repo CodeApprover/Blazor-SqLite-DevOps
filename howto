@@ -1,0 +1,19 @@
+To reset your local environment, delete and reclone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
+
+To reset your environment, you can also execute scripts\sparse_checkout_env.bat
+This resets the main branch to exactly reflect the remote main
+It also creates three clean branches: code-development, code-staging, code-production
+
+Sample command: scripts\sparse_checkout_env.bat development
+
+Commit your changes locally in the "code-development" branch.
+Push your changes to a new branch on the remote repository using a different name (e.g., "john-doe-3241"):
+
+git push origin code-development:feature/john-doe-3241
+
+Go to the repository on GitHub and create a pull request from your newly pushed branch john-doe-3241 into the "code-development" branch.
+Request a code review from the appropriate collaborators.
+
+Once the pull request is approved, it will be merged into the "code-development" branch automatically.
+
+This way, your changes will be subject to review, and they will be merged into the protected branch only after the review process is complete and the pull request is approved.
