@@ -8,7 +8,7 @@ on:
 # Set environment variables
 ##############################################################################################################
 env:
-  BRANCH_NAME:  branch_name::$(echo ${{ github.ref }} | sed 's/.*\///')"
+  BRANCH_NAME:  branch_name=$(echo ${{ github.ref }} | sed 's/.*\///')"
 
 jobs:
 
