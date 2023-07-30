@@ -80,7 +80,7 @@ jobs:
         dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
     - name: Dotnet build
       run: |
-        dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore --logger:"console;verbosity=detailed"
+        dotnet test " $(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit) --no-restore --logger:"console;verbosity=detailed"
     - name: Perform CodeQL Analysis
       run: |
         codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
