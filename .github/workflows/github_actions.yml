@@ -39,6 +39,8 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
+          PROJ="/${{ github.ref#refs/heads/code- }}
+          echo $PROJ
           dotnet restore --no-cache "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
