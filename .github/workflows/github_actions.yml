@@ -39,10 +39,10 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore /p:StyleCopEnabled=true "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet build --no-restore /p:StyleCopEnabled=true "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
    
    
   ##############################################################################################################
@@ -51,7 +51,7 @@ jobs:
   codeql:
     runs-on: ubuntu-latest
     name: CodeQL linter
-    #needs: stylecop-linting
+    needs: stylecop-linting
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -109,13 +109,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Nunit dependencies
-        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)"
       - name: Run NUnit unit tests
-        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit) --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
       - name: Install Xunit dependencies
-        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+        run: dotnet restore " $(find "${{ github.workspace }}" -type f -name "Xunit_Game_Unit_Tests.csproj" -print -quit)"
       - name: Run XUnit unit tests
-        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test " $(find "${{ github.workspace }}" -type f -name "Xunit_Game_Unit_Tests.csproj" -print -quit) --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
 
   ##############################################################################################################
@@ -133,9 +133,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install MSTest dependencies
-        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)"
       - name: Run integration tests
-        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit) --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
   
   
   ##############################################################################################################
