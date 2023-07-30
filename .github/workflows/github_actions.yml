@@ -76,7 +76,7 @@ jobs:
 
     - name: Restore Dependencies
       run: |
-        echo "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj"
+        echo "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj")"
         dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
     - name: Dotnet build
       run: |
