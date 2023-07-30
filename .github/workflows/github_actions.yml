@@ -39,8 +39,6 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          PROJ="/${{ github.ref#refs/heads/code- }}
-          echo $PROJ
           dotnet restore --no-cache "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
@@ -50,32 +48,29 @@ jobs:
   ##############################################################################################################
   # Run CodeQL Linter - https://github.com/github/codeql
   ##############################################################################################################
-  analyze:
-    name: 3. CodeQL Analysis
-    needs: stylecop-linting
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['csharp']
+  codeql:
+    runs-on: ubuntu-latest
+    name: CodeQL linter
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: CodeQL bundle
+        id: codeql-bundle
+        uses: advanced-security/codeql-bundle-action@v1.1.0
         with:
-          languages: ${{ matrix.language }}
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-        with:
-          category: "/language:${{matrix.language}}"
+          # CodeQL packs that are available in the current repository
+          packs: "octo-org/java-lib,octo-org/java-queries,octo-org/java-customizations"
+      - name: Bundle release
+        env:
+          BUNDLE_PATH: ${{ steps.codeql-bundle.outputs.bundle-path }}
+          BUNDLE_TAG: ${{ steps.codeql-bundle.outputs.bundle-tag }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          if gh release view $BUNDLE_TAG; then
+            gh release upload --clobber $BUNDLE_TAG $BUNDLE_PATH
+          else
+            gh release create $BUNDLE_TAG $BUNDLE_PATH --generate-notes
+          fi
 
 
   ##############################################################################################################
@@ -83,7 +78,7 @@ jobs:
   ##############################################################################################################
   super-linter:
     name: 4. Super Linter
-    needs: analyze
+    needs: codeql
     runs-on: ubuntu-latest
     steps:
       - name: Superlint checkout code
