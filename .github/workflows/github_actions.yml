@@ -51,7 +51,6 @@ jobs:
   # Run CodeQL Linter - https://github.com/github/codeql
   ##############################################################################################################
   codeql:
-  build-custom-bundle:
     name: Build custom bundle and CodeQL lint
     runs-on: ubuntu-latest
     steps:
