@@ -1,4 +1,4 @@
-name: "Linter"
+name: "CI-CD Workflow"
 
 on:
   push:
@@ -32,10 +32,10 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "/${{ github.ref#refs/heads/code- }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore /p:StyleCopEnabled=true "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet build --no-restore /p:StyleCopEnabled=true "/${{ github.ref#refs/heads/code- }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
   ##############################################################################################################
   # Run CodeQL Linter - https://github.com/github/codeql
@@ -107,11 +107,11 @@ jobs:
       - name: Install Nunit dependencies
         run: dotnet restore "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Run NUnit unit tests
-        run: dotnet test "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "/${{ github.ref#refs/heads/code- }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
       - name: Install Xunit dependencies
-        run: dotnet restore "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+        run: dotnet restore "/${{ github.ref#refs/heads/code- }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Run XUnit unit tests
-        run: dotnet test "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "/${{ github.ref#refs/heads/code- }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
   ##############################################################################################################
   # Staging Environment tests
@@ -128,9 +128,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install MSTest dependencies
-        run: dotnet restore "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "/${{ github.ref#refs/heads/code- }}/tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run integration tests
-        run: dotnet test "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "/${{ github.ref#refs/heads/code- }}/tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
   
   ##############################################################################################################
   # Production Environment tests
