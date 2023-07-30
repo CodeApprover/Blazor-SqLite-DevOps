@@ -39,19 +39,12 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
-      - name: Install dotnet-format
-        run: dotnet tool install -g dotnet-format
-      - name: Run StyleCop
-        run: dotnet stylecop # -p:StyleCopEnabled=true
-      - name: Generate StyleCop Report
-        run: dotnet stylecop -r "stylecop-report.xml"
-      - name: Fail the build on violations
+      - name: Restore Dependencies
         run: |
-          if [ -f "stylecop-report.xml" ]; then
-            echo "StyleCop violations found:"
-            cat stylecop-report.xml
-            exit 1
-          fi
+          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+      - name: StyleCop dotnet build
+        run: |
+          dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
   
   #############################################################################################################
