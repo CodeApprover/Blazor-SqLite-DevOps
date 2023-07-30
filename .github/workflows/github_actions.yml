@@ -15,7 +15,7 @@ jobs:
       - name: Set up environment
         run: |
           # Save branch name as environment variable BRANCH_NAME
-          export BRANCH_NAME=${{ github.ref }}" | sed 's/.*\///'
+          export BRANCH_NAME=${{ github.ref | sed 's/.*\///' }}
       - name: Report usage
         run: echo "Branch name ${{ env.BRANCH_NAME }}"
       - name: Triggered event
