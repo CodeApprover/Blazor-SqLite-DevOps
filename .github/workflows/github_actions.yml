@@ -19,8 +19,8 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-      - name: Extract branch name
-        run: echo "Branch name: ${{ env.BRANCH_NAME }}"
+      - name: Report usage data
+      - run: echo "Branch name ${{ env.BRANCH_NAME }}"
       - run: echo "Job triggered by a ${{ github.event_name }}"
       - run: echo "Running a ${{ runner.os }} server on GitHub Actions."
       - run: echo "${{ github.repository }} repository"
