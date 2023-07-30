@@ -15,7 +15,7 @@ jobs:
       - name: Set up environment
         run: |
           # Save branch name as environment variable BRANCH_NAME
-          BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///')
+          BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
       - name: Report usage
         run: echo "Branch name ${{ env.BRANCH_NAME }}"
