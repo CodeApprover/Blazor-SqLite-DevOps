@@ -13,14 +13,14 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-      - name: Triggered event
-        run: echo "Job triggered by a ${{ github.event_name }}"
       - name: Running server
         run: echo "Running a ${{ runner.os }} server on GitHub Actions."
       - name: Repository information
         run: echo "${{ github.repository }} repository"
       - name: Environment branch
         run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//') branch."
+      - name: Triggered event
+        run: echo "Job triggered by a ${{ github.event_name }}"
 
   
   ##############################################################################################################
@@ -39,10 +39,10 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore /p:StyleCopEnabled=true "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet build --no-restore /p:StyleCopEnabled=true "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
    
    
   ##############################################################################################################
@@ -111,13 +111,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Nunit dependencies
-        run: dotnet restore "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Run NUnit unit tests
-        run: dotnet test "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
       - name: Install Xunit dependencies
-        run: dotnet restore "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Run XUnit unit tests
-        run: dotnet test "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
 
   ##############################################################################################################
@@ -135,9 +135,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install MSTest dependencies
-        run: dotnet restore "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run integration tests
-        run: dotnet test "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
   
   
   ##############################################################################################################
