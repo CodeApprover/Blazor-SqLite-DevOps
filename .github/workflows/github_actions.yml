@@ -13,16 +13,16 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-    - name: Runner
-      run: echo "Running a ${{ runner.os }} server on GitHub Actions."
-    - name: Repository
-      run: echo "${{ github.repository }} repository"
-    - name: Environment
-      run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
-    - name: Branch
-      run: echo "${{ github.ref }}"
-    - name: Trigger
-      run: echo "Job triggered by a ${{ github.event_name }}"
+      - name: Runner
+        run: echo "Running a ${{ runner.os }} server on GitHub Actions."
+      - name: Repository
+        run: echo "${{ github.repository }} repository"
+      - name: Environment
+        run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
+      - name: Branch
+        run: echo "${{ github.ref }}"
+      - name: Trigger
+        run: echo "Job triggered by a ${{ github.event_name }}"
 
   
   ##############################################################################################################
@@ -33,18 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: report
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Setup .NET environment
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 7.0.x
-    - name: Restore Dependencies
-      run: |
-        dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-    - name: StyleCop dotnet build
-      run: |
-        dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0.x
+      - name: Restore Dependencies
+        run: |
+          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+      - name: StyleCop dotnet build
+        run: |
+          dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
 
   #############################################################################################################
@@ -55,33 +55,33 @@ jobs:
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     needs: stylecop-linting
     timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
-      permissions:
-    actions: read
-    contents: read
-    security-events: write
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
-  strategy:
-    fail-fast: false
-    matrix:
-      language: ['csharp']
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['csharp']
 
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: ${{ matrix.language }}
-    - name: Restore Dependencies
-      run: |
-        dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-    - name: Dotnet build
-      run: |
-        dotnet build "$(find "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore
-    - name: Perform CodeQL Analysis
-      run: |
-        codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
-        codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+      - name: Restore Dependencies
+        run: |
+          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+      - name: Dotnet build
+        run: |
+          dotnet build "$(find "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore
+      - name: Perform CodeQL Analysis
+        run: |
+          codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
+          codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
 
 
   ##############################################################################################################
