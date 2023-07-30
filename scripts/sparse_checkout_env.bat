@@ -23,4 +23,7 @@ if "%~1" == "main" (
     git sparse-checkout reapply
 )
 
+echo tests/* >> .git\info\sparse-checkout
+echo docs/* >> .git\info\sparse-checkout
+
 endlocal
