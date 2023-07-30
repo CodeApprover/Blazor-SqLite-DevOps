@@ -1,4 +1,3 @@
----
 name: "Linter"
 
 on:
@@ -6,9 +5,9 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-##############################################################################################################
-# Report usage
-##############################################################################################################
+  ##############################################################################################################
+  # Report usage
+  ##############################################################################################################
   report:
     name: 1. Report
     runs-on: ubuntu-latest
@@ -17,9 +16,9 @@ jobs:
       - run: echo "🐧 Running ${{ runner.os }} server on GitHub Actions."
       - run: echo "🔎 Branch ${{ github.ref }}. Repository ${{ github.repository }}"
 
-##############################################################################################################
-# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-##############################################################################################################
+  ##############################################################################################################
+  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+  ##############################################################################################################
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
@@ -33,18 +32,18 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore /p:StyleCopEnabled=true "./Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet build --no-restore /p:StyleCopEnabled=true "development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
-##############################################################################################################
-# Run CodeQL Linter - https://github.com/github/codeql.
-# Set CodeQL supported languages.
-# Checkout code-base.
-# Lint code-base.
-# Generate PDF report.
-##############################################################################################################
+  ##############################################################################################################
+  # Run CodeQL Linter - https://github.com/github/codeql
+  # Set CodeQL supported languages.
+  # Checkout code-base.
+  # Lint code-base.
+  # Generate PDF report.
+  ##############################################################################################################
   analyze:
     name: 3. CodeQL Analysis
     needs: stylecop-linting
@@ -72,9 +71,9 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
-##############################################################################################################
-# Run SuperLinter - https://github.com/marketplace/actions/super-linter
-##############################################################################################################
+  ##############################################################################################################
+  # Run SuperLinter - https://github.com/marketplace/actions/super-linter
+  ##############################################################################################################
   super-linter:
     name: 4. Super Linter
     needs: analyze
@@ -91,9 +90,9 @@ jobs:
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
-##############################################################################################################
-# Development Environment tests
-##############################################################################################################
+  ##############################################################################################################
+  # Development Environment tests
+  ##############################################################################################################
   development-environment-tests:
     name: Development environment tests
     needs: super-linter
@@ -106,17 +105,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Nunit dependencies
-        run: dotnet restore "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Run NUnit unit tests
-        run: dotnet test "./Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
       - name: Install Xunit dependencies
-        run: dotnet restore "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+        run: dotnet restore "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Run XUnit unit tests
-        run: dotnet test "./Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
-##############################################################################################################
-# Staging Environment tests
-##############################################################################################################
+  ##############################################################################################################
+  # Staging Environment tests
+  ##############################################################################################################
   staging-environment-tests:
     name: Staging environment tests
     needs: super-linter
@@ -129,13 +128,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install MSTest dependencies
-        run: dotnet restore "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
+        run: dotnet restore "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj"
       - name: Run integration tests
-        run: dotnet test "./MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "tests/MSTest_Integration_Tests/MSTest_Integration_Tests.csproj" --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
   
-##############################################################################################################
-# Production Environment tests
-##############################################################################################################
+  ##############################################################################################################
+  # Production Environment tests
+  ##############################################################################################################
   production-environment-tests:
     name: Production environment tests
     needs: super-linter
@@ -147,4 +146,3 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      
