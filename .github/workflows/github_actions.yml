@@ -51,28 +51,57 @@ jobs:
   # Run CodeQL Linter - https://github.com/github/codeql
   ##############################################################################################################
   codeql:
+  build-custom-bundle:
+    name: Build custom bundle and CodeQL lint
     runs-on: ubuntu-latest
-    name: CodeQL linter
-    needs: stylecop-linting
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: CodeQL bundle
-        id: codeql-bundle
-        uses: advanced-security/codeql-bundle-action@v1.1.0
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download custom CodeQL bundle
+        uses: advanced-security/codeql-bundle-action/download-bundle@v2
+        id: download-bundle
         with:
-          # CodeQL packs that are available in the current repository
-          packs: "octo-org/java-lib,octo-org/java-queries,octo-org/java-customizations"
-      - name: Bundle release
-        env:
-          BUNDLE_PATH: ${{ steps.codeql-bundle.outputs.bundle-path }}
-          BUNDLE_TAG: ${{ steps.codeql-bundle.outputs.bundle-tag }}
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          tag: "latest"
+      - name: Create custom CodeQL bundle
+        uses: advanced-security/codeql-bundle-action/create-bundle@v2
+        id: create-bundle
+        with:
+          bundle-path: ${{ steps.download-bundle.outputs.bundle-path }}
+          packs: "octo/cpp-queries,octo/cpp-all,octo/cpp-customizations"
+
+      - name: Upload custom CodeQL bundle as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: codeql-bundle.tar.gz
+          path: ${{ steps.create-bundle.outputs.output-path }}
+
+      - name: CodeQL linter
         run: |
+          # Set up environment variables
+          BUNDLE_PATH=${{ steps.create-bundle.outputs.output-path }}
+          BUNDLE_TAG=custom-bundle
+
+          # Upload the custom CodeQL bundle as a GitHub release artifact
           if gh release view $BUNDLE_TAG; then
             gh release upload --clobber $BUNDLE_TAG $BUNDLE_PATH
           else
             gh release create $BUNDLE_TAG $BUNDLE_PATH --generate-notes
+          fi
+
+          # Checkout the repository
+          git checkout ${{ github.ref }}
+
+          # Initialize CodeQL with the custom bundle
+          codeql database init codeql-db --language=cpp --source-root=. --codeql-bundle=$BUNDLE_PATH
+
+          # Run CodeQL analysis
+          codeql analyze codeql-db/qlpack/ql-java-security-and-quality@1.1
+
+          # Fail the build on CodeQL analysis errors
+          if [ $? -eq 2 ]; then
+            echo "CodeQL analysis found issues."
+            exit 1
           fi
 
 
