@@ -12,6 +12,9 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
+      - name: Extract branch name
+        id: extract-branch-name
+        run: echo "::set-output name=branch_name::$(echo ${{ github.ref }} | sed 's/.*\///')"
       - run: echo "🎉 Job triggered by a ${{ github.event_name }}"
       - run: echo "🐧 Running ${{ runner.os }} server on GitHub Actions."
       - run: echo "🔎 Branch ${{ github.ref }}. Repository ${{ github.repository }}"
