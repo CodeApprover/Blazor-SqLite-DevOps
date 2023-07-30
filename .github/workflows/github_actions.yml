@@ -51,21 +51,21 @@ jobs:
   # Run CodeQL Linter - https://github.com/github/codeql
   ##############################################################################################################
   codeql:
-    name: 3. CodeQL Linting
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    needs: stylecop-linting
-    timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+  name: 3. CodeQL Linting
+  runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+  needs: stylecop-linting
+  timeout-minutes: ${{ (matrix.language == 'swift' && 120) || 360 }}
+  permissions:
+    actions: read
+    contents: read
+    security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['csharp']
+  strategy:
+    fail-fast: false
+    matrix:
+      language: ['csharp']
 
-    steps:
+  steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
@@ -77,18 +77,15 @@ jobs:
     - name: Restore Dependencies
       run: |
         dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+
     - name: Dotnet build
       run: |
         dotnet build "$(find "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore
+
     - name: Perform CodeQL Analysis
       run: |
         codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
         codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:${{matrix.language}}"
 
 
   ##############################################################################################################
