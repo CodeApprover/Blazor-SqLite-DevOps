@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 if "%~1" neq "" (
-    git sparse-checkout set --skip-checks "%~1"
+    git sparse-checkout set --skip-checks code-%~1
 ) else (
     echo Usage: %0 ^<environment^>
     exit /b 1
