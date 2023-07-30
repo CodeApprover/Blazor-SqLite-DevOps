@@ -1,9 +1,7 @@
-To reset your environment, execute:
-    scripts\sparse_checkout_env.bat <environment>
+git clone https://github.com/CodeApprover/Blazor-SqLite-DevOps.git
 
-This resets the main branch to exactly reflect the remote main
-It also creates three clean branches:
-    code-development, code-staging, code-production
+Populate your required branch using scripts\sparse_checkout_env.bat
+This ensures you receive the files specific to your particular environment.
 
 Examples:
     scripts\sparse_checkout_env.bat development
@@ -18,3 +16,7 @@ Push your changes to a new branch on the remote repository using a different nam
 Go to the repository on GitHub and create a pull request from your newly pushed branch john-doe-3241 into the "code-development" branch.
 Request a code review from the appropriate collaborators. Once the pull request is approved, it will be merged into the "code-development" branch automatically.
 This way, your changes will be subject to review, and they will be merged into the protected branch only after the review process is complete and the pull request is approved.
+
+To reset your environment, execute:     scripts\reset_all_branches.bat
+This resets the main branch to the remote main. It also creates three clean branches: code-development, code-staging, code-production.
+The four environments reflect the remote branches. To sparsely checkout only your required files, execute scripts\sparse_checkout_env.bat <environment>
