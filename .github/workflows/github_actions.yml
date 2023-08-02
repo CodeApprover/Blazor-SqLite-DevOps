@@ -6,6 +6,21 @@ on:
 
 jobs:
 
+ ##############################################################################################################
+  # Extract Environment Name
+  ##############################################################################################################
+  extract-environment-name:
+    name: 1. Extract Environment Name
+    runs-on: ubuntu-latest
+    outputs:
+      environment_name: ${{ steps.set-environment-name.outputs.environment_name }}
+
+    steps:
+      - name: Extract Environment Name
+        id: set-environment-name
+        run: echo "::set-output name=environment_name::$(echo "${{ github.ref }}" | sed 's/refs\/heads\/code-//')"
+
+
   ##############################################################################################################
   # Report usage
   ##############################################################################################################
