@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Extract Environment Name
         id: set-environment-name
-        run: echo "::set-output name=environment::${{ github.ref:5 }}"
+        run: echo "::set-output name=environment::${{ github.ref.replace('refs/heads/code-', '') }}"
 
 
   ##############################################################################################################
