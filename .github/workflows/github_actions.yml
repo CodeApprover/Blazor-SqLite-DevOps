@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Extract Environment Name
         id: set-environment-name
-        run: echo "$(echo "refs/heads/code-development" | sed 's/.*\///' | sed 's/^code-//')" >> $GITHUB_ENV
+        run: echo "environment=$(echo "refs/heads/code-development" | sed 's/.*\///' | sed 's/^code-//')" >> $GITHUB_ENV
 
 
   ##############################################################################################################
