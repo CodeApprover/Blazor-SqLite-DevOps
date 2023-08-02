@@ -12,15 +12,11 @@ jobs:
   extract-environment-name:
     name: 1. Extract Environment Name
     runs-on: ubuntu-latest
-    outputs:
-      environment_name: ${{ steps.set-environment-name.outputs.environment_name }}
 
     steps:
       - name: Extract Environment Name
         id: set-environment-name
-        #run: echo "::set-output name=environment::${{ github.ref.replace('refs/heads/code-', '') }}"
-        #run: echo "::set-output name=environment::${{ startsWith(github.ref, 'refs/heads/code-') && github.ref.substring(16) }}"
-        run: echo "environment=$(echo "${{ github.ref }}" | sed 's/^refs\/heads\/code-//')" >> $GITHUB_ENV
+        run: echo "$(echo "refs/heads/code-development" | sed 's/.*\///' | sed 's/^code-//')" >> $GITHUB_ENV
 
 
   ##############################################################################################################
