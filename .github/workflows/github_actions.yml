@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Extract Environment Name
         id: set-environment-name
-        run: echo "::set-output name=environment_name::$(echo "${{ github.ref }}" | sed 's/refs\/heads\/code-//')"
+        run: echo "::set-output name=environment::${{ github.ref:5 }}"
 
 
   ##############################################################################################################
@@ -33,7 +33,7 @@ jobs:
       - name: Repository
         run: echo "${{ github.repository }} repository"
       - name: Environment
-        run: echo "$(echo "${{ github.ref }}" | sed 's/.*\///' | sed 's/^code-//')"
+        run: echo "${{ environment }}"
       - name: Branch
         run: echo "${{ github.ref }}"
       - name: Trigger
@@ -56,7 +56,8 @@ jobs:
           dotnet-version: 7.0.x
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+          # dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/${{ environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
           dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
