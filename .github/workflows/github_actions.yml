@@ -39,12 +39,12 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --logger:"console;verbosity=detailed"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: SytleCop dotnet build
         run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false --logger:"console;verbosity=detailed"
 
   ##############################################################################################################
-  # Run CodeQL Linting
+  # Run CodeQL Analysis - https://github.com/github/codeql 
   ##############################################################################################################
   codeql-analysis:
     name: 3. CodeQL Analysis
@@ -74,10 +74,10 @@ jobs:
           dotnet-version: '7.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --logger:"console;verbosity=detailed"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
       - name: Dotnet build
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"  --logger:"console;verbosity=detailed"
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
@@ -113,8 +113,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore
       - name: Run NUnit unit tests
-        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
