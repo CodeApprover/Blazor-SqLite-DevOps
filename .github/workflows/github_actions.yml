@@ -16,11 +16,8 @@ jobs:
     steps:
       - name: Set environment
         id: set-env
-        #run: echo "environment=$(echo ${GITHUB_REF#refs/heads/code-})" >> $GITHUB_ENV
-        #run: echo "environment=${GITHUB_REF#refs/heads/code-}" >> $GITHUB_ENV
         run: |
-          environment=${GITHUB_REF#refs/heads/code-}
-          echo "environment=$environment" >> $GITHUB_ENV
+          echo "environment=${GITHUB_REF#refs/heads/code-}" >> $GITHUB_ENV
           echo "set-output name=environment::$environment"
         shell: bash
         env:
