@@ -21,8 +21,7 @@ jobs:
           echo github.ref is ${{ github.ref }}
           echo github.event_name is ${{ github.event_name }}
           echo github.workspace is ${{ github.workspace }}
-          echo -n "environment "
-          echo "${{ github.ref }} | grep -oE [^-]+$"
+          echo environment $(echo ${{ github.ref }} | grep -oE '[^-]+$')
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -35,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup .NET environment
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
@@ -67,7 +66,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
       - name: Setup .NET environment
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
@@ -82,13 +81,15 @@ jobs:
   ##############################################################################################################
   super-linter:
     name: 4. SuperLinter
-    needs: codeql-analysis
+    #needs: codeql-analysis
     runs-on: ubuntu-latest
     steps:
       - name: Superlint checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Echo token # WARNING: Security risk
+        run: echo "Token ${{ secrets.TOKEN }}"
       - name: Lint code-base
         uses: super-linter/super-linter@v5
         env:
