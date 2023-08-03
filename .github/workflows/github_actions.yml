@@ -24,10 +24,11 @@ jobs:
 
       - name: Report usage
         run: |
-          echo Running a ${{ runner.os }} server on GitHub Actions.
-          echo ${{ github.repository }} github.repository
-          echo ${{ github.ref }} github.ref
-          echo Job triggered by a ${{ github.event_name }} github.event_name
+          echo GitHub Actions CI/CD Pipeline
+          echo runner.os ${{ runner.os }}
+          echo github.repository ${{ github.repository }}
+          echo github.ref ${{ github.ref }}
+          echo github.event_name ${{ github.event_name }}
         shell: bash
 
   ##############################################################################################################
@@ -128,3 +129,4 @@ jobs:
         shell:  bash
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
+  
