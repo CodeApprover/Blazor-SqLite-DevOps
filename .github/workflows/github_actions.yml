@@ -32,10 +32,8 @@ jobs:
         run: echo "${{ github.ref }}"
       - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
-      - name: GITHUB_ENV
-        run: echo "${{ GITHUB_ENV }}"
-      - name: Show Environment
-        run: echo "${{ environment }}"
+      - name: Environment
+        run: echo "${{ env.environment }}"
 
 
   ##############################################################################################################
