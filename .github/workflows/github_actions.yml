@@ -15,13 +15,13 @@ jobs:
     steps:
       - name: Report usage
         run: |
-          echo GitHub Actions CI/CD Pipeline
-          echo runner.os is ${{ runner.os }}
-          echo github.repository is ${{ github.repository }}
-          echo github.ref is ${{ github.ref }}
-          echo github.event_name is ${{ github.event_name }}
-          echo github.workspace is ${{ github.workspace }}
-          echo environment $(echo ${{ github.ref }} | grep -oE '[^-]+$')
+          echo "GitHub Actions CI/CD Pipeline"
+          echo "runner.os is ${{ runner.os }}"
+          echo "github.repository is ${{ github.repository }}"
+          echo "github.ref is ${{ github.ref }}"
+          echo "github.event_name is ${{ github.event_name }}"
+          echo "github.workspace is ${{ github.workspace }}"
+          echo "environment $(echo ${{ github.ref }} | grep -oE '[^-]+$')"
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -31,13 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: report
     steps:
-      - name: Checkout repository
+      - name: StyleCopCheckout repository
         uses: actions/checkout@v3
-      - name: Setup .NET environment
+      - name: StyleCop Setup .NET environment
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: Restore Dependencies
+      - name: StyleCopRestore Dependencies
         run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: SytleCop dotnet build
         run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
@@ -59,21 +59,21 @@ jobs:
       matrix:
         language: ['csharp']
     steps:
-      - name: Checkout repository
+      - name: CodeQL Checkout repository
         uses: actions/checkout@v3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
-      - name: Setup .NET environment
+      - name: CodeQL Setup .NET CodeQL environment
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: Restore Dependencies
+      - name: CodeQL Restore Dependencies
         run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Dotnet build
+      - name: CodeQL Dotnet build
         run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Perform CodeQL Analysis
+      - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
 
   ##############################################################################################################
@@ -100,42 +100,42 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
-          #JSCPD_CONFIG_FILE: "${{ github.workspace }}/.jscpd.json"
+          JSCPD_CONFIG_FILE: .jscpd.json
 
   ##############################################################################################################
   # Development Environment tests
   ##############################################################################################################
-  development-environment-nunit-tests:
-    name: 5. Development environment Nunit unit tests
+  nunit-tests:
+    name: 5. Nunit unit tests
     needs: super-linter
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     steps:
-      - name: Checkout repository
+      - name: Nunit Checkout repository
         uses: actions/checkout@v3
-      - name: Install Nunit dependencies
+      - name: Nunit install dependencies
         run: dotnet restore \
           "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-      - name: Dotnet restore
+      - name: Nunit dotnet restore
         run: dotnet build --no-restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-      - name: Run Nunit unit tests
+      - name: Nunit run unit tests
         run: dotnet test --no-restore \
           "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development
           
-  development-environment-xunit-tests:
-    name: 5. Development environment Xunit unit tests
-    needs: development-environment-nunit-tests
+  xunit-tests:
+    name: 5.  Xunit unit tests
+    needs: nunit-tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     steps:
-      - name: Checkout repository
+      - name: Xunit Checkout repository
         uses: actions/checkout@v3
-      - name: Install Xunit dependencies
+      - name: Xunit install dependencies
         run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-      - name: Dotnet restore
+      - name: Xunit dotnet restore
         run: dotnet build --no-restore \
           "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-      - name: Run Xunit unit tests
+      - name: Xunit run unit tests
         run: dotnet test --no-restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
