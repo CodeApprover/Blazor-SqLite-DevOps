@@ -45,40 +45,45 @@ jobs:
         run: |
           dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
-  ##############################################################################################################
-  # Run CodeQL Linting
-  ##############################################################################################################
-  codeql:
-    name: 3. CodeQL Linting
-    runs-on: ubuntu-latest
-    needs: stylecop-linting
-    timeout-minutes: 360 
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['csharp']
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: ${{ matrix.language }}
-      - name: Restore Dependencies
-        run: |
-          dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        shell: bash
-      - name: Dotnet build
-        run: |
-          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Perform CodeQL Analysis
-        run: |
-          codeql database create --language=csharp --source-root="${{ github.workspace }}/$(echo refs/heads/code-development | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club" --name=my-codeql-database
-          codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
+ ##############################################################################################################
+# Run CodeQL Linting
+##############################################################################################################
+codeql-analysis:
+  name: 3. CodeQL Analysis
+  runs-on: ubuntu-latest
+  needs: stylecop-linting
+  timeout-minutes: 360 
+  permissions:
+    actions: read
+    contents: read
+    security-events: write
+  strategy:
+    fail-fast: false
+    matrix:
+      language: ['csharp']
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      shell: bash
+
+    - name: Dotnet build
+      run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
 
   ##############################################################################################################
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
