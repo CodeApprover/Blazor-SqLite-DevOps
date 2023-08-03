@@ -37,13 +37,13 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
+          dornet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         run: |
-          environment=$(echo ${{ github.ref }} | grep -oE [^-]+$)
-          dotnet restore --no-cache "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          
         shell:  bash
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
         shell:  bash
         
   ##############################################################################################################
