@@ -33,15 +33,18 @@ jobs:
     needs: report
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore --no-cache \
+          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: SytleCop dotnet build
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+        run: dotnet build --no-restore \
+          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" \
+          /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
   ##############################################################################################################
   # Run CodeQL Analysis - https://github.com/github/codeql 
@@ -61,24 +64,21 @@ jobs:
         language: ['csharp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
-
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '7.0.x'
-
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-
+        run: dotnet restore --no-cache \
+          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Dotnet build
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-
+        run: dotnet build --no-restore \
+          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Superlint checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Lint code-base
@@ -104,17 +104,44 @@ jobs:
   ##############################################################################################################
   # Development Environment tests
   ##############################################################################################################
-  development-environment-tests:
-    name: 5. Development environment tests
+  development-environment-nunit-tests:
+    name: 5. Development environment Nunit unit tests
     needs: super-linter
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install Nunit dependencies
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore
-      - name: Run NUnit unit tests
-        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore
+        run: dotnet restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" \
+          --filter Category=Development
+      - name: Dotnet restore
+        run: dotnet build --no-restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+      - name: Run Nunit unit tests
+        run: dotnet test --no-restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" \
+          --filter Category=Development
+          
+  development-environment-xunit-tests:
+    name: 5. Development environment Xunit unit tests
+    needs: development-environment-nunit-tests
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Xunit dependencies
+        run: dotnet restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" \
+          --filter Category=Development
+      - name: Dotnet restore
+        run: dotnet build --no-restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+      - name: Run Xunit unit tests
+        run: dotnet test --no-restore \
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" \
+          --filter Category=Development
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
