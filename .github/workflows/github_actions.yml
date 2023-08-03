@@ -34,7 +34,7 @@ jobs:
       - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
       - name: Environment
-        run: echo "${{ env.environment }}"
+        run: echo "$env.environment"
 
 
   ##############################################################################################################
