@@ -29,10 +29,12 @@ jobs:
       - name: Report usage
         run: |
           echo GitHub Actions CI/CD Pipeline
-          echo runner.os ${{ runner.os }}
-          echo github.repository ${{ github.repository }}
-          echo github.ref ${{ github.ref }}
-          echo github.event_name ${{ github.event_name }}
+          echo runner.os is ${{ runner.os }}
+          echo github.repository is ${{ github.repository }}
+          echo github.ref is ${{ github.ref }}
+          echo github.event_name is ${{ github.event_name }}
+          echo environemt is ${{ needs.report.outputs.environment }}
+          echo ${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj
         shell: bash
 
   ##############################################################################################################
