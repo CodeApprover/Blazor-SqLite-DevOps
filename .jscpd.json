@@ -1,0 +1,10 @@
+{
+  "threshold": 5,  // Increase this value as needed
+  "minLines": 5,
+  "minTokens": 70,
+  "ignore": [
+    "**/node_modules/**",
+    "**/test/**",
+    "**/.github/workflows/**"
+  "reporters": ["console"]
+}
