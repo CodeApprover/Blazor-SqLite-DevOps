@@ -40,7 +40,7 @@ jobs:
       - name: StyleCopRestore Dependencies
         run: |
           cmd="dotnet restore --no-cache "
-          cmd1=${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
           cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
           command="$cmd+$cmd1=$cmd2"
           eval $command
@@ -50,7 +50,7 @@ jobs:
           cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
           cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj "
           cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-          ommand="$cmd+$cmd1+$cmd2+$cmd3"
+          command="$cmd+$cmd1+$cmd2+$cmd3"
           eval $command
 
   ##############################################################################################################
