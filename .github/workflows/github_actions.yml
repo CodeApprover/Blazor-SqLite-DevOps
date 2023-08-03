@@ -96,6 +96,7 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          JSCPD_CONFIG_FILE: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/.jscpd.json"
 
   ##############################################################################################################
   # Development Environment tests
