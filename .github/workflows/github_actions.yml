@@ -14,16 +14,12 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-      - name: Runner
-        run: echo "Running a ${{ runner.os }} server on GitHub Actions."
-      - name: Repository
-        run: echo "${{ github.repository }} repository"
-      - name: Branch
-        run: echo "${{ github.ref }}"
-      - name: Trigger
-        run: echo "Job triggered by a ${{ github.event_name }}"
-      - name: Environment
-        run: echo refs/heads/code-development | grep -oE [^-]+$
+        run |
+          echo Running a ${{ runner.os }} server on GitHub Actions.
+          echo ${{ github.repository }} repository
+          echo ${{ github.ref }}
+          echo Job triggered by a ${{ github.event_name }}
+          echo refs/heads/code-development | grep -oE [^-]+$
 
 
   ##############################################################################################################
