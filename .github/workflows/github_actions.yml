@@ -1,3 +1,4 @@
+---
 name: "CI-CD Workflow"
 
 on:
@@ -11,15 +12,7 @@ jobs:
   report:
     name: 1. Report
     runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
     steps:
-      - name: Set environment
-        id: set-env
-        run: |
-          environment=refs/heads/code-development | grep -oE [^-]+$ >> $GITHUB_ENV
-        shell: bash
-
       - name: Report usage
         run: |
           echo GitHub Actions CI/CD Pipeline
@@ -27,9 +20,7 @@ jobs:
           echo github.repository is ${{ github.repository }}
           echo github.ref is ${{ github.ref }}
           echo github.event_name is ${{ github.event_name }}
-          echo environemt is ${{ needs.report.outputs.environment }}
-          echo ${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj
-        shell: bash
+          echo environment is ${{ github.ref }} | grep -oE [^-]+$
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -47,11 +38,12 @@ jobs:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          environment=$(echo ${{ github.ref }} | grep -oE [^-]+$)
+          dotnet restore --no-cache "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         shell:  bash
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+          dotnet build --no-restore "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
         shell:  bash
         
   ##############################################################################################################
@@ -79,11 +71,11 @@ jobs:
           languages: ${{ matrix.language }}
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache ""${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         shell:  bash
       - name: Dotnet build
         run: |
-          dotnet build "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
+          dotnet build "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
         shell:  bash
       - name: Perform CodeQL Analysis
         run: |
@@ -122,7 +114,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "${{ github.workspace }}/${{ needs.report.outputs.environment }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "${{ github.workspace }}/$environment/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
         shell:  bash
       - name: Run NUnit unit tests
         run: dotnet test "${{ github.workspace }}/${{ needs.report.outputs.environment }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
