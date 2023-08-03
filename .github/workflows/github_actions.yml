@@ -17,12 +17,8 @@ jobs:
       - name: Set environment
         id: set-env
         run: |
-          environment=refs/heads/code-development | grep -oE [^-]+$
-          echo $environment >> $GITHUB_ENV
-          echo "set-output name=environment::$environment"
+          environment=refs/heads/code-development | grep -oE [^-]+$ >> $GITHUB_ENV
         shell: bash
-        env:
-          GITHUB_REF: ${{ github.ref }}
 
       - name: Report usage
         run: |
