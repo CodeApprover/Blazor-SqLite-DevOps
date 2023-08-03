@@ -14,7 +14,8 @@ jobs:
 
     steps:
       - name: Extract Environment Name
-        run: echo "environment=$(echo \"${{ github.ref }}\"  | rev | cut -d'/' -f1 | rev)" >> $GITHUB_ENV
+        run: echo "environment=$(echo "refs/heads/code-development" | grep -oE "[^-]+$")" >> $GITHUB_ENV
+
 
   ##############################################################################################################
   # Report usage
