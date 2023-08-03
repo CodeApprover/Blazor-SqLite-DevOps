@@ -20,6 +20,7 @@ jobs:
           echo github.repository is ${{ github.repository }}
           echo github.ref is ${{ github.ref }}
           echo github.event_name is ${{ github.event_name }}
+          echo github.workspace is ${{ github.workspace }}
           echo -n "environment "
           echo "${{ github.ref }} | grep -oE [^-]+$"
 
@@ -39,11 +40,11 @@ jobs:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        shell: bash
+          dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+          run: |
+          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
   ##############################################################################################################
   # Run CodeQL Linting
@@ -76,11 +77,10 @@ jobs:
           dotnet-version: '7.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        shell: bash
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
       - name: Dotnet build
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
