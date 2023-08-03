@@ -90,7 +90,7 @@ jobs:
   ##############################################################################################################
   super-linter:
     name: 4. SuperLinter
-    needs: codeql
+    needs: codeql-analysis
     runs-on: ubuntu-latest
     steps:
       - name: Superlint checkout code
