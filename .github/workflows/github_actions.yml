@@ -22,29 +22,27 @@ jobs:
           echo github.event_name is ${{ github.event_name }}
           echo environment is ${{ github.ref }} | grep -oE [^-]+$
 
-  ##############################################################################################################
-  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-  ##############################################################################################################
-  stylecop-linting:
-    name: 2. StyleCop Linting
-    runs-on: ubuntu-latest
-    needs: report
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '7.0.x'
-      - name: Restore Dependencies
-          dornet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-        run: |
-          
-        shell:  bash
-      - name: StyleCop dotnet build
-        run: |
-          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
-        shell:  bash
+ ##############################################################################################################
+# Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+##############################################################################################################
+stylecop-linting:
+  name: 2. StyleCop Linting
+  runs-on: ubuntu-latest
+  needs: report
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0.x'
+    - name: Restore Dependencies
+      run: |
+        dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      shell: bash
+    - name: StyleCop dotnet build
+      run: |
+        dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
         
   ##############################################################################################################
   # Run CodeQL Linting
@@ -71,11 +69,11 @@ jobs:
           languages: ${{ matrix.language }}
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache ""${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         shell:  bash
       - name: Dotnet build
         run: |
-          dotnet build "${{ github.workspace }}/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
+          dotnet build "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
         shell:  bash
       - name: Perform CodeQL Analysis
         run: |
@@ -114,10 +112,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "${{ github.workspace }}/$environment/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
         shell:  bash
       - name: Run NUnit unit tests
-        run: dotnet test "${{ github.workspace }}/${{ needs.report.outputs.environment }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
         shell:  bash
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
