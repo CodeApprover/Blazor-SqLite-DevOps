@@ -17,7 +17,7 @@ jobs:
       - name: Set environment
         id: set-env
         #run: echo "environment=$(echo ${GITHUB_REF#refs/heads/code-})" >> $GITHUB_ENV
-        run: echo "environment=${GITHUB_REF#refs/heads/code-}" 
+        run: echo "environment=${GITHUB_REF#refs/heads/code-}" >> $GITHUB_ENV
         shell: bash
         env:
           GITHUB_REF: ${{ github.ref }}
