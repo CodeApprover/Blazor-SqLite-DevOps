@@ -14,7 +14,8 @@ jobs:
     name: 1. Report
     runs-on: ubuntu-latest
     steps:
-        run |
+      - name: Report usage
+        run: |
           echo Running a ${{ runner.os }} server on GitHub Actions.
           echo ${{ github.repository }} repository
           echo ${{ github.ref }}
@@ -39,7 +40,9 @@ jobs:
       - name: Restore Dependencies
         run: |
           # dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/${{ env.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          environment=$(refs/heads/code-development | grep -oE [^-]+$)
+          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          
       - name: StyleCop dotnet build
         run: |
           dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
