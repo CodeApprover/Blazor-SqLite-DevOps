@@ -39,12 +39,9 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache \
-          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: SytleCop dotnet build
-        run: dotnet build --no-restore \
-          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" \
-          /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
   ##############################################################################################################
   # Run CodeQL Analysis - https://github.com/github/codeql 
@@ -74,11 +71,9 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache \
-          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Dotnet build
-        run: dotnet build --no-restore \
-          "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
@@ -114,15 +109,12 @@ jobs:
         uses: actions/checkout@v3
       - name: Install Nunit dependencies
         run: dotnet restore \
-          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" \
-          --filter Category=Development
-      - name: Dotnet restore
-        run: dotnet build --no-restore \
           "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+      - name: Dotnet restore
+        run: dotnet build --no-restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Run Nunit unit tests
         run: dotnet test --no-restore \
-          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" \
-          --filter Category=Development
+          "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development
           
   development-environment-xunit-tests:
     name: 5. Development environment Xunit unit tests
@@ -133,15 +125,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Xunit dependencies
-        run: dotnet restore \
-          "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" \
-          --filter Category=Development
+        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Dotnet restore
         run: dotnet build --no-restore \
           "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Run Xunit unit tests
-        run: dotnet test --no-restore \
-          "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" \
-          --filter Category=Development
+        run: dotnet test --no-restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj" --filter Category=Development
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
