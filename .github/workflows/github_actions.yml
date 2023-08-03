@@ -90,6 +90,10 @@ jobs:
           fetch-depth: 0
       - name: Echo token # WARNING: Security risk
         run: echo "Token ${{ secrets.TOKEN }}"
+      - name: List files in workspace
+        run: ls -la "${{ github.workspace }}"
+      - name: Print JSCPD config path
+        run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
       - name: Lint code-base
         uses: super-linter/super-linter@v5
         env:
