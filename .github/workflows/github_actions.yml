@@ -20,7 +20,7 @@ jobs:
           echo github.repository is ${{ github.repository }}
           echo github.ref is ${{ github.ref }}
           echo github.event_name is ${{ github.event_name }}
-          echo environment is ${{ github.ref }} | grep -oE [^-]+$
+          echo ${{ github.ref }} | grep -oE [^-]+$ environment
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -43,7 +43,7 @@ jobs:
       - name: StyleCop dotnet build
         run: |
           dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
-        
+
   ##############################################################################################################
   # Run CodeQL Linting
   ##############################################################################################################
@@ -73,7 +73,7 @@ jobs:
         shell:  bash
       - name: Dotnet build
         run: |
-          dotnet build "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
+          dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
         shell:  bash
       - name: Perform CodeQL Analysis
         run: |
