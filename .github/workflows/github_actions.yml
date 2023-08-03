@@ -5,8 +5,7 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-
- ##############################################################################################################
+  ##############################################################################################################
   # Extract Environment Name
   ##############################################################################################################
   extract-environment-name:
@@ -15,7 +14,6 @@ jobs:
 
     steps:
       - name: Extract Environment Name
-        id: set-environment-name
         run: echo "environment=$(echo "refs/heads/code-development" | sed 's/.*\///' | sed 's/^code-//')" >> $GITHUB_ENV
 
 
@@ -31,13 +29,15 @@ jobs:
       - name: Repository
         run: echo "${{ github.repository }} repository"
       - name: Environment
-        run: echo "${{ environment }}"
+        run: echo "${{ env.environment }}"
       - name: Branch
         run: echo "${{ github.ref }}"
       - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
+      - name: Display Environment
+        run: echo "${{ env.GITHUB_ENV }}"
 
-  
+
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   ##############################################################################################################
@@ -55,7 +55,7 @@ jobs:
       - name: Restore Dependencies
         run: |
           # dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/${{ environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/${{ env.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
           dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
