@@ -20,7 +20,8 @@ jobs:
           echo github.repository is ${{ github.repository }}
           echo github.ref is ${{ github.ref }}
           echo github.event_name is ${{ github.event_name }}
-          echo "environment is ${{ github.ref }} | grep -oE [^-]+$"
+          echo -n "environment "
+          echo "${{ github.ref }} | grep -oE [^-]+$"
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
