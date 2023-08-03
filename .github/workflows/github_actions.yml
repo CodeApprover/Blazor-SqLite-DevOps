@@ -14,8 +14,9 @@ jobs:
 
     steps:
       - name: Extract Environment Name
-        run: echo "environment=$(echo \"${{ github.ref }}\" | sed 's/.*\///' | sed 's/^code-//')" >> $GITHUB_ENV
-
+        run: echo "environment=$(echo \"${{ github.ref }}\"  | rev | cut -d'/' -f1 | rev)" >> $GITHUB_ENV
+      - name: Test
+        run: echo ${{ environment }}
 
   ##############################################################################################################
   # Report usage
@@ -23,6 +24,7 @@ jobs:
   report:
     name: 1. Report
     runs-on: ubuntu-latest
+    needs: extract-environment-name
     steps:
       - name: Runner
         run: echo "Running a ${{ runner.os }} server on GitHub Actions."
@@ -33,9 +35,9 @@ jobs:
       - name: Trigger
         run: echo "Job triggered by a ${{ github.event_name }}"
       - name: GITHUB_ENV
-        run: echo "${{ env.GITHUB_ENV }}"
+        run: echo "${{ GITHUB_ENV }}"
       - name: Show Environment
-        run: echo "${{ env.environment }}"
+        run: echo "${{ environment }}"
 
 
   ##############################################################################################################
