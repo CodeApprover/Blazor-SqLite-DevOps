@@ -77,9 +77,8 @@ jobs:
           dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Perform CodeQL Analysis
         run: |
-          codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club --name=my-codeql-database
+          codeql database create --language=csharp --source-root="${{ github.workspace }}/$(echo refs/heads/code-development | grep -oE [^-]+$)/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club" --name=my-codeql-database
           codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
-
 
   ##############################################################################################################
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
