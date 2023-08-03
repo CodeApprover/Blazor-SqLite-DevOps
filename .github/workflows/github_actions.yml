@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Extract Environment Name
         run: echo "environment=$(echo \"${{ github.ref }}\"  | rev | cut -d'/' -f1 | rev)" >> $GITHUB_ENV
-      - name: Test
-        run: echo ${{ environment }}
 
   ##############################################################################################################
   # Report usage
