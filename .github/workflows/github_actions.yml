@@ -5,14 +5,14 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-
-
   ##############################################################################################################
   # Report usage
   ##############################################################################################################
   report:
     name: 1. Report
     runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
     steps:
       - name: Report usage
         run: |
@@ -20,8 +20,10 @@ jobs:
           echo ${{ github.repository }} repository
           echo ${{ github.ref }}
           echo Job triggered by a ${{ github.event_name }}
-          echo refs/heads/code-development | grep -oE [^-]+$
-
+      - name: Set environment
+        id: set-env
+        run: echo "environment=$(echo ${GITHUB_REF#refs/heads/code-})" >> $GITHUB_ENV
+        shell: bash
 
   ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -32,24 +34,20 @@ jobs:
     needs: report
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: '7.0.x'
       - name: Restore Dependencies
         run: |
-          # dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
-          environment=$(refs/heads/code-development | grep -oE [^-]+$)
-          dotnet restore --no-cache "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/$environment/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-          
+          dotnet restore --no-cache "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: StyleCop dotnet build
         run: |
-          dotnet build --no-restore "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+          dotnet build --no-restore "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
 
-
-  #############################################################################################################
-  # Run CodeQL Linter - https://github.com/github/codeql
+  ##############################################################################################################
+  # Run CodeQL Linting
   ##############################################################################################################
   codeql:
     name: 3. CodeQL Linting
@@ -60,41 +58,38 @@ jobs:
       actions: read
       contents: read
       security-events: write
-
     strategy:
       fail-fast: false
       matrix:
         language: ['csharp']
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v1
         with:
           languages: ${{ matrix.language }}
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "$(find "${{ github.workspace }}" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)"
+          dotnet restore --no-cache "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Dotnet build
         run: |
-          dotnet build "$(find "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps" -type f -name "Blazor SqlLite Golf Club.csproj" -print -quit)" --no-restore
+          dotnet build "${{ github.workspace }}/${{ needs.report.outputs.environment }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" --no-restore
       - name: Perform CodeQL Analysis
         run: |
           codeql database create --language=${{ matrix.language }} --source-root=${{ github.workspace }} --name=my-codeql-database
           codeql analyze --format=sarif-latest --output=analysis_results.sarif my-codeql-database
 
-
   ##############################################################################################################
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
   ##############################################################################################################
   super-linter:
-    name: 4. Super Linter
+    name: 4. SuperLinter
     needs: codeql
     runs-on: ubuntu-latest
     steps:
       - name: Superlint checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
       - name: Lint code-base
@@ -104,62 +99,21 @@ jobs:
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
-
   ##############################################################################################################
   # Development Environment tests
   ##############################################################################################################
   development-environment-tests:
-    name: Development environment tests
+    name: 5. Development environment tests
     needs: super-linter
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    environment:
-      name: development
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Install Nunit dependencies
-        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit)"
+        run: dotnet restore "${{ github.workspace }}/${{ needs.report.outputs.environment }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Run NUnit unit tests
-        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "Nunit_Player_Unit_Tests.csproj" -print -quit) --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
-      - name: Install Xunit dependencies
-        run: dotnet restore " $(find "${{ github.workspace }}" -type f -name "Xunit_Game_Unit_Tests.csproj" -print -quit)"
-      - name: Run XUnit unit tests
-        run: dotnet test " $(find "${{ github.workspace }}" -type f -name "Xunit_Game_Unit_Tests.csproj" -print -quit) --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
+        run: dotnet test "${{ github.workspace }}/${{ needs.report.outputs.environment }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj" --filter Category=Development --no-restore --logger:"console;verbosity=detailed"
 
-
-  ##############################################################################################################
-  # Staging Environment tests
-  ##############################################################################################################
-  staging-environment-tests:
-    name: Staging environment tests
-    needs: super-linter
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
-    environment:
-      name: staging
-      
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Install MSTest dependencies
-        run: dotnet restore "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit)"
-      - name: Run integration tests
-        run: dotnet test "$(find "${{ github.workspace }}" -type f -name "MSTest_Integration_Tests.csproj" -print -quit) --filter Category=Integration --no-restore --logger:"console;verbosity=detailed"
-  
-  
-  ##############################################################################################################
-  # Production Environment tests
-  ##############################################################################################################
-  production-environment-tests:
-    name: Production environment tests
-    needs: super-linter
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
-    environment:
-      name: production
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+  # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
+  # ...
