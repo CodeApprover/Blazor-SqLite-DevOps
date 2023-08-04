@@ -163,51 +163,51 @@ jobs:
 
   # DEVELOPMENT ENVIRONMENT - Deploy to Staging
   deploy-staging:
-    name: Dev Deploy to Staging
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: build-dev-staging-artifact
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3.5.3
-        with:
-          fetch-depth: 0
-      - name: Configure Git User
-        run: |
-          git config --local user.email "auto_action@github.com"
-          git config --local user.name "Dev to Staging CI push"
-      - name: Rename development dir
-        run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
-      - name: Commit renamed dir
-        run: |
-          git add .
-          git commit -m "Renamed development dir to staging [skip CI]"
-      - name: Checkout Staging Branch
-        run: |
-          git fetch origin code-staging
-          git checkout code-staging
-      - name: Merge Dev -> Staging
-        run: git merge -X ours ${{ github.ref }}
-      - name: Push to Staging
-        run: |
-          git add .
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Pushing changes to staging [skip CI]"
-            git push origin code-staging
-          fi
-      - name: Recreate code-development
-        run: |
-          git branch -D code-development
-          git checkout -b code-development
-      - name: Rename staging dir
-        run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/development"
-      - name: Push to code-development
-        run: |
-          git add .
-          git commit -m "Creating code-development branch [skip CI]"
-          git push origin code-development
+  name: Dev Deploy to Staging
+  runs-on: ubuntu-latest
+  if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+  needs: build-dev-staging-artifact
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
+      with:
+        fetch-depth: 0
+    - name: Configure Git User
+      run: |
+        git config --local user.email "auto_action@github.com"
+        git config --local user.name "Dev to Staging CI push"
+    - name: Rename development dir
+      run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
+    - name: Commit renamed dir
+      run: |
+        git add .
+        git commit -m "Renamed development dir to staging [skip CI]"
+    - name: Checkout or Create Staging Branch
+      run: |
+        git fetch origin code-staging || true
+        git checkout code-staging || git checkout -b code-staging
+    - name: Merge Dev -> Staging
+      run: git merge -X ours ${{ github.ref }}
+    - name: Push to Staging
+      run: |
+        git add .
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Pushing changes to staging [skip CI]"
+          git push origin code-staging
+        fi
+    - name: Recreate code-development
+      run: |
+        git branch -D code-development
+        git checkout -b code-development
+    - name: Rename staging dir
+      run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/development"
+    - name: Push to code-development
+      run: |
+        git add .
+        git commit -m "Creating code-development branch [skip CI]"
+        git push origin code-development
 
 # STAGING ENVIRONMENT - Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
