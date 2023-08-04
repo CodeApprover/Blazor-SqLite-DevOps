@@ -154,18 +154,7 @@ jobs:
       - name: Artifact restore dependencies
         run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Build Artifact
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-
-      # DEBUG project obj directory
-      - name: List directories
-        run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
-        #run: ls -la "/usr/share/dotnet"
-        
-      - name: Print working directory
-        run: pwd
-      - name: List staticwebassets.build.json file
-        run: ls -la "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/Release/net7.0/staticwebassets.build.json"
-
+        run: dotnet build --no-restore --configuration Release "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Publish Artifact
         run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Archive Artifact
