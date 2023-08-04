@@ -201,7 +201,7 @@ jobs:
         run: |
           command="dotnet restore --no-cache"
           command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: Build Artifact
         run: |
