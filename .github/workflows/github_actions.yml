@@ -25,36 +25,7 @@ jobs:
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
 
-  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-  stylecop-linting:
-    name: Development - StyleCop Linting
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: report
-    steps:
-      - name: StyleCop Checkout repository
-        uses: actions/checkout@v3.5.3
-      - name: StyleCop Setup .NET environment
-        uses: actions/setup-dotnet@v3.2.0
-        with:
-          dotnet-version: '7.0.x'
-      - name: StyleCop Restore Dependencies
-        run: |
-          command="dotnet restore --no-cache"
-          command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj\""
-          eval "${command}"
-      - name: StyleCop dotnet build
-        run: |
-         command="dotnet build --no-restore"
-         command="${command} \"${{ env.PROJECT_PATH }}"
-         command="${command}Blazor SqlLite Golf Club.csproj\""
-         command="${command} /p:StyleCopEnabled=true"
-         command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
-         command="${command} /p:StyleCopForceFullAnalysis=false"
-         eval "${command}"
-
-  # Run CodeQL Analysis - https://github.com/github/codeql
+  # STAGING Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
     name: Staging - CodeQL Analysis
     runs-on: ubuntu-latest
@@ -95,7 +66,7 @@ jobs:
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
 
-  # Run SuperLinter - https://github.com/marketplace/actions/super-linter
+  # PRODUCTION - Run SuperLinter - https://github.com/marketplace/actions/super-linter
   super-linter:
     name: Production - SuperLinter 
     runs-on: ubuntu-latest
@@ -116,12 +87,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AUTH }}
           JSCPD_CONFIG_FILE: .jscpd.json
 
-  # Nunit unit tests - https://nunit.org
-  nunit-tests:
+  # DEVELOPMENT - Nunit unit tests - https://nunit.org
+  nunit-dev-tests:
     name: Development - Nunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: stylecop-linting
+    needs: report
     steps:
       - name: Nunit Checkout repository
         uses: actions/checkout@v3.5.3
@@ -149,12 +120,12 @@ jobs:
           command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
 
-  # Xunit unit tests - https://xunit.net
-  xunit-tests:
+  # DEVELOPMENT - Xunit unit tests - https://xunit.net
+  xunit-dev-tests:
     name: Development - Xunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: stylecop-linting
+    needs: report
     steps:
       - name: Xunit Checkout repository
         uses: actions/checkout@v3.5.3
@@ -182,12 +153,41 @@ jobs:
           command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
 
-  # Pass code from development to staging
-  build-staging-artifact:
+# DEVELOPMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+  stylecop-dev-linting:
+    name: Development - StyleCop Linting
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: [nunit-dev-tests, xunit-dev-tests]
+    steps:
+      - name: StyleCop Checkout repository
+        uses: actions/checkout@v3.5.3
+      - name: StyleCop Setup .NET environment
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: '7.0.x'
+      - name: StyleCop Restore Dependencies
+        run: |
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: StyleCop dotnet build
+        run: |
+         command="dotnet build --no-restore"
+         command="${command} \"${{ env.PROJECT_PATH }}"
+         command="${command}Blazor SqlLite Golf Club.csproj\""
+         command="${command} /p:StyleCopEnabled=true"
+         command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
+         command="${command} /p:StyleCopForceFullAnalysis=false"
+         eval "${command}"
+
+  # DEVELOPMENT - Pass code from development to staging
+  build-dev-staging-artifact:
     name: Development - Build Artifact
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: [xunit-tests, nunit-tests]
+    needs: stylecop-dev-linting
     steps:
       - name: Artifact checkout repository
         uses: actions/checkout@v3.5.3
@@ -228,43 +228,35 @@ jobs:
     name: Development - Push to Staging Branch
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: build-staging-artifact
+    needs: build-dev-staging-artifact
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
-
       - name: Configure Git User
         run: |
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev to Staging CI push"
-
       - name: Rename development dir
         run: mv "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')" "${{ github.workspace }}/staging"
-
       - name: Checkout Staging Branch
         run: |
           git fetch origin code-staging
           git checkout code-staging
-
       - name: Merge Dev -> Staging
         run: git merge ${{ github.ref }}
-
       - name: Push to Staging
         run: |
           git add .
           git commit -m "Renamed development dir to staging [skip CI]"
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
-
       - name: Recreate code-development
         run: |
           git branch -D code-development
           git checkout -b code-development
-
       - name: Rename staging dir
         run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-
       - name: Push to code-development
         run: |
           git add .
