@@ -17,7 +17,7 @@
 /staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
 /production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
 
-# Except database.db file
+# Except these database files
 !/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 !/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 !/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
@@ -37,6 +37,11 @@
 /tests/StyleCop_CSharp_Linting/obj/
 /tests/Xunit_Game_Unit_Tests/bin/
 /tests/Xunit_Game_Unit_Tests/obj/
+
+# Except these obj and bin files
+!/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
+!/staging/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
+!/production/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
 
 # Ignore specific files
 /development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
