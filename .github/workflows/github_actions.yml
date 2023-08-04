@@ -114,7 +114,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: List root directory
-        run: ls -la ${{ github.workspace }}
+        run: ls -la ${{ github.workspace }}/tests/Nunit_Player_Unit_Tests
         
       - name: Nunit install dependencies
         run: dotnet restore --no-cache "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
