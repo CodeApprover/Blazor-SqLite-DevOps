@@ -21,7 +21,7 @@ jobs:
           echo "github.workspace is ${{ github.workspace }}"
           ls -la "${{ github.workspace }}"
 
-   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
@@ -36,18 +36,18 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
           cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
           command="${cmd} ${cmd1}${cmd2}"
-          eval $command
+          eval "$command"
       - name: StyleCop dotnet build
         run: |
-         cmd="dotnet build --no-restore"
-         cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-         cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
-         eval $command
+          cmd="dotnet build --no-restore"
+          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
+          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
+          command="${cmd} ${cmd1}${cmd2} ${cmd3}"
+          eval "$command"
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
