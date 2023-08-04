@@ -23,12 +23,6 @@
 !/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 
 # Ignore bin and obj directories
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
 /tests/MSTest_Integration_Tests/bin/
 /tests/MSTest_Integration_Tests/obj/
 /tests/Nunit_Player_Unit_Tests/bin/
@@ -38,10 +32,13 @@
 /tests/Xunit_Game_Unit_Tests/bin/
 /tests/Xunit_Game_Unit_Tests/obj/
 
-# Except these obj and bin files
-!/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
-!/staging/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
-!/production/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj/project.assets.json
+# Include these obj and bin files for building artifacts
+!/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+!/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+!/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
 
 # Ignore specific files
 /development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
