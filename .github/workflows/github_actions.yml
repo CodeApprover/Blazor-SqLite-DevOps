@@ -146,9 +146,6 @@ jobs:
     steps:
       - name: Atrifact checkout repository
         uses: actions/checkout@v3.5.3
-      # other steps ...
-      - name: Publish Artifact
-        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Artifact setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
