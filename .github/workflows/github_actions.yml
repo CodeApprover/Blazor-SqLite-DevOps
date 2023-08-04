@@ -25,7 +25,6 @@ jobs:
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
-    needs: report
     steps:
       - name: StyleCop Checkout repository
         uses: actions/checkout@v3
@@ -53,7 +52,6 @@ jobs:
   codeql-analysis:
     name: 3. CodeQL Analysis
     runs-on: ubuntu-latest
-    needs: stylecop-linting
     timeout-minutes: 360
     permissions:
       actions: read
@@ -113,7 +111,6 @@ jobs:
   # Nunit unit tests - https://nunit.org
   nunit-tests:
     name: 5. Nunit unit tests
-    needs: super-linter
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     steps:
@@ -145,7 +142,6 @@ jobs:
   # Xunit unit tests - https://xunit.net
   xunit-tests:
     name: 5. Xunit unit tests
-    needs: nunit-tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     steps:
