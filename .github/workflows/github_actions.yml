@@ -6,9 +6,7 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-  ##############################################################################################################
   # Report usage
-  ##############################################################################################################
   report:
     name: 1. Report
     runs-on: ubuntu-latest
@@ -23,44 +21,40 @@ jobs:
           echo "github.workspace is ${{ github.workspace }}"
           echo "environment $(echo ${{ github.ref }} | grep -oE '[^-]+$')"
 
-  ##############################################################################################################
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
-  ##############################################################################################################
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
     needs: report
     steps:
-      - name: StyleCopCheckout repository
+      - name: StyleCop Checkout repository
         uses: actions/checkout@v3
       - name: StyleCop Setup .NET environment
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: StyleCopRestore Dependencies
+      - name: StyleCop Restore Dependencies
         run: |
-          cmd="dotnet restore --no-cache "
+          cmd="dotnet restore --no-cache"
           cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-          command="${cmd}${cmd1}${cmd2}"
+          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
-      - name: SytleCop dotnet build
+      - name: StyleCop dotnet build
         run: |
-         cmd="dotnet build --no-restore "
+         cmd="dotnet build --no-restore"
          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-         cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
          cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-         command="${cmd}${cmd1}${cmd2} ${cmd3}"
+         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
          eval $command
 
-  ##############################################################################################################
-  # Run CodeQL Analysis - https://github.com/github/codeql 
-  ##############################################################################################################
+  # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
     name: 3. CodeQL Analysis
     runs-on: ubuntu-latest
     needs: stylecop-linting
-    timeout-minutes: 360 
+    timeout-minutes: 360
     permissions:
       actions: read
       contents: read
@@ -82,35 +76,31 @@ jobs:
           dotnet-version: '7.0.x'
       - name: CodeQL Restore Dependencies
         run: |
-          cmd="dotnet restore --no-cache "
+          cmd="dotnet restore --no-cache"
           cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-          command="${cmd}${cmd1}${cmd2}"
+          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
       - name: CodeQL Dotnet build
         run: |
-          cmd="dotnet build --no-restore "
+          cmd="dotnet build --no-restore"
           cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-          command="${cmd}${cmd1}${cmd2}"
+          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
 
-  ##############################################################################################################
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
-  ##############################################################################################################
   super-linter:
     name: 4. SuperLinter
-    #needs: codeql-analysis
     runs-on: ubuntu-latest
+    #needs: codeql-analysis
     steps:
       - name: Superlint checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Echo token # WARNING: Security risk
-        run: echo "Token ${{ secrets.TOKEN }}"
       - name: List files in workspace
         run: ls -la "${{ github.workspace }}"
       - name: Print JSCPD config path
@@ -123,9 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
           JSCPD_CONFIG_FILE: .jscpd.json
 
-  ##############################################################################################################
   # Nunit unit tests - https://nunit.org
-  ##############################################################################################################
   nunit-tests:
     name: 5. Nunit unit tests
     needs: super-linter
@@ -135,24 +123,28 @@ jobs:
       - name: Nunit Checkout repository
         uses: actions/checkout@v3
       - name: Nunit install dependencies
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: |
+          cmd="dotnet restore --no-cache"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+          command = ${cmd} ${cmd1}${cmd2}
       - name: Nunit dotnet restore
         run: |
-          cmd="dotnet restore "
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-          command="${cmd}${cmd1}"
+          cmd="dotnet build --no-restore"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
       - name: Nunit run unit tests
         run: |
-          cmd="dotnet test --no-restore "
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-          cmd2="--filter Category=Development"
-          command="${cmd}${cmd1} ${cmd2}"
+          cmd="dotnet test"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/
+          cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+          cmd3="--filter Category=Development"
+          command="${cmd} ${cmd1}${cmd2} ${cmd3}"
           eval $command
 
-  ##############################################################################################################
   # Xunit unit tests - https://xunit.net
-  ##############################################################################################################
   xunit-tests:
     name: 5. Xunit unit tests
     needs: nunit-tests
@@ -163,22 +155,25 @@ jobs:
         uses: actions/checkout@v3
       - name: Xunit install dependencies
         run: |
-          cmd="dotnet restore "
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-          command="${cmd}${cmd1}"
+          cmd="dotnet restore"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd3="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
       - name: Xunit dotnet restore
         run: |
-          cmd="dotnet build --no-restore "
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-          command="${cmd}${cmd1}"
+          cmd="dotnet build --no-restore"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd2="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+          command="${cmd} ${cmd1}${cmd2}"
           eval $command
       - name: Xunit run unit tests
         run: |
-          cmd="dotnet test --no-restore "
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
-          cmd2="--filter Category=Development"
-          command="${cmd}${cmd1} ${cmd2}"
+          cmd="dotnet test"
+          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd2="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+          cmd3="--filter Category=Development"
+          command="${cmd} ${cmd1}${cmd2} ${cmd3}"
           eval $command
 
   # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
