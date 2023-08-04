@@ -41,9 +41,9 @@
 !/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
 
 # Ignore specific files
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
+/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
+/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
+/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
 
 # Ignore script files
 # /scripts/*
