@@ -198,25 +198,11 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Artifact restore dependencies
-        run: |
-          command="dotnet restore --no-cache"
-          command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj\""
-          eval "${command}"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Build Artifact
-        run: |
-          command="dotnet build --no-restore"
-          command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj\""
-          eval "${command}"
+        run: dotnet build --no-restore --configuration Release "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Publish Artifact
-        run: |
-          command="dotnet publish --configuration Release"
-          command="${command} --no-build --output ./publish"
-          command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj\""
-          echo "${command}"
-          eval "${command}"
+        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
