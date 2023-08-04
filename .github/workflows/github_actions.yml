@@ -54,7 +54,7 @@ jobs:
   codeql-analysis:
     name: CodeQL Analysis - Staging
     runs-on: ubuntu-latest
-    #if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     needs: report
     timeout-minutes: 360 
     permissions:
@@ -87,7 +87,7 @@ jobs:
   super-linter:
     name: SuperLinter - Production 
     runs-on: ubuntu-latest
-    #if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
     needs: report
     steps:
       - name: Superlint checkout code
@@ -136,4 +136,27 @@ jobs:
       - name: Xunit run unit tests
         run: dotnet test "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
 
-  # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
+  # Pass code from development to staging
+  build-artifact:
+    name: Build Artifact - Development
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: [xunit-tests, nunit-tests]
+    steps:
+      - name: Atrifact checkout repository
+        uses: actions/checkout@v3
+      - name: Artifact setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+      - name: Artifact restore dependencies
+        run: dotnet restore --no-cache "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: Build Artifact
+        run: dotnet build --no-restore "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: Publish Artifact
+        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: Archive Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: staging-artifact
+          path: ./publish/*
