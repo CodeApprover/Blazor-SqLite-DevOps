@@ -7,6 +7,10 @@
 /development/Blazor-SqlLite-DevOps/.vs/
 /staging/Blazor-SqlLite-DevOps/.vs/
 /production/Blazor-SqlLite-DevOps/.vs/
+/tests/Nunit_Player_Unit_Tests/.vs/
+/tests/MSTest_Integration_Tests/.vs/
+/tests/Xunit_Game_Unit_Tests/.vs/
+/tests/StyleCop_CSharp_Linting/.vs/
 
 # Ignore databases
 /development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
