@@ -6,7 +6,7 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club"
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/"
 
 jobs:
   # Report usage
@@ -41,17 +41,15 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          command="${cmd} ${cmd1}${cmd2}"
+          cmd1="Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${cmd} ${{ env.PROJECT_PATH }}${cmd1}"
           eval "$command"
       - name: StyleCop dotnet build
         run: |
          cmd="dotnet build --no-restore"
-         cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-         cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
+         cmd1="Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+         cmd2="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
+         command="${cmd} ${{ env.PROJECT_PATH }}${cmd1} ${cmd2}"
          eval "$command"
 
   # Run CodeQL Analysis - https://github.com/github/codeql
