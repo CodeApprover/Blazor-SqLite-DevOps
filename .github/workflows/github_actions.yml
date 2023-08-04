@@ -29,9 +29,9 @@ jobs:
     needs: report
     steps:
       - name: StyleCop Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: StyleCop Setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
       - name: StyleCop Restore Dependencies
@@ -67,13 +67,13 @@ jobs:
         language: ['csharp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
       - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
@@ -91,7 +91,7 @@ jobs:
     needs: report
     steps:
       - name: Superlint checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
       - name: Print JSCPD config path
@@ -112,7 +112,7 @@ jobs:
     needs: stylecop-linting
     steps:
       - name: Nunit Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: Nunit install dependencies
         run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Nunit dotnet restore
@@ -128,7 +128,7 @@ jobs:
     needs: stylecop-linting
     steps:
       - name: Xunit Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: Xunit install dependencies
         run: dotnet restore --no-cache "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
       - name: Xunit dotnet restore
@@ -138,15 +138,15 @@ jobs:
 
   # Pass code from development to staging
   build-artifact:
-    name: Build Artifact - Development
+    name: Build Artifact - Development to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: [xunit-tests, nunit-tests]
     steps:
       - name: Atrifact checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: Artifact setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
       - name: Artifact restore dependencies
@@ -156,7 +156,8 @@ jobs:
       - name: Publish Artifact
         run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Archive Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: staging-artifact
           path: ./publish/*
+          if-no-files-found: error # warn / ignore
