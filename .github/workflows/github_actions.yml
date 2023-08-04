@@ -255,7 +255,7 @@ jobs:
         run: |
           git add .
           git commit -m "Renamed development dir to staging [skip CI]"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git code-staging
+          git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
 
       - name: Recreate code-development
         run: git checkout -b code-development
