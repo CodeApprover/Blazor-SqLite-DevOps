@@ -258,7 +258,9 @@ jobs:
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
 
       - name: Recreate code-development
-        run: git checkout -b code-development
+        run: |
+          git branch -D code-development
+          git checkout -b code-development
 
       - name: Rename staging dir
         run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
