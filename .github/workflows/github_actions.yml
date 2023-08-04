@@ -137,6 +137,7 @@ jobs:
         run: dotnet test "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
 
   # Pass code from development to staging
+    # Pass code from development to staging
   build-artifact:
     name: Build Artifact - Development to Staging
     runs-on: ubuntu-latest
@@ -145,6 +146,9 @@ jobs:
     steps:
       - name: Atrifact checkout repository
         uses: actions/checkout@v3.5.3
+      # other steps ...
+      - name: Publish Artifact
+        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Artifact setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
