@@ -222,3 +222,28 @@ jobs:
           name: staging-artifact
           path: ./publish/*
           if-no-files-found: error # warn/ignore
+
+  deploy-staging:
+    name: Staging - Push to Staging Branch
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: [xunit-tests, nunit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Configure Git User
+        run: |
+          git config --local user.email "auto_action@github.com"
+          git config --local user.name "Dev to Staging CI push"
+      - name: Checkout Staging Branch
+        run: |
+          git fetch origin code-staging
+          git checkout code-staging
+      - name: Merge Development into Staging
+        run: |
+          git merge ${{ github.ref }}
+      - name: Push to Staging Branch
+        run: |
+          git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
