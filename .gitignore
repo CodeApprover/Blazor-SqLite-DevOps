@@ -7,24 +7,22 @@
 /development/Blazor-SqlLite-DevOps/.vs/
 /staging/Blazor-SqlLite-DevOps/.vs/
 /production/Blazor-SqlLite-DevOps/.vs/
+/tests/Nunit_Player_Unit_Tests/.vs/
+/tests/MSTest_Integration_Tests/.vs/
+/tests/Xunit_Game_Unit_Tests/.vs/
+/tests/StyleCop_CSharp_Linting/.vs/
 
 # Ignore databases
 /development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
 /staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
 /production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/
 
-# Except database.db file
+# Except these database files
 !/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 !/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 !/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Database/database.db
 
 # Ignore bin and obj directories
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
 /tests/MSTest_Integration_Tests/bin/
 /tests/MSTest_Integration_Tests/obj/
 /tests/Nunit_Player_Unit_Tests/bin/
@@ -34,10 +32,18 @@
 /tests/Xunit_Game_Unit_Tests/bin/
 /tests/Xunit_Game_Unit_Tests/obj/
 
+# Include these obj and bin files for building artifacts
+!/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+!/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+!/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/bin/
+!/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/obj/
+
 # Ignore specific files
-/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
-/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
-/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor SqlLite Golf Club.csproj.user
+/development/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
+/staging/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
+/production/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/Blazor\ SqlLite\ Golf\ Club.csproj.user
 
 # Ignore script files
 # /scripts/*

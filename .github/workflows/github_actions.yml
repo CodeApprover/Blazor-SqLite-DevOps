@@ -1,57 +1,62 @@
+---
 name: "CI-CD Workflow"
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
+env:
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
+
 jobs:
   # Report usage
   report:
-    name: 1. Report
+    name: Report
     runs-on: ubuntu-latest
     steps:
       - name: Report usage
         run: |
           echo "GitHub Actions CI/CD Pipeline"
-          echo "$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
+          echo "\"$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
           echo "runner.os is ${{ runner.os }}"
           echo "github.repository is ${{ github.repository }}"
           echo "github.ref is ${{ github.ref }}"
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
+          echo "Project path is ${{ env.PROJECT_PATH }}"
 
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
-    name: 2. StyleCop Linting
+    name: Development - StyleCop Linting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
     steps:
       - name: StyleCop Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: StyleCop Setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
       - name: StyleCop Restore Dependencies
         run: |
-          cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          command="${cmd} ${cmd1}${cmd2}"
-          eval $command
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
       - name: StyleCop dotnet build
         run: |
-         cmd="dotnet build --no-restore"
-         cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
-         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-         cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
-         eval $command
+         command="dotnet build --no-restore"
+         command="${command} \"${{ env.PROJECT_PATH }}"
+         command="${command}Blazor SqlLite Golf Club.csproj\""
+         command="${command} /p:StyleCopEnabled=true"
+         command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
+         command="${command} /p:StyleCopForceFullAnalysis=false"
+         eval "${command}"
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
-    name: 3. CodeQL Analysis
+    name: Staging - CodeQL Analysis
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     needs: report
@@ -65,32 +70,40 @@ jobs:
       matrix:
         language: ['csharp']
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: CodeQL checkout repository
+        uses: actions/checkout@v3.5.3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
+      - name: CodeQL setup .NET environment
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
-      - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Dotnet build
-        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      - name: Perform CodeQL Analysis
+      - name: CodeQL restore dependencies
+        run: |
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: CodeQL dotnet build
+        run: |
+          command="dotnet build --no-restore"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
 
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
   super-linter:
-    name: 4. SuperLinter
+    name: Production - SuperLinter 
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
     needs: report
     steps:
       - name: Superlint checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
       - name: Print JSCPD config path
@@ -105,43 +118,132 @@ jobs:
 
   # Nunit unit tests - https://nunit.org
   nunit-tests:
-    name: 5. Nunit unit tests
+    name: Development - Nunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: stylecop-linting
     steps:
       - name: Nunit Checkout repository
-        uses: actions/checkout@v3
-
-      - name: List root directory
-        run: ls -la ${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/*
-        
+        uses: actions/checkout@v3.5.3
       - name: Nunit install dependencies
-        #run: dotnet restore --no-cache "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: |
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Nunit_Player_Unit_Tests/"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
+          eval "${command}"
       - name: Nunit dotnet restore
-        #run: dotnet build --no-restore "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-        run: dotnet build "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: |
+          command="dotnet build --no-restore"
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Nunit_Player_Unit_Tests/"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
+          eval "${command}"
       - name: Nunit run unit tests
-        #run: dotnet test "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
-        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: |
+          command="dotnet test"
+          command="${command} --no-restore --verbosity detailed"
+          command="${command} --logger \"trx;LogFileName=nunit-results.trx\""
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Nunit_Player_Unit_Tests/"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
+          eval "${command}"
 
   # Xunit unit tests - https://xunit.net
   xunit-tests:
-    name: 5. Xunit unit tests
+    name: Development - Xunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: stylecop-linting
     steps:
       - name: Xunit Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
       - name: Xunit install dependencies
         run: |
-          dotnet restore --no-cache "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Xunit_Game_Unit_Tests/"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
+          eval "${command}"
       - name: Xunit dotnet restore
         run: |
-          dotnet build --no-restore "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+          command="dotnet build --no-restore"
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Xunit_Game_Unit_Tests/"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
+          eval "${command}"
       - name: Xunit run unit tests
-        run: dotnet test "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
+        run: |
+          command="dotnet test"
+          command="${command} --no-restore --verbosity detailed"
+          command="${command} --logger \"trx;LogFileName=nunit-results.trx\""
+          command="${command} \"${{ github.workspace }}/tests/"
+          command="${command}Xunit_Game_Unit_Tests/"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
+          eval "${command}"
 
-  # Other environment-specific jobs (staging-environment-tests, production-environment-tests) can be defined here
+  # Pass code from development to staging
+  build-artifact:
+    name: Dev -> Staging - Build Artifact
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: [xunit-tests, nunit-tests]
+    steps:
+      - name: Artifact checkout repository
+        uses: actions/checkout@v3.5.3
+      - name: Artifact remove existing .NET Core SDK
+        run: sudo rm -rf /usr/share/dotnet
+      - name: Artifact setup .NET environment
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: '7.0.x'
+      - name: Artifact restore dependencies
+        run: |
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: Build Artifact
+        run: |
+          command="dotnet build --no-restore --configuration Release"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: Publish Artifact
+        run: |
+          command="dotnet publish --configuration Release"
+          command="${command} --no-build --output ./publish"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: Archive Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: staging-artifact
+          path: ./publish/*
+          if-no-files-found: error # warn/ignore
+
+  deploy-staging:
+    name: Staging - Push to Staging Branch
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: [xunit-tests, nunit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Configure Git User
+        run: |
+          git config --local user.email "auto_action@github.com"
+          git config --local user.name "Dev to Staging CI push"
+      - name: Checkout Staging Branch
+        run: |
+          git fetch origin code-staging
+          git checkout code-staging
+      - name: Merge Development into Staging
+        run: |
+          git merge ${{ github.ref }}
+      - name: Push to Staging Branch
+        run: |
+          git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
