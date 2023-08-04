@@ -6,7 +6,7 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor\ SqlLite\ Golf\ Club/"
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
 
 jobs:
   # Report usage
@@ -41,14 +41,14 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          cmd1="Blazor SqlLite Golf Club.csproj"
           command="${cmd} ${{ env.PROJECT_PATH }}${cmd1}"
           eval "$command"
       - name: StyleCop dotnet build
         run: |
          command="dotnet build --no-restore"
          command-"${command}  ${{ env.PROJECT_PATH }}"
-         command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+         command="${command}Blazor SqlLite Golf Club.csproj"
          command="${command} /p:StyleCopEnabled=true"
          command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
          command="${command} /p:StyleCopForceFullAnalysis=false"
@@ -84,13 +84,13 @@ jobs:
         run: |
           command="dotnet restore --no-cache"
           command-"${command}  ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj"
           eval "${command}"
       - name: CodeQL dotnet build
         run: |
           command="dotnet build --no-restore"
           command-"${command}  ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj"
           eval "${command}"
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
@@ -200,20 +200,20 @@ jobs:
         run: |
           command="dotnet restore --no-cache"
           command-"${command}  ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj"
           eval "${command}"
       - name: Build Artifact
         run: |
           command="dotnet build --no-restore"
           command-"${command}  ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj"
           eval "$command"
       - name: Publish Artifact
         run: |
           command="dotnet publish --configuration Release"
           command="${command} --no-build --output ./publish"
           command-"${command}  ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+          command="${command}Blazor SqlLite Golf Club.csproj"
           eval "$command"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
