@@ -19,12 +19,13 @@ jobs:
           echo "github.ref is ${{ github.ref }}"
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
-          ls -la "${{ github.workspace }}"
+          eval ls -la "${{ github.workspace }}"
 
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
+    needs: report
     steps:
       - name: StyleCop Checkout repository
         uses: actions/checkout@v3
@@ -35,24 +36,25 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
+          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
           cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
           command="${cmd} ${cmd1}${cmd2}"
-          eval "$command"
+          eval $command
       - name: StyleCop dotnet build
         run: |
-          cmd="dotnet build --no-restore"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-          command="${cmd} ${cmd1}${cmd2} ${cmd3}"
-          eval "$command"
+         cmd="dotnet build --no-restore"
+         cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+         cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
+         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
+         eval $command
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
     name: 3. CodeQL Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    needs: stylecop-linting
+    timeout-minutes: 360 
     permissions:
       actions: read
       contents: read
@@ -62,31 +64,21 @@ jobs:
       matrix:
         language: ['csharp']
     steps:
-      - name: CodeQL Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v3
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
-      - name: CodeQL Setup .NET CodeQL environment
+      - name: Setup .NET environment
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '7.0.x'
-      - name: CodeQL Restore Dependencies
-        run: |
-          cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          command="${cmd} ${cmd1}${cmd2}"
-          eval "$command"
-      - name: CodeQL Dotnet build
-        run: |
-          cmd="dotnet build --no-restore"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          command="${cmd} ${cmd1}${cmd2}"
-          eval "$command"
-      - name: CodeQL Perform Analysis
+      - name: Restore Dependencies
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: Dotnet build
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+      - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
