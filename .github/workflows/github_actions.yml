@@ -41,14 +41,14 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: StyleCop dotnet build
         run: |
          command="dotnet build --no-restore"
-         command="${command} ${{ env.PROJECT_PATH }}"
-         command="${command}Blazor SqlLite Golf Club.csproj"
+         command="${command} \"${{ env.PROJECT_PATH }}"
+         command="${command}Blazor SqlLite Golf Club.csproj\""
          command="${command} /p:StyleCopEnabled=true"
          command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
          command="${command} /p:StyleCopForceFullAnalysis=false"
@@ -83,14 +83,14 @@ jobs:
       - name: CodeQL restore dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: CodeQL dotnet build
         run: |
           command="dotnet build --no-restore"
-          command="${command} ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: CodeQL Perform Analysis
         uses: github/codeql-action/analyze@v2
@@ -128,25 +128,25 @@ jobs:
       - name: Nunit install dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
       - name: Nunit dotnet restore
         run: |
           command="dotnet build --no-restore"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
       - name: Nunit run unit tests
         run: |
           command="dotnet test"
           command="${command} --no-restore --verbosity detailed"
           command="${command} --logger \"trx;LogFileName=nunit-results.trx\"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj"
+          command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
 
   # Xunit unit tests - https://xunit.net
@@ -161,25 +161,25 @@ jobs:
       - name: Xunit install dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
       - name: Xunit dotnet restore
         run: |
           command="dotnet build --no-restore"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
       - name: Xunit run unit tests
         run: |
           command="dotnet test"
           command=+" --no-restore --verbosity detailed"
           command="${command} --logger \"trx;LogFileName=xunit-results.trx\"
-          command="${command} ${{ github.workspace }}/tests/"
+          command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj"
+          command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
 
   # Pass code from development to staging
@@ -200,21 +200,21 @@ jobs:
       - name: Artifact restore dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} ${{ env.PROJECT_PATH }}"
+          command="${command} \"${{ env.PROJECT_PATH }}"
           command="${command}Blazor SqlLite Golf Club.csproj"
           eval "${command}"
       - name: Build Artifact
         run: |
           command="dotnet build --no-restore"
-          command="${command} ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: Publish Artifact
         run: |
           command="dotnet publish --configuration Release"
           command="${command} --no-build --output ./publish"
-          command="${command} ${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
