@@ -162,7 +162,7 @@ jobs:
           if-no-files-found: error # warn/ignore
 
   # DEVELOPMENT ENVIRONMENT - Deploy to Staging
-  deploy-staging:
+  deploy-dev-to-staging:
     name: Dev Deploy to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
@@ -182,10 +182,10 @@ jobs:
         run: |
           git add .
           git commit -m "Renamed development dir to staging [skip CI]"
-      - name: Checkout Staging Branch
+      - name: Checkout or Create Staging Branch
         run: |
-          git fetch origin code-staging
-          git checkout code-staging
+          git fetch origin code-staging || true
+          git checkout code-staging || git checkout -b code-staging
       - name: Merge Dev -> Staging
         run: git merge -X ours ${{ github.ref }}
       - name: Push to Staging
