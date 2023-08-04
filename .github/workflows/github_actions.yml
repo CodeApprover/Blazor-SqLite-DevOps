@@ -143,8 +143,10 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     #needs: [xunit-tests, nunit-tests]
     steps:
-      - name: Atrifact checkout repository
+      - name: Artifact checkout repository
         uses: actions/checkout@v3.5.3
+      - name: Artifact remove existing .NET Core SDK
+        run: sudo rm -rf /usr/share/dotnet
       - name: Artifact setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
@@ -157,7 +159,7 @@ jobs:
       # DEBUG project obj directory
       - name: List directories
         #run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
-        run: ls -la "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/bin/Debug/net7.0/"
+        run: ls -la "/usr/share/dotnet/*/*"
       - name: Print working directory
         run: pwd
       - name: List staticwebassets.build.json file
