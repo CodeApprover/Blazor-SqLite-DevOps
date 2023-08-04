@@ -21,7 +21,7 @@ jobs:
           echo "github.workspace is ${{ github.workspace }}"
           ls -la "${{ github.workspace }}"
 
-  # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
     name: 2. StyleCop Linting
     runs-on: ubuntu-latest
@@ -36,18 +36,18 @@ jobs:
       - name: StyleCop Restore Dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
+          cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
           cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
           command="${cmd} ${cmd1}${cmd2}"
-          eval "$command"
+          eval $command
       - name: StyleCop dotnet build
         run: |
-          cmd="dotnet build --no-restore"
-          cmd1="${{ github.workspace }}/$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
-          cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
-          cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
-          command="${cmd} ${cmd1}${cmd2} ${cmd3}"
-          eval "$command"
+         cmd="dotnet build --no-restore"
+         cmd1="${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+         cmd2="/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club/Blazor\\ SqlLite\\ Golf\\ Club.csproj"
+         cmd3="/p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false"
+         command="${cmd} ${cmd1}${cmd2} ${cmd3}"
+         eval $command
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
@@ -122,21 +122,21 @@ jobs:
       - name: Nunit install dependencies
         run: |
           cmd="dotnet restore --no-cache"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
           command="${cmd} ${cmd1}${cmd2}"
           eval "$command"
       - name: Nunit dotnet restore
         run: |
           cmd="dotnet build --no-restore"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
           command="${cmd} ${cmd1}${cmd2}"
           eval "$command"
       - name: Nunit run unit tests
         run: |
           cmd="dotnet test"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
           cmd3="--filter Category=Development"
           command="${cmd} ${cmd1}${cmd2} ${cmd3}"
@@ -154,21 +154,21 @@ jobs:
       - name: Xunit install dependencies
         run: |
           cmd="dotnet restore"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
           command="${cmd} ${cmd1}${cmd2}"
           eval "$command"
       - name: Xunit dotnet restore
         run: |
           cmd="dotnet build --no-restore"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
           command="${cmd} ${cmd1}${cmd2}"
           eval "$command"
       - name: Xunit run unit tests
         run: |
           cmd="dotnet test"
-          cmd1="/home/runner/work/Blazor-SqLite-DevOps/tests/"
+          cmd1="${{ github.workspace }}/tests/"
           cmd2="Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
           cmd3="--filter Category=Development"
           command="${cmd} ${cmd1}${cmd2} ${cmd3}"
