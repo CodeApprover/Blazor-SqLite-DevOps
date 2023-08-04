@@ -143,7 +143,7 @@ jobs:
         run: |
           command="dotnet test"
           command="${command} --no-restore --verbosity detailed"
-          command="${command} --logger \"trx;LogFileName=nunit-results.trx\"
+          command="${command} --logger \"trx;LogFileName=nunit-results.trx\""
           command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Nunit_Player_Unit_Tests/"
           command="${command}Nunit_Player_Unit_Tests.csproj\""
@@ -176,7 +176,7 @@ jobs:
         run: |
           command="dotnet test"
           command=+" --no-restore --verbosity detailed"
-          command="${command} --logger \"trx;LogFileName=xunit-results.trx\"
+          command="${command} --logger \"trx;LogFileName=xunit-results.trx\""
           command="${command} \"${{ github.workspace }}/tests/"
           command="${command}Xunit_Game_Unit_Tests/"
           command="${command}Xunit_Game_Unit_Tests.csproj\""
