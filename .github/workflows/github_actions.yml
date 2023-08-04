@@ -158,14 +158,12 @@ jobs:
       # DEBUG project obj directory
       - name: List project obj directory
         run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
-
-      # DEBUG dotnet obj/Release/net7.0/ directory
-      - name: List staticwebassets.build.json file
-        run: ls -la obj/Release/net7.0/
-
-      # DEBUG details of missing file
-      - name: List staticwebassets.build.json file
-        run: ls -la obj/Release/net7.0/staticwebassets.build.json
+      - name: Print working directory
+        run: pwd
+      #- name: List staticwebassets.build.json file
+      #  run: ls -la obj/Release/net7.0/
+      #- name: List staticwebassets.build.json file
+      #  run: ls -la obj/Release/net7.0/staticwebassets.build.json
 
       - name: Publish Artifact
         run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
