@@ -27,7 +27,7 @@ jobs:
 
   # DEVELOPMENT ENVIRONMENT - Nunit unit tests - https://nunit.org
   nunit-dev-tests:
-    name: Development - Nunit tests
+    name: Dev Nunit unit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
@@ -60,7 +60,7 @@ jobs:
 
   # DEVELOPMENT ENVIRONMENT - Xunit unit tests - https://xunit.net
   xunit-dev-tests:
-    name: Development - Xunit tests
+    name: Dev Xunit unit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
@@ -93,7 +93,7 @@ jobs:
 
 # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-dev-linting:
-    name: Development - StyleCop Linting
+    name: Dev StyleCop Linting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: [nunit-dev-tests, xunit-dev-tests]
@@ -122,7 +122,7 @@ jobs:
 
   # DEVELOPMENT ENVIRONMENT - Pass code from development to staging
   build-dev-staging-artifact:
-    name: Development - Build Artifact
+    name: Dev Build Artifact
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: stylecop-dev-linting
@@ -163,7 +163,7 @@ jobs:
 
   # DEVELOPMENT ENVIRONMENT - Deploy to Staging
   deploy-staging:
-    name: Development - Deploy to Staging
+    name: Dev Deploy to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: build-dev-staging-artifact
@@ -191,8 +191,12 @@ jobs:
       - name: Push to Staging
         run: |
           git add .
-          git commit -m "Pushing changes to staging [skip CI]"
-          git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Pushing changes to staging [skip CI]"
+            git push origin code-staging
+          fi
       - name: Recreate code-development
         run: |
           git branch -D code-development
