@@ -120,7 +120,7 @@ jobs:
          command="${command} /p:StyleCopForceFullAnalysis=false"
          eval "${command}"
 
-  # DEVELOPMENT ENVIRONMENT - Pass code from development to staging
+  # DEVELOPMENT ENVIRONMENT - build artifact
   build-dev-staging-artifact:
     name: Dev Build Artifact
     runs-on: ubuntu-latest
@@ -177,7 +177,7 @@ jobs:
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev to Staging CI push"
       - name: Rename development dir
-        run: mv "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')" "${{ github.workspace }}/staging"
+        run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
       - name: Commit renamed dir
         run: |
           git add .
@@ -202,7 +202,7 @@ jobs:
           git branch -D code-development
           git checkout -b code-development
       - name: Rename staging dir
-        run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+        run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/development"
       - name: Push to code-development
         run: |
           git add .
