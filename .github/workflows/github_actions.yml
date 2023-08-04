@@ -263,6 +263,9 @@ jobs:
         run: |
           git checkout -b code-development
 
+      - name: List dirs files
+        run: ls -la ${PROJECT_PATH}/*
+
       - name: Rename staging directory back to development
         run: |
           mv "${PROJECT_PATH}/staging" "${PROJECT_PATH}/development"
@@ -270,5 +273,5 @@ jobs:
       - name: Push changes to code-development branch
         run: |
           git add .
-          git commit -m "Creating code-development branch [skip ci]"
+          git commit -m [skip ci] "Creating code-development branch [skip ci]"
           git push origin code-development
