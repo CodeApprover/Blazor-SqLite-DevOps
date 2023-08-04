@@ -141,7 +141,7 @@ jobs:
     name: Build Artifact - Dev to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    #needs: [xunit-tests, nunit-tests]
+    needs: [xunit-tests, nunit-tests]
     steps:
       - name: Artifact checkout repository
         uses: actions/checkout@v3.5.3
