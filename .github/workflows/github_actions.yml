@@ -1,3 +1,5 @@
+
+---
 name: "CI-CD Workflow"
 
 on:
@@ -23,7 +25,6 @@ jobs:
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
-
   # DEVELOPMENT ENVIRONMENT - Nunit unit tests - https://nunit.org
   nunit-dev-tests:
     name: Dev Nunit unit tests
@@ -56,7 +57,6 @@ jobs:
           command="${command}Nunit_Player_Unit_Tests/"
           command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
-
   # DEVELOPMENT ENVIRONMENT - Xunit unit tests - https://xunit.net
   xunit-dev-tests:
     name: Dev Xunit unit tests
@@ -89,8 +89,7 @@ jobs:
           command="${command}Xunit_Game_Unit_Tests/"
           command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
-
-  # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
+# DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-dev-linting:
     name: Dev StyleCop Linting
     runs-on: ubuntu-latest
@@ -111,14 +110,13 @@ jobs:
           eval "${command}"
       - name: StyleCop dotnet build
         run: |
-          command="dotnet build --no-restore"
-          command="${command} \"${{ env.PROJECT_PATH }}"
-          command="${command}Blazor SqlLite Golf Club.csproj\""
-          command="${command} /p:StyleCopEnabled=true"
-          command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
-          command="${command} /p:StyleCopForceFullAnalysis=false"
-          eval "${command}"
-
+         command="dotnet build --no-restore"
+         command="${command} \"${{ env.PROJECT_PATH }}"
+         command="${command}Blazor SqlLite Golf Club.csproj\""
+         command="${command} /p:StyleCopEnabled=true"
+         command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
+         command="${command} /p:StyleCopForceFullAnalysis=false"
+         eval "${command}"
   # DEVELOPMENT ENVIRONMENT - build artifact
   build-dev-staging-artifact:
     name: Dev Build Artifact
@@ -140,31 +138,132 @@ jobs:
           command="${command} \"${{ env.PROJECT_PATH }}"
           command="${command}Blazor SqlLite Golf Club.csproj\""
           eval "${command}"
+      - name: Build Artifact
+        run: |
+          command="dotnet build --no-restore --configuration Release"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: Publish Artifact
+        run: |
+          command="dotnet publish --configuration Release"
+          command="${command} --no-build --output ./publish"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: Archive Artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: staging-artifact
+          path: ./publish/*
+          if-no-files-found: error # warn/ignore
 
-  # STAGING ENVIRONMENT - Deploy to staging
-  deploy-staging:
-    name: Deploy to Staging
+  # DEVELOPMENT ENVIRONMENT - Deploy to Staging
+  deploy-dev-to-staging:
+    name: Dev Deploy to Staging
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: build-dev-staging-artifact
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Configure Git User
+        run: |
+          git config --local user.email "auto_action@github.com"
+          git config --local user.name "Dev to Staging CI push"
+      - name: Rename development dir
+        run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
+      - name: Commit renamed dir
+        run: |
+          git add .
+          git commit -m "Renamed development dir to staging [skip CI]"
+      - name: Checkout or Create Staging Branch
+        run: |
+          git fetch origin code-staging || true
+          git checkout code-staging || git checkout -b code-staging
+      - name: Merge Dev -> Staging
+        run: git merge -X ours ${{ github.ref }}
+      - name: Push to Staging
+        run: |
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Pushing changes to staging [skip CI]"
+            git push origin code-staging
+          fi
+      - name: Recreate code-development
+        run: |
+          git branch -D code-development
+          git checkout -b code-development
+      - name: Rename staging dir
+        run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/development"
+      - name: Push to code-development
+        run: |
+          git add .
+          git commit -m "Creating code-development branch [skip CI]"
+          git push origin code-development
+
+  # STAGING ENVIRONMENT - Run CodeQL Analysis - https://github.com/github/codeql
+  codeql-analysis:
+    name: Staging - CodeQL Analysis
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
-    needs: build-dev-staging-artifact
+    needs: report
+    timeout-minutes: 360 
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['csharp']
     steps:
-      - name: Checkout repository
+      - name: CodeQL checkout repository
         uses: actions/checkout@v3.5.3
-      - name: Deploy to staging server
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+      - name: CodeQL setup .NET environment
+        uses: actions/setup-dotnet@v3.2.0
+        with:
+          dotnet-version: '7.0.x'
+      - name: CodeQL restore dependencies
         run: |
-          echo "Deploying to staging server"
-          # Add your deployment commands here
+          command="dotnet restore --no-cache"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: CodeQL dotnet build
+        run: |
+          command="dotnet build --no-restore"
+          command="${command} \"${{ env.PROJECT_PATH }}"
+          command="${command}Blazor SqlLite Golf Club.csproj\""
+          eval "${command}"
+      - name: CodeQL Perform Analysis
+        uses: github/codeql-action/analyze@v2
 
-  # PRODUCTION ENVIRONMENT - Deploy to production
-  deploy-production:
-    name: Deploy to Production
+  # PRODUCTION ENVIRONMENT - Run SuperLinter - https://github.com/marketplace/actions/super-linter
+  super-linter:
+    name: Production - SuperLinter 
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
-    needs: build-dev-staging-artifact
+    needs: report
     steps:
-      - name: Checkout repository
+      - name: Superlint checkout code
         uses: actions/checkout@v3.5.3
-      - name: Deploy to production server
-        run: |
-          echo "Deploying to production server"
-          # Add your deployment commands here
+        with:
+          fetch-depth: 0
+      - name: Print JSCPD config path
+        run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
+      - name: Lint code-base
+        uses: super-linter/super-linter@v5
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.AUTH }}
+          JSCPD_CONFIG_FILE: .jscpd.json
