@@ -7,7 +7,7 @@ on:
 jobs:
   # Report usage
   report:
-    name: 1. Report
+    name: Report
     runs-on: ubuntu-latest
     steps:
       - name: Report usage
@@ -22,7 +22,7 @@ jobs:
 
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
-    name: 2. StyleCop Linting
+    name: StyleCop Linting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
@@ -51,9 +51,9 @@ jobs:
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
-    name: 3. CodeQL Analysis
+    name: CodeQL Analysis
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
+    #if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     needs: report
     timeout-minutes: 360 
     permissions:
@@ -84,9 +84,9 @@ jobs:
 
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
   super-linter:
-    name: 4. SuperLinter
+    name: SuperLinter
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
+    #if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
     needs: report
     steps:
       - name: Superlint checkout code
