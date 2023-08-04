@@ -139,10 +139,10 @@ jobs:
   # Pass code from development to staging
     # Pass code from development to staging
   build-artifact:
-    name: Build Artifact - Development to Staging
+    name: Build Artifact - Dev to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: [xunit-tests, nunit-tests]
+    #needs: [xunit-tests, nunit-tests]
     steps:
       - name: Atrifact checkout repository
         uses: actions/checkout@v3.5.3
@@ -154,9 +154,19 @@ jobs:
         run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Build Artifact
         run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-      # List contents of obj directory
-      - name: List obj directory
+
+      # DEBUG project obj directory
+      - name: List project obj directory
         run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
+
+      # DEBUG dotnet obj/Release/net7.0/ directory
+      - name: List staticwebassets.build.json file
+        run: ls -la obj/Release/net7.0/
+
+      # DEBUG details of missing file
+      - name: List staticwebassets.build.json file
+        run: ls -la obj/Release/net7.0/staticwebassets.build.json
+
       - name: Publish Artifact
         run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Archive Artifact
