@@ -180,7 +180,7 @@ jobs:
           command="${{ command }} ${{ github.workspace }}/tests/"
           command="${{ command }}Xunit_Game_Unit_Tests/"
           command="${{ command }}Xunit_Game_Unit_Tests.csproj"
-          eval ${{ command }}
+          eval "${{ command }}"
 
   # Pass code from development to staging
   build-artifact:
