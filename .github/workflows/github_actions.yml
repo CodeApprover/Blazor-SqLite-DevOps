@@ -215,6 +215,7 @@ jobs:
           command="${command} --no-build --output ./publish"
           command="${command} \"${{ env.PROJECT_PATH }}"
           command="${command}Blazor SqlLite Golf Club.csproj\""
+          echo "${command}"
           eval "${command}"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
