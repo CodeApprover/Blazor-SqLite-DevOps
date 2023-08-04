@@ -1,3 +1,4 @@
+
 ---
 name: "CI-CD Workflow"
 
@@ -24,7 +25,6 @@ jobs:
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
-
   # DEVELOPMENT ENVIRONMENT - Nunit unit tests - https://nunit.org
   nunit-dev-tests:
     name: Dev Nunit unit tests
@@ -57,7 +57,6 @@ jobs:
           command="${command}Nunit_Player_Unit_Tests/"
           command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
-
   # DEVELOPMENT ENVIRONMENT - Xunit unit tests - https://xunit.net
   xunit-dev-tests:
     name: Dev Xunit unit tests
@@ -90,7 +89,6 @@ jobs:
           command="${command}Xunit_Game_Unit_Tests/"
           command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
-
 # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-dev-linting:
     name: Dev StyleCop Linting
@@ -119,7 +117,6 @@ jobs:
          command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
          command="${command} /p:StyleCopForceFullAnalysis=false"
          eval "${command}"
-
   # DEVELOPMENT ENVIRONMENT - build artifact
   build-dev-staging-artifact:
     name: Dev Build Artifact
@@ -209,7 +206,7 @@ jobs:
           git commit -m "Creating code-development branch [skip CI]"
           git push origin code-development
 
-# STAGING ENVIRONMENT - Run CodeQL Analysis - https://github.com/github/codeql
+  # STAGING ENVIRONMENT - Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
     name: Staging - CodeQL Analysis
     runs-on: ubuntu-latest
