@@ -254,7 +254,7 @@ jobs:
       - name: Push to Staging
         run: |
           git add .
-          git commit -m [skip CI] "Renamed development directory to staging [skip CI]"
+          git commit -m "Renamed development directory to staging [skip CI]"
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
 
       - name: Recreate code-development
@@ -266,5 +266,5 @@ jobs:
       - name: Push to code-development
         run: |
           git add .
-          git commit -m [skip CI] "Creating code-development branch [skip CI]"
+          git commit -m "Creating code-development branch [skip CI]"
           git push origin code-development
