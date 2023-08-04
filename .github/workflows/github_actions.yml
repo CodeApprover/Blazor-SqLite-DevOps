@@ -5,6 +5,9 @@ on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
+env:
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor\\ SqlLite\\ Golf\\ Club"
+
 jobs:
   # Report usage
   report:
@@ -20,6 +23,7 @@ jobs:
           echo "github.ref is ${{ github.ref }}"
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
+          echo "Project path is ${{ env.PROJECT_PATH }}
 
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
