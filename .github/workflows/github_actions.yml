@@ -137,7 +137,6 @@ jobs:
         run: dotnet test "${{ github.workspace }}/tests/Xunit_Game_Unit_Tests/Xunit_Game_Unit_Tests.csproj"
 
   # Pass code from development to staging
-    # Pass code from development to staging
   build-artifact:
     name: Build Artifact - Dev to Staging
     runs-on: ubuntu-latest
@@ -158,7 +157,7 @@ jobs:
       # DEBUG project obj directory
       - name: List directories
         #run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
-        run: la -la ../
+        run: la -la "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/bin/Debug/net7.0/"
       - name: Print working directory
         run: pwd
       - name: List staticwebassets.build.json file
