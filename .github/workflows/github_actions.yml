@@ -243,30 +243,30 @@ jobs:
       - name: Rename development directory to staging
         run: |
           mv "${PROJECT_PATH}/development" "${PROJECT_PATH}/staging"
-  
+
       - name: Checkout Staging Branch
         run: |
           git fetch origin code-staging
           git checkout code-staging
-  
+
       - name: Merge Development into Staging
         run: |
           git merge ${{ github.ref }}
-  
+
       - name: Push to Staging Branch
         run: |
           git add .
           git commit -m "Renamed development directory to staging"
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
-  
+
       - name: Recreate code-development Branch
         run: |
           git checkout -b code-development
-  
+
       - name: Rename staging directory back to development
         run: |
           mv "${PROJECT_PATH}/staging" "${PROJECT_PATH}/development"
-  
+
       - name: Push changes to code-development branch
         run: |
           git add .
