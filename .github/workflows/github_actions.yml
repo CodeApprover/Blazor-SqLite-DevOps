@@ -27,7 +27,7 @@ jobs:
 
   # Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-linting:
-    name: StyleCop Linting - Development
+    name: Development - StyleCop Linting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
@@ -56,7 +56,7 @@ jobs:
 
   # Run CodeQL Analysis - https://github.com/github/codeql
   codeql-analysis:
-    name: CodeQL Analysis - Staging
+    name: Staging - CodeQL Analysis
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-staging') && github.event_name == 'push'
     needs: report
@@ -97,7 +97,7 @@ jobs:
 
   # Run SuperLinter - https://github.com/marketplace/actions/super-linter
   super-linter:
-    name: SuperLinter - Production 
+    name: Production - SuperLinter 
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-production') && github.event_name == 'push'
     needs: report
@@ -118,7 +118,7 @@ jobs:
 
   # Nunit unit tests - https://nunit.org
   nunit-tests:
-    name: Nunit tests - Development
+    name: Development - Nunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: stylecop-linting
@@ -151,7 +151,7 @@ jobs:
 
   # Xunit unit tests - https://xunit.net
   xunit-tests:
-    name: Xunit tests - Development
+    name: Development - Xunit tests
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: stylecop-linting
@@ -184,7 +184,7 @@ jobs:
 
   # Pass code from development to staging
   build-artifact:
-    name: Build Artifact - Dev to Staging
+    name: Dev -> Staging - Build Artifact
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: [xunit-tests, nunit-tests]
