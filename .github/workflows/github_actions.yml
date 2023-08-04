@@ -223,8 +223,9 @@ jobs:
           path: ./publish/*
           if-no-files-found: error # warn/ignore
 
+  # Push to Staging Branch
   deploy-staging:
-    name: Staging - Push to Staging Branch
+    name: Development - Push to Staging Branch
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: [xunit-tests, nunit-tests]
@@ -233,17 +234,41 @@ jobs:
         uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
+
       - name: Configure Git User
         run: |
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev to Staging CI push"
+
+      - name: Rename development directory to staging
+        run: |
+          mv "${PROJECT_PATH}/development" "${PROJECT_PATH}/staging"
+  
       - name: Checkout Staging Branch
         run: |
           git fetch origin code-staging
           git checkout code-staging
+  
       - name: Merge Development into Staging
         run: |
           git merge ${{ github.ref }}
+  
       - name: Push to Staging Branch
         run: |
+          git add .
+          git commit -m "Renamed development directory to staging"
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
+  
+      - name: Recreate code-development Branch
+        run: |
+          git checkout -b code-development
+  
+      - name: Rename staging directory back to development
+        run: |
+          mv "${PROJECT_PATH}/staging" "${PROJECT_PATH}/development"
+  
+      - name: Push changes to code-development branch
+        run: |
+          git add .
+          git commit -m "Creating code-development branch [skip ci]"
+          git push origin code-development
