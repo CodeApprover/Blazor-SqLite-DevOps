@@ -159,7 +159,7 @@ jobs:
       # DEBUG project obj directory
       - name: List directories
         #run: ls -la "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/obj"
-        run: ls -la "/usr/share/"
+        run: ls -la "/usr/share/dotnet"
       - name: Print working directory
         run: pwd
       - name: List staticwebassets.build.json file
