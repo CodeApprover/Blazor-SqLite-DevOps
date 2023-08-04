@@ -183,8 +183,8 @@ jobs:
           eval "${command}"
 
   # Pass code from development to staging
-  build-artifact:
-    name: Dev -> Staging - Build Artifact
+  build-staging-artifact:
+    name: Development - Build Artifact
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: [xunit-tests, nunit-tests]
@@ -223,27 +223,48 @@ jobs:
           path: ./publish/*
           if-no-files-found: error # warn/ignore
 
+  # Push to Staging Branch
   deploy-staging:
-    name: Staging - Push to Staging Branch
+    name: Development - Push to Staging Branch
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: [xunit-tests, nunit-tests]
+    needs: build-staging-artifact
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.5.3
         with:
           fetch-depth: 0
+
       - name: Configure Git User
         run: |
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev to Staging CI push"
+
+      - name: Rename development dir
+        run: mv "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')" "${{ github.workspace }}/staging"
+
       - name: Checkout Staging Branch
         run: |
           git fetch origin code-staging
           git checkout code-staging
-      - name: Merge Development into Staging
+
+      - name: Merge Dev -> Staging
+        run: git merge ${{ github.ref }}
+
+      - name: Push to Staging
         run: |
-          git merge ${{ github.ref }}
-      - name: Push to Staging Branch
-        run: |
+          git add .
+          git commit -m "Renamed development dir to staging [skip CI]"
           git push https://${{ secrets.AUTH }}@github.com/${{ github.repository }}.git code-staging
+
+      - name: Recreate code-development
+        run: git checkout -b code-development
+
+      - name: Rename staging dir
+        run: mv "${{ github.workspace }}/staging" "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')"
+
+      - name: Push to code-development
+        run: |
+          git add .
+          git commit -m "Creating code-development branch [skip CI]"
+          git push origin code-development
