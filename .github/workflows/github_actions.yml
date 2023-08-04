@@ -14,7 +14,7 @@ jobs:
       - name: Report usage
         run: |
           echo "GitHub Actions CI/CD Pipeline"
-          echo "$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
+          echo "\"$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
           echo "runner.os is ${{ runner.os }}"
           echo "github.repository is ${{ github.repository }}"
           echo "github.ref is ${{ github.ref }}"
@@ -114,11 +114,11 @@ jobs:
       - name: Nunit Checkout repository
         uses: actions/checkout@v3.5.3
       - name: Nunit install dependencies
-        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Nunit dotnet restore
-        run: dotnet build "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet build "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Nunit run unit tests
-        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet test "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
 
   # Xunit unit tests - https://xunit.net
   xunit-tests:
@@ -150,11 +150,11 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Artifact restore dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore --no-cache "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Build Artifact
-        run: dotnet build --no-restore "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet build --no-restore "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Publish Artifact
-        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+        run: dotnet publish --configuration Release --no-build --output ./publish "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
         with:
