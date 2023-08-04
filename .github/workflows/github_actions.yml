@@ -117,11 +117,14 @@ jobs:
         run: ls -la ${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/*
         
       - name: Nunit install dependencies
-        run: dotnet restore --no-cache "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        #run: dotnet restore --no-cache "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet restore "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Nunit dotnet restore
-        run: dotnet build --no-restore "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        #run: dotnet build --no-restore "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet build "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
       - name: Nunit run unit tests
-        run: dotnet test "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        #run: dotnet test "${{ github.workspace }}/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
+        run: dotnet test "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/tests/Nunit_Player_Unit_Tests/Nunit_Player_Unit_Tests.csproj"
 
   # Xunit unit tests - https://xunit.net
   xunit-tests:
