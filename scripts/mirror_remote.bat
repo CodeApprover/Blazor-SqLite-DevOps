@@ -17,7 +17,6 @@ git fetch --all
 REM Delete specific local branches defined in "branches"
 for %%b in (%branches%) do (
     if "%%b" neq "main" (
-        echo Deleting branch %%b
         git branch -D %%b > nul 2>&1
     )
 )
@@ -36,7 +35,6 @@ for /f "tokens=*" %%i in (%branchesFile%) do (
         git push -u origin "!localBranch!"
     )
 )
-
 
 REM Switch to main and report
 git checkout main
