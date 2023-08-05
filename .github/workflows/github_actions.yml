@@ -169,5 +169,13 @@ jobs:
         run: |
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev branch deletion CI push"
-      - name: Delete Development Branch
-        run: git push --delete origin code-development
+      - name: Delete Development Branch if Exists
+        run: |
+          if git show-ref --verify --quiet refs/remotes/origin/code-development; then
+            git push --delete origin code-development
+          echo "code-development branch deleted."
+          else
+            git checkout -b code-development
+            git push origin code-development
+            echo "code-development branch did not exist -> created new one."
+          fi
