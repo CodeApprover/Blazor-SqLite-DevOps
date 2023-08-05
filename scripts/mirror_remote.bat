@@ -29,12 +29,15 @@ git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "H
 for /f "tokens=*" %%i in ("%branchesFile%") do (
     git branch --track %%~ni %%i
     git pull 
+    git push -u
 )
 del "%branchesFile%"
 
 REM Switch to main and report
 git checkout main
+git fetch --all
 git pull
+git push -u
 git branch
 
 REM Return to the original directory
