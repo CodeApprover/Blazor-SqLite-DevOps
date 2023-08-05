@@ -22,25 +22,22 @@ for %%b in (%branches%) do (
     )
 )
 
-REM Create and reset new branches that mirror the remote
-for %%b in (%branches%) do (
-    git ls-remote --exit-code origin refs/heads/%%b >nul 2>&1
-    if !ERRORLEVEL! equ 0 (
-        git checkout -b %%b
-        git reset --hard origin/%%b
-        git push --set-upstream origin %%b
-    ) else (
-        echo Remote branch %%b does not exist, skipping
-    )
+REM Refresh the remote branches and create local tracking branches
+set "branchesFile=%TEMP%\branches.txt"
+git fetch --all
+git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
+for /f "tokens=*" %%i in ("%branchesFile%") do (
+    git branch --track %%~ni %%i
 )
+del "%branchesFile%"
 
 REM Refresh the remote branches and create local tracking branches
 git fetch --all
-git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > ../branches.txt
+git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > branches.txt
 for /f "tokens=*" %%i in (branches.txt) do (
     git branch --track %%~ni %%i
 )
-del ../branches.txt
+del branches.txt
 
 REM Switch to main and report
 git checkout main
@@ -50,3 +47,5 @@ REM Return to the original directory
 popd
 
 endlocal
+
+exit /b 0

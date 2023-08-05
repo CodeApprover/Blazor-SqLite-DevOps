@@ -47,3 +47,6 @@
 
 # Ignore script files
 # /scripts/*
+
+# Ignore specific files
+/branches.txt
