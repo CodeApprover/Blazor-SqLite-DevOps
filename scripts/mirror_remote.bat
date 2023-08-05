@@ -27,7 +27,7 @@ set "branchesFile=%parentDir%\branches.txt"
 
 REM Refresh the remote branches and create local branches
 git fetch --all
-git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
+git for-each-ref --format="%%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
 for /f "tokens=*" %%i in (%branchesFile%) do (
     if "%%i" neq "%branchesFile%" (
         REM Strip 'origin/' from the remote branch name
