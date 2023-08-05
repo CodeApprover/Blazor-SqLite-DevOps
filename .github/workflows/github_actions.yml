@@ -24,6 +24,7 @@ jobs:
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
+  
   # DEVELOPMENT ENVIRONMENT - Nunit unit tests - https://nunit.org
   nunit-dev-tests:
     name: Dev Nunit unit tests
@@ -56,6 +57,7 @@ jobs:
           command="${command}Nunit_Player_Unit_Tests/"
           command="${command}Nunit_Player_Unit_Tests.csproj\""
           eval "${command}"
+
   # DEVELOPMENT ENVIRONMENT - Xunit unit tests - https://xunit.net
   xunit-dev-tests:
     name: Dev Xunit unit tests
@@ -88,6 +90,7 @@ jobs:
           command="${command}Xunit_Game_Unit_Tests/"
           command="${command}Xunit_Game_Unit_Tests.csproj\""
           eval "${command}"
+  
   # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-dev-linting:
     name: Dev StyleCop Linting
@@ -116,7 +119,8 @@ jobs:
           command="${command} /p:StyleCopTreatErrorsAsWarnings=false"
           command="${command} /p:StyleCopForceFullAnalysis=false"
           eval "${command}"
-  # DEVELOPMENT ENVIRONMENT - build artifact
+  
+  # DEVELOPMENT ENVIRONMENT - Build backUp artifact
   build-dev-artifact:
     name: Dev Build BackUp Artifact
     runs-on: ubuntu-latest
@@ -154,38 +158,12 @@ jobs:
           path: ./publish/*
           if-no-files-found: error # warn/ignore
 
-  # DEVELOPMENT ENVIRONMENT - Delete Development Branch
-  delete-development-branch:
-    name: Delete Development Branch
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: build-dev-artifact
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3.5.3
-        with:
-          fetch-depth: 0
-      - name: Configure Git User
-        run: |
-          git config --local user.email "auto_action@github.com"
-          git config --local user.name "Dev branch deletion CI push"
-      - name: Delete Development Branch if Exists
-        run: |
-          if git show-ref --verify --quiet refs/remotes/origin/code-development; then
-            git push --delete origin code-development
-          echo "code-development branch deleted."
-          else
-            git checkout -b code-development
-            git push origin code-development
-            echo "code-development branch did not exist -> created new one."
-          fi
-
-# DEVELOPMENT ENVIRONMENT - Deploy to Staging
-  deploy-dev-to-staging:
+  # DEVELOPMENT ENVIRONMENT - Deploy to Staging
+  deploy-to-staging:
     name: Dev Deploy to Staging
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: delete-development-branch
+    needs: build-dev-artifact
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.5.3
@@ -215,4 +193,30 @@ jobs:
           else
             git commit -m "Pushing changes to staging [skip CI]"
             git push origin code-staging
+          fi
+
+  # DEVELOPMENT ENVIRONMENT - Delete Development Branch
+  delete-development-branch:
+    name: Delete Development Branch
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: deploy-to-staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Configure Git User
+        run: |
+          git config --local user.email "auto_action@github.com"
+          git config --local user.name "Dev branch deletion CI push"
+      - name: Delete Development Branch if Exists
+        run: |
+          if git show-ref --verify --quiet refs/remotes/origin/code-development; then
+            git push --delete origin code-development
+          echo "code-development branch deleted."
+          else
+            git checkout -b code-development
+            git push origin code-development
+            echo "code-development branch did not exist -> created new one."
           fi
