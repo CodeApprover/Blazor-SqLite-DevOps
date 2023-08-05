@@ -25,70 +25,51 @@ jobs:
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
   
-  # DEVELOPMENT ENVIRONMENT - Nunit unit tests - https://nunit.org
-  nunit-dev-tests:
-    name: Dev Nunit unit tests
+  # DEVELOPMENT ENVIRONMENT - NUnit and Xunit unit tests
+  dev-unit-tests:
+    name: Dev Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
     needs: report
+    strategy:
+      matrix:
+        test_framework: ['Nunit', 'Xunit']
     steps:
-      - name: Nunit Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v3.5.3
-      - name: Nunit install dependencies
+      - name: Install dependencies
         run: |
+          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+            envrn="Nunit_Player_Unit_Tests"
+          else
+            envrn="Xunit_Game_Unit_Tests"
+          fi
           command="dotnet restore --no-cache"
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj\""
+          command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
           eval "${command}"
-      - name: Nunit dotnet restore
+      - name: dotnet restore
         run: |
+          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+            envrn="Nunit_Player_Unit_Tests"
+          else
+            envrn="Xunit_Game_Unit_Tests"
+          fi
           command="dotnet build --no-restore"
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj\""
+          command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
           eval "${command}"
-      - name: Nunit run unit tests
+      - name: Run unit tests
         run: |
+          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+            envrn="Nunit_Player_Unit_Tests"
+            log_file_name="nunit-results.trx"
+          else
+            envrn="Xunit_Game_Unit_Tests"
+            log_file_name="xunit-results.trx"
+          fi
           command="dotnet test"
           command="${command} --no-restore --verbosity detailed"
-          command="${command} --logger \"trx;LogFileName=nunit-results.trx\""
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Nunit_Player_Unit_Tests/"
-          command="${command}Nunit_Player_Unit_Tests.csproj\""
-          eval "${command}"
-
-  # DEVELOPMENT ENVIRONMENT - Xunit unit tests - https://xunit.net
-  xunit-dev-tests:
-    name: Dev Xunit unit tests
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: report
-    steps:
-      - name: Xunit Checkout repository
-        uses: actions/checkout@v3.5.3
-      - name: Xunit install dependencies
-        run: |
-          command="dotnet restore --no-cache"
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj\""
-          eval "${command}"
-      - name: Xunit dotnet restore
-        run: |
-          command="dotnet build --no-restore"
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj\""
-          eval "${command}"
-      - name: Xunit run unit tests
-        run: |
-          command="dotnet test"
-          command="${command} --no-restore --verbosity detailed"
-          command="${command} --logger \"trx;LogFileName=nunit-results.trx\""
-          command="${command} \"${{ github.workspace }}/tests/"
-          command="${command}Xunit_Game_Unit_Tests/"
-          command="${command}Xunit_Game_Unit_Tests.csproj\""
+          command="${command} --logger \"trx;LogFileName=${log_file_name}\""
+          command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
           eval "${command}"
   
   # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
@@ -96,7 +77,7 @@ jobs:
     name: Dev StyleCop Linting
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
-    needs: [nunit-dev-tests, xunit-dev-tests]
+    needs: dev-unit-tests
     steps:
       - name: StyleCop Checkout repository
         uses: actions/checkout@v3.5.3
@@ -188,12 +169,9 @@ jobs:
       - name: Push to Staging
         run: |
           git add .
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Pushing changes to staging [skip CI]"
-            git push origin code-staging
-          fi
+          # Committing a placeholder change to ensure the branch is pushed
+          git commit --allow-empty -m "Pushing changes to staging [skip CI]"
+          git push origin code-staging
 
   # DEVELOPMENT ENVIRONMENT - Delete Development Branch
   delete-development-branch:
