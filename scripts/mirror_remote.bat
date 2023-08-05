@@ -22,19 +22,21 @@ for %%b in (%branches%) do (
     )
 )
 
-REM Get parent directory of TEMP
-for %%i in ("%TEMP%") do set "parentDir=%%~dpi.."
-
 REM Refresh the remote branches and create local branches
-set "branchesFile=%parentDir%\branches.txt"
 git fetch --all
 git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
-for /f "tokens=*" %%i in ("%branchesFile%") do (
-    git branch --track %%~ni %%i
-    git pull origin %%~ni
-    git push -u origin %%~ni
+for /f "tokens=*" %%i in (%branchesFile%) do (
+    if "%%i" neq "%branchesFile%" (
+        REM Strip 'origin/' from the remote branch name
+        set "localBranch=%%~ni"
+        set "localBranch=!localBranch:origin/=!"
+        REM Create and checkout a new local branch that tracks the remote branch
+        git checkout -b "!localBranch!" "%%i"
+        REM Push the local branch to the remote repository
+        git push -u origin "!localBranch!"
+    )
 )
-del "%branchesFile%"
+
 
 REM Switch to main and report
 git checkout main
