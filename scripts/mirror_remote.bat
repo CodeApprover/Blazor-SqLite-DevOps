@@ -45,3 +45,5 @@ REM Return to the original directory
 popd
 
 endlocal
+
+exit /b 0
