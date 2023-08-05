@@ -6,24 +6,16 @@ if "%~dp0"=="%~dp0scripts\" (
     pushd "%~dp0"
 )
 
-REM Define valid branch names
-set "valid_branch_names= development staging production"
+REM Define a variable for the valid environment options
+set "valid_branches=code-development code-staging code-production"
 
-REM Check if an argument is provided
-if "%~1"=="" (
-    echo Usage: %~nx0 ^<branch_name^>
-    echo Available environments: %valid_branch_names%
-    exit /b 1
-)
-
-REM Check if the argument is one of the valid environments
+REM Check if the argument is one of the valid branches
 set "valid=0"
-set "valid_branches="
-for %%e in (%valid_branch_names%) do (
+for %%e in (%valid_branches%) do (
     if /i "%~1"=="%%e" (
         set "valid=1"
     )
-    set "valid_branches=!valid_branches! code-%%e"
+    set "valid_branches=!valid_branches! %%e"
 )
 
 REM Prompt valid branches
@@ -31,7 +23,6 @@ if !valid! equ 0 (
     echo Invalid branch requested. Please use one of the following options: !valid_branches!
     exit /b 1
 )
-
 
 REM Move to repository directory
 pushd "%~dp0.."
