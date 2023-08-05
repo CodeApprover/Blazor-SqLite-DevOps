@@ -29,18 +29,6 @@ if !valid! equ 0 (
     exit /b 1
 )
 
-REM Check out the appropriate branch based on the provided environment
-if /i "%~1"=="main" (
-    git checkout main
-) else (
-    git checkout code-%~1
-)
-
-REM Remove any existing sparse-checkout file
-if exist .git\info\sparse-checkout (
-    del .git\info\sparse-checkout
-)
-
 REM Move to repository directory
 pushd "%~dp0.."
 
@@ -48,47 +36,23 @@ REM Check out the appropriate branch
 if /i "%~1"=="main" (
     git checkout main
 ) else (
-    git checkout code-%~1
+    REM Check if the branch exists on the remote
+    git ls-remote --exit-code --heads origin code-%~1 >nul 2>&1
+    if errorlevel 1 (
+        REM Branch does not exist on the remote, create it locally
+        git checkout -b code-%~1
+        REM Push the new branch to the remote
+        git push -u origin code-%~1
+    ) else (
+        REM Branch exists, just check it out
+        git checkout code-%~1
+    )
 )
 
-REM Ensure argument branch is fully committed and pushed
-if /i "%~1"=="main" (
-    set "argument_branch=main"
-) else (
-    set "argument_branch=code-%~1"
-)
-git rev-parse --verify %argument_branch% > nul
-if errorlevel 1 (
-    echo The branch %argument_branch% does not exist or is not fully committed and pushed.
-    exit /b 1
-)
-
-REM Remove any existing sparse-checkout file
-if exist .git\info\sparse-checkout (
-    del .git\info\sparse-checkout
-)
-
-REM If the argument is not "main," proceed with sparse checkout setup
-if /i "%~1" neq "main" (
-
-    REM Disable sparse-checkout if enabled
-    git sparse-checkout disable
-
-    REM Set sparse-checkout configuration with desired directories
-    git sparse-checkout set --skip-checks %~1/ docs/ scripts/ tests/ LICENCE README.md howto
-
-    REM Reapply the sparse-checkout specifications
-    git sparse-checkout reapply
-
-) else (
-    REM Remove sparse checkout from main
-    git sparse-checkout disable
-)
-
-REM Reset the branch
-git reset --hard HEAD
+REM Rest of your code goes here ...
 
 REM Return to the original directory
 popd
 
 endlocal
+exit /b 0
