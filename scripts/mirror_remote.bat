@@ -22,7 +22,7 @@ for %%b in (%branches%) do (
     )
 )
 
-REM Refresh the remote branches and create local tracking branches
+REM Refresh the remote branches and create local branches
 set "branchesFile=%TEMP%\branches.txt"
 git fetch --all
 git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
