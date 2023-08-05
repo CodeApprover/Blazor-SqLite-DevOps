@@ -1,8 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Array of branches to update
-set "branches=code-development code-staging code-production"
+REM Array of branches to ignore
+set "branches=main code-development code-staging code-production"
 
 REM Move to repository directory
 pushd "%~dp0.."
@@ -13,13 +13,6 @@ git reset --hard HEAD
 
 REM Fetch all branches from the remote repository
 git fetch --all
-
-REM Delete specific local branches defined in "branches"
-for %%b in (%branches%) do (
-    if "%%b" neq "main" (
-        git branch -D %%b > nul 2>&1
-    )
-)
 
 REM Get parent directory of TEMP
 for %%i in ("%TEMP%") do set "parentDir=%%~dpi.."
@@ -32,8 +25,16 @@ for /f "tokens=*" %%i in (%branchesFile%) do (
     REM Strip 'origin/' from the remote branch name
     set "localBranch=%%i"
     set "localBranch=!localBranch:origin/=!"
-    REM Check if the local branch is in the branches array and main branch
-    if "!localBranch!" neq "origin" if "!localBranch!" neq "main" (
+    set "createBranch=1"
+    
+    REM Check if the local branch is in the branches array
+    for %%b in (%branches%) do (
+        if "%%b"=="!localBranch!" (
+            set "createBranch=0"
+        )
+    )
+    
+    if "!createBranch!"=="1" (
         REM Check if local branch already exists
         git rev-parse --verify --quiet "!localBranch!" >nul 2>&1
         if errorlevel 1 (
@@ -45,6 +46,13 @@ for /f "tokens=*" %%i in (%branchesFile%) do (
     )
 )
 
+REM Delete specific local branches defined in "branches" except main
+for %%b in (%branches%) do (
+    if "%%b" neq "main" (
+        git branch -D %%b > nul 2>&1
+    )
+)
+
 REM Switch to main and report
 git checkout main
 git fetch --all
@@ -52,7 +60,7 @@ git pull
 git push
 git branch
 
-REM Return to the original dir
+REM Return to the original directory
 popd
 
 endlocal
