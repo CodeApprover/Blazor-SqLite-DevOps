@@ -26,4 +26,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Successfully switched to user %newuser%.
+
+endlocal
+
 exit /b 0
