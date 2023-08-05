@@ -179,3 +179,40 @@ jobs:
             git push origin code-development
             echo "code-development branch did not exist -> created new one."
           fi
+
+# DEVELOPMENT ENVIRONMENT - Deploy to Staging
+  deploy-dev-to-staging:
+    name: Dev Deploy to Staging
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    needs: delete-development-branch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Configure Git User
+        run: |
+          git config --local user.email "auto_action@github.com"
+          git config --local user.name "Dev to Staging CI push"
+      - name: Rename development dir
+        run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
+      - name: Commit renamed dir
+        run: |
+          git add .
+          git commit -m "Renamed development dir to staging [skip CI]"
+      - name: Checkout or Create Staging Branch
+        run: |
+          git fetch origin code-staging || true
+          git checkout code-staging || git checkout -b code-staging
+      - name: Merge Dev -> Staging
+        run: git merge -X ours ${{ github.ref }}
+      - name: Push to Staging
+        run: |
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Pushing changes to staging [skip CI]"
+            git push origin code-staging
+          fi
