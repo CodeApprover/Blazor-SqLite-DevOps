@@ -49,10 +49,46 @@ if /i "%~1"=="main" (
     )
 )
 
-REM Rest of your code goes here ...
+REM Remove any existing sparse-checkout file
+if exist .git\info\sparse-checkout (
+    del .git\info\sparse-checkout
+)
+
+REM Ensure argument branch is fully committed and pushed
+if /i "%~1"=="main" (
+    set "argument_branch=main"
+) else (
+    set "argument_branch=code-%~1"
+)
+git rev-parse --verify %argument_branch% > nul
+if errorlevel 1 (
+    echo The branch %argument_branch% does not exist or is not fully committed and pushed.
+    exit /b 1
+)
+
+REM If the argument is not "main," proceed with sparse checkout setup
+if /i "%~1" neq "main" (
+
+    REM Disable sparse-checkout if enabled
+    git sparse-checkout disable
+
+    REM Set sparse-checkout configuration with desired directories
+    git sparse-checkout set --skip-checks %~1/ docs/ scripts/ tests/ LICENCE README.md howto
+
+    REM Reapply the sparse-checkout specifications
+    git sparse-checkout reapply
+
+) else (
+    REM Remove sparse checkout from main
+    git sparse-checkout disable
+)
+
+REM Reset the branch
+git reset --hard HEAD
 
 REM Return to the original directory
 popd
 
 endlocal
+
 exit /b 0
