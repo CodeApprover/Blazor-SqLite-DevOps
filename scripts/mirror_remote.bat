@@ -34,6 +34,7 @@ del "%branchesFile%"
 
 REM Switch to main and report
 git checkout main
+git pull
 git branch
 
 REM Return to the original directory
