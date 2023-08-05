@@ -10,8 +10,8 @@ REM Switch to main, reset to remote
 git checkout main
 git reset --hard "origin/main"
 
-REM Fetch all branches from the remote repository
-git fetch --all
+REM Fetch all branches from the remote repository and prune stale ones
+git fetch --all --prune
 
 REM Process the specific branches
 for %%b in (%branches%) do (
