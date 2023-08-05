@@ -1,33 +1,37 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Define a variable for the valid environment options
-set "valid_environments=main development staging production"
-
 REM Move to parent directory
 if "%~dp0"=="%~dp0scripts\" (
     pushd "%~dp0"
 )
 
+REM Define valid branch names
+set "valid_branch_names= development staging production"
+
 REM Check if an argument is provided
 if "%~1"=="" (
     echo Usage: %~nx0 ^<branch_name^>
-    echo Available environments: %valid_environments%
+    echo Available environments: %valid_branch_names%
     exit /b 1
 )
 
 REM Check if the argument is one of the valid environments
 set "valid=0"
-for %%e in (%valid_environments%) do (
+set "valid_branches="
+for %%e in (%valid_branch_names%) do (
     if /i "%~1"=="%%e" (
         set "valid=1"
     )
+    set "valid_branches=!valid_branches! code-%%e"
 )
 
+REM Prompt valid branches
 if !valid! equ 0 (
-    echo Invalid environment. Please use one of the following options: %valid_environments%
+    echo Invalid branch requested. Please use one of the following options: !valid_branches!
     exit /b 1
 )
+
 
 REM Move to repository directory
 pushd "%~dp0.."
