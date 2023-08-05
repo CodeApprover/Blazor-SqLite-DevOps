@@ -27,14 +27,16 @@ set "branchesFile=%parentDir%\branches.txt"
 
 REM Refresh the remote branches and create local branches
 git fetch --all
-git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" | findstr /v "origin/origin" > "%branchesFile%"
+git for-each-ref --format="%%(refname:short)" refs/remotes/origin | findstr /v "HEAD" | findstr /v "origin/origin" > "%branchesFile%"
 for /f "tokens=*" %%i in (%branchesFile%) do (
-    if "%%i" neq "%branchesFile%" (
-        REM Strip 'origin/' from the remote branch name
-        set "localBranch=%%~ni"
-        set "localBranch=!localBranch:origin/=!"
-        REM Check if the local branch is in the branches array and main branch
-        if "!localBranch!" neq "origin" if "!localBranch!" neq "main" (
+    REM Strip 'origin/' from the remote branch name
+    set "localBranch=%%i"
+    set "localBranch=!localBranch:origin/=!"
+    REM Check if the local branch is in the branches array and main branch
+    if "!localBranch!" neq "origin" if "!localBranch!" neq "main" (
+        REM Check if local branch already exists
+        git rev-parse --verify --quiet "!localBranch!" >nul 2>&1
+        if errorlevel 1 (
             REM Create and checkout a new local branch that tracks the remote branch
             git checkout -b "!localBranch!" "%%i"
             REM Push the local branch to the remote repository
@@ -47,7 +49,7 @@ REM Switch to main and report
 git checkout main
 git fetch --all
 git pull
-git push -u
+git push
 git branch
 
 REM Return to the original directory
