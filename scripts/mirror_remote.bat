@@ -14,6 +14,10 @@ git reset --hard HEAD
 REM Fetch all branches from the remote repository
 git fetch --all
 
+REM Get parent directory of TEMP
+for %%i in ("%TEMP%") do set "parentDir=%%~dpi.."
+set "branchesFile=%parentDir%\branches.txt"
+
 REM Delete specific local branches defined in "branches"
 for %%b in (%branches%) do (
     if "%%b" neq "main" (
@@ -42,6 +46,9 @@ git fetch --all
 git pull
 git push -u
 git branch
+
+REM Return to the original directory
+popd
 
 endlocal
 exit /b 0
