@@ -24,9 +24,14 @@ for %%b in (%branches%) do (
 
 REM Create and reset new branches that mirror the remote
 for %%b in (%branches%) do (
-    git checkout -b %%b
-    git reset --hard origin/%%b
-    git push --set-upstream origin %%b
+    git ls-remote --exit-code origin refs/heads/%%b >nul 2>&1
+    if !ERRORLEVEL! equ 0 (
+        git checkout -b %%b
+        git reset --hard origin/%%b
+        git push --set-upstream origin %%b
+    ) else (
+        echo Remote branch %%b does not exist, skipping
+    )
 )
 
 REM Refresh the remote branches and create local tracking branches
