@@ -52,7 +52,7 @@ git pull
 git push
 git branch
 
-REM Return to the original directory
+REM Return to the original dir
 popd
 
 endlocal
