@@ -11,7 +11,7 @@ if "%~dp0"=="%~dp0scripts\" (
 
 REM Check if an argument is provided
 if "%~1"=="" (
-    echo Usage: %~nx0 ^<environment^>
+    echo Usage: %~nx0 ^<branch_name^>
     echo Available environments: %valid_environments%
     exit /b 1
 )
