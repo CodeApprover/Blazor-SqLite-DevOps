@@ -35,12 +35,13 @@ for %%b in (%branches%) do (
 )
 
 REM Refresh the remote branches and create local tracking branches
+set "branchesFile=%TEMP%\branches.txt"
 git fetch --all
-git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > branches.txt
-for /f "tokens=*" %%i in (branches.txt) do (
+git for-each-ref --format="%(refname:short)" refs/remotes/origin | findstr /v "HEAD" > "%branchesFile%"
+for /f "tokens=*" %%i in ("%branchesFile%") do (
     git branch --track %%~ni %%i
 )
-del branches.txt
+del "%branchesFile%"
 
 REM Switch to main and report
 git checkout main
