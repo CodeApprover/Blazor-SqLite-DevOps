@@ -82,10 +82,12 @@ REM Create Empty Requested Branch Locally
 REM ########################################################################
 
 REM Check if the requested branch exists locally.
-git rev-parse --verify %branch%
+git rev-parse --verify %branch% 2>nul
+set branchExistsLocal=!errorlevel!
 
 REM If the branch exists locally, checkout the branch, stash any changes and delete all files associated with it.
-if not errorlevel 1 (
+REM If the branch exists locally, checkout the branch, stash any changes and delete all files associated with it.
+if !branchExistsLocal! equ 0 (
 
     git checkout %branch%
     git stash push -u -m "Stash before deleting %branch%"
@@ -125,12 +127,6 @@ REM After cloning, checkout the %branch% locally and copy the contents of temp_d
 git checkout %branch%
 xcopy /E /I /Y "%temp_dir%\*" "%REPO_DIR%"
 
-REM Cleanup: Delete all files in temp_dir, the temp_dir itself, and the temp_branch.
-git rm -rf %temp_dir%/*
-git clean %temp_dir% -fd
-rmdir /s /q "%temp_dir%"
-git branch -D %temp_branch%
-
 REM ########################################################################
 REM Rename Directory Based on Branch
 REM ########################################################################
@@ -149,3 +145,11 @@ for %%d in (development staging production) do (
         )
     )
 )
+
+REM Cleanup: Check if temp_dir exists before trying to delete it.
+if exist "%temp_dir%" (
+    git rm -rf %temp_dir%/*
+    git clean %temp_dir% -fd
+    rmdir /s /q "%temp_dir%"
+)
+git branch -D %temp_branch% 2>nul
