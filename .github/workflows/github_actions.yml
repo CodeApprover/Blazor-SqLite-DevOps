@@ -1,34 +1,52 @@
----
 name: "CI-CD Workflow"
 
 on:
   push:
-    branches: ["code-development", "code-production", "code-staging"]
-
-env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
+    branches: ["code-development"]
 
 jobs:
+  check_skip:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.check.outputs.should_skip }}
+    steps:
+    - name: Check if commit message contains [skip ci] or [skip CI]
+      id: check
+      run: |
+        echo "::set-output name=should_skip::$(echo '${{ github.event.head_commit.message }}' | grep -Ei '\[skip ci\]' && echo 'true' || echo 'false')"
 
-  # ALL ENVIRONMENTS - Report usage
+  set_project_path:
+    runs-on: ubuntu-latest
+    needs: check_skip
+    if: needs.check_skip.outputs.should_skip == 'false'
+    outputs:
+      project_path: ${{ steps.set.outputs.project_path }}
+    steps:
+    - name: Set PROJECT_PATH
+      id: set
+      run: |
+        echo "::set-output name=project_path::${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
+
   report:
     name: Report
     runs-on: ubuntu-latest
-    # Prevents workflow execution if skip ci in commit message
-    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip CI]')"
+    needs: [check_skip, set_project_path]
+    if: needs.check_skip.outputs.should_skip == 'false'
+    env:
+      PROJECT_PATH: ${{ needs.set_project_path.outputs.project_path }}
     steps:
-      - name: Report usage
-        run: |
-          echo "GitHub Actions CI/CD Pipeline"
-          echo "\"$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
-          echo "runner.os is ${{ runner.os }}"
-          echo "github.repository is ${{ github.repository }}"
-          echo "github.ref is ${{ github.ref }}"
-          echo "github.event_name is ${{ github.event_name }}"
-          echo "github.workspace is ${{ github.workspace }}"
-          echo "Project path is ${{ env.PROJECT_PATH }}"
-          echo "github.event.head_commit.message is ${{ (github.event.head_commit.message }}"
-  
+    - name: Report usage
+      run: |
+        echo "GitHub Actions CI/CD Pipeline"
+        echo "\"$(echo \"${{ github.ref }}\" | grep -oE '[^-]+$') environment"
+        echo "runner.os is ${{ runner.os }}"
+        echo "github.repository is ${{ github.repository }}"
+        echo "github.ref is ${{ github.ref }}"
+        echo "github.event_name is ${{ github.event_name }}"
+        echo "github.workspace is ${{ github.workspace }}"
+        echo "Project path is ${{ env.PROJECT_PATH }}"
+        echo "github.event.head_commit.message is ${{ github.event.head_commit.message }}"
+    
   # DEVELOPMENT ENVIRONMENT - NUnit and Xunit unit tests
   dev-unit-tests:
     name: Dev Unit Tests (${{ matrix.test_framework }})
@@ -75,7 +93,7 @@ jobs:
           command="${command} --logger \"trx;LogFileName=${log_file_name}\""
           command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
           eval "${command}"
-  
+    
   # DEVELOPMENT ENVIRONMENT - Run StyleCop Linting - https://github.com/StyleCop/StyleCop
   stylecop-dev-linting:
     name: Dev StyleCop Linting
