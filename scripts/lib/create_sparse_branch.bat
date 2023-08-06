@@ -78,14 +78,17 @@ if /i "%branch%"=="main" (
     REM Check if the branch exists on the remote
     git ls-remote --exit-code --heads origin %branch% >nul 2>&1
     if errorlevel 1 (
-        REM Branch does not exist on the remote, create it locally based on main
-        git checkout main
-        git checkout -b %branch% 2>nul
-        if errorlevel 1 (
-            echo The branch %branch% already exists locally. Deleting and recreating.
-            git branch -D %branch% 2>nul
-            git checkout -b %branch% 2>nul
-        )
+        REM Branch does not exist on the remote
+
+        REM Create a temporary branch to fetch the remote main
+        git checkout -b temp_remote_main_branch origin/main
+
+        REM Create the desired branch based on the fetched main
+        git checkout -b %branch%
+
+        REM Delete the temporary branch
+        git branch -D temp_remote_main_branch 2>nul
+
         REM If the branch is code-development, push it to the remote
         if /i "%branch%"=="code-development" (
             git push -u origin %branch% 2>nul
