@@ -70,8 +70,24 @@ if /i "%branch%"=="main" (
     )
 )
 
+REM Ensure working directory is clean
+git diff-index --quiet HEAD
+if errorlevel 1 (
+    echo Working directory is not clean. Stashing changes.
+    git stash
+    set stashed=1
+)
+
 REM Rename directory if needed
 call :renameDirectory
+
+REM Commit the directory rename
+git commit -m "Renamed directory for %branch%"
+
+REM If changes were stashed, pop them
+if defined stashed (
+    git stash pop
+)
 
 REM Display results
 call :displayResults
@@ -124,7 +140,7 @@ for %%d in (development staging production) do (
     if exist "%%d" (
         if NOT "%desired_dir_name%"=="%%d" (
             echo Renaming %%d to %desired_dir_name%
-            ren "%%d" "%desired_dir_name%"
+            git mv "%%d" "%desired_dir_name%"
         )
     )
 )
