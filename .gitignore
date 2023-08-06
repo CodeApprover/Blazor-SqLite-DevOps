@@ -46,8 +46,7 @@
 /production/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj.user
 
 # Ignore script files
-/scripts/menu.bat
-/scripts/lib/*
+#/scripts/
 
 # Ignore specific files
 /branches.txt
