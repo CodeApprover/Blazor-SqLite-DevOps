@@ -1,18 +1,19 @@
+---
 name: "CI-CD Workflow"
 
 on:
   push:
-    branches: ["code-development"]
+    branches: ["code-development", "code-production", "code-staging"]
+
+env:
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
 
 jobs:
 
-  # DEVELOPMENT ENVIRONMENT - Report usage
+  # DEVELOPPMENT ENVIRONMENT - Report usage
   report:
     name: Report
     runs-on: ubuntu-latest
-    if: needs.check_skip.outputs.should_skip == 'false'
-    env:
-      PROJECT_PATH: ${{ needs.set_project_path.outputs.project_path }}
     steps:
     - name: Report usage
       run: |
