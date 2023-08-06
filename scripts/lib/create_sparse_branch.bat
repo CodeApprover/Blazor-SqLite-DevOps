@@ -9,7 +9,7 @@ if "%~dp0"=="%~dp0scripts\lib\" (
 )
 
 REM Get the current branch
-for /f "tokens=2" %%a in ('git branch | findstr "\*"') do set "current_branch=%%a"
+for /f "tokens=2" %%a in ('git branch ^| findstr "\*"') do set "current_branch=%%a"
 
 REM Define a variable for the valid environment options
 set "valid_branches=code-development code-staging code-production"
