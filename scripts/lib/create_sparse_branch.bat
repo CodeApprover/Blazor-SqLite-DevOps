@@ -68,6 +68,9 @@ if /i "%current_branch%"=="%branch%" (
     goto endScript
 )
 
+REM Fetch the latest changes from the remote and prune deleted branches
+git fetch -p
+
 REM Check out the appropriate branch
 if /i "%branch%"=="main" (
     git checkout main 2>nul
