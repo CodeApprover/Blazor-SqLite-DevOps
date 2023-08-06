@@ -1,9 +1,11 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Move to parent directory
-if "%~dp0"=="%~dp0scripts\" (
-    pushd "%~dp0"
+REM Ensure we are in the top directory
+if "%~dp0"=="%~dp0scripts\lib\" (
+    pushd "..\.."
+) else if "%~dp0"=="%~dp0scripts\" (
+    pushd ".."
 )
 
 REM Define a variable for the valid environment options
@@ -41,11 +43,6 @@ if !valid! equ 0 (
     exit /b 1
 )
 
-REM Move to repository directory
-pushd "%~dp0.."
-
-set "branch_created=0"
-set "remote_created=0"
 REM Check out the appropriate branch
 if /i "%branch%"=="main" (
     git checkout main
@@ -61,7 +58,6 @@ if /i "%branch%"=="main" (
             REM Push the new branch to the remote only if it's code-development
             if /i "%branch%"=="code-development" (
                 git push -u origin %branch%
-                set "remote_created=1"
             ) else (
                 echo Remote branch creation for %branch% is managed by GitHub Actions.
             )
@@ -72,14 +68,13 @@ if /i "%branch%"=="main" (
         REM Check out the remote branch
         git checkout -b %branch% origin/%branch%
     )
-    set "branch_created=1"
 )
+
+REM Rename directory if needed
+call :renameDirectory
 
 REM Display results
 call :displayResults
-
-REM Return to the original directory
-popd
 
 endlocal
 exit /b 0
@@ -112,16 +107,25 @@ echo.
 echo =======================================================================
 echo Results:
 echo.
-if "!branch_created!"=="1" (
-    echo - Local branch %branch% has been created locally.
-) else (
-    echo - No local branch actions were taken.
-)
-if "!remote_created!"=="1" (
-     echo - Remote branch %branch% was created.
-) else (
-    echo - No remote branch actions were taken.
-)
+echo - Local branch %branch% has been created locally.
+echo - Remote branch %branch% was created.
 echo =======================================================================
 echo.
+goto :eof
+
+:renameDirectory
+REM Determine the desired directory name based on the branch
+if /i "%branch%"=="code-development" set "desired_dir_name=development"
+if /i "%branch%"=="code-staging" set "desired_dir_name=staging"
+if /i "%branch%"=="code-production" set "desired_dir_name=production"
+
+REM Iterate through possible directory names and rename if necessary
+for %%d in (development staging production) do (
+    if exist "%%d" (
+        if NOT "%desired_dir_name%"=="%%d" (
+            echo Renaming %%d to %desired_dir_name%
+            ren "%%d" "%desired_dir_name%"
+        )
+    )
+)
 goto :eof
