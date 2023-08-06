@@ -49,6 +49,14 @@ if !valid! equ 0 (
 REM If we are in the main branch, stash any untracked files
 if /i "%current_branch%"=="main" (
     git stash save --include-untracked "Stashed untracked files from main branch [skip ci]"
+    echo.
+    echo Untracked files in main have been stashed:
+    git stash list -n 1
+    echo.
+    echo To retrieve the stashed changes, use the command:
+    echo git stash apply
+    echo.
+    timeout /t 5 /nobreak >nul
 )
 
 REM If the original branch is the same as the requested branch (and it's not main)
