@@ -48,7 +48,7 @@ if !valid! equ 0 (
 
 REM If we are in the main branch, stash any untracked files
 if /i "%current_branch%"=="main" (
-    git stash save --include-untracked "Stashed untracked files from main branch [skip ci]"
+    git stash save --include-untracked "Stashed untracked files from main branch [skip ci]" 2>nul
     echo.
     echo Untracked files in main have been stashed:
     git stash list -n 1
@@ -64,13 +64,13 @@ if /i "%current_branch%"=="%branch%" (
     REM Branch exists on the remote, delete local branch
     git branch -D %branch% 2>nul
     REM Check out the remote branch
-    git checkout -b %branch% origin/%branch%
+    git checkout -b %branch% origin/%branch% 2>nul
     goto endScript
 )
 
 REM Check out the appropriate branch
 if /i "%branch%"=="main" (
-    git checkout main
+    git checkout main 2>nul
 ) else (
     REM Check if the branch exists on the remote
     git ls-remote --exit-code --heads origin %branch% >nul 2>&1
@@ -80,8 +80,12 @@ if /i "%branch%"=="main" (
         git checkout -b %branch% 2>nul
         if errorlevel 1 (
             echo The branch %branch% already exists locally. Deleting and recreating.
-            git branch -D %branch%
-            git checkout -b %branch%
+            git branch -D %branch% 2>nul
+            git checkout -b %branch% 2>nul
+        )
+        REM If the branch is code-development, push it to the remote
+        if /i "%branch%"=="code-development" (
+            git push -u origin %branch% 2>nul
         )
     ) else (
         REM Branch exists on the remote, delete local branch if it exists
@@ -97,7 +101,7 @@ REM Rename directory if needed
 call :renameDirectory
 
 REM Commit the directory rename
-git commit -m "Renamed directory for %branch% [skip CI]"
+git commit -m "Renamed directory for %branch% [skip CI]" 2>nul
 
 REM Display results
 call :displayResults
