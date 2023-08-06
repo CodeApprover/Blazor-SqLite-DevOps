@@ -15,7 +15,7 @@ jobs:
     name: Report
     runs-on: ubuntu-latest
     # Prevents workflow execution if skip ci in commit message
-    if: "!contains(replace(toLower(github.event.head_commit.message), ' ', ''), '[skipci]')"
+    if: "!contains(toLower(github.event.head_commit.message), '[skip ci]') && !contains(toLower(github.event.head_commit.message), '[ci skip]')"
     steps:
       - name: Report usage
         run: |
