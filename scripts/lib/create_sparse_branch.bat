@@ -61,10 +61,21 @@ if /i "%current_branch%"=="main" (
 
 REM If the original branch is the same as the requested branch (and it's not main)
 if /i "%current_branch%"=="%branch%" (
-    REM Branch exists on the remote, delete local branch
+    REM Check out the main branch to a temporary branch to allow deletion of the target branch
+    git checkout -b temp_main_branch origin/main 2>nul
+
+    REM Delete the local target branch
     git branch -D %branch% 2>nul
-    REM Check out the remote branch
+
+    REM Check out the remote branch to a new local branch
     git checkout -b %branch% origin/%branch% 2>nul
+
+    REM Checkout the newly created local branch
+    git checkout %branch% 2>nul
+
+    REM Delete the temporary main branch
+    git branch -D temp_main_branch 2>nul
+
     goto endScript
 )
 
@@ -78,17 +89,14 @@ if /i "%branch%"=="main" (
     REM Check if the branch exists on the remote
     git ls-remote --exit-code --heads origin %branch% >nul 2>&1
     if errorlevel 1 (
-        REM Branch does not exist on the remote
-
-        REM Create a temporary branch to fetch the remote main
-        git checkout -b temp_remote_main_branch origin/main
-
-        REM Create the desired branch based on the fetched main
-        git checkout -b %branch%
-
-        REM Delete the temporary branch
-        git branch -D temp_remote_main_branch 2>nul
-
+        REM Branch does not exist on the remote, create it locally based on main
+        git checkout main
+        git checkout -b %branch% 2>nul
+        if errorlevel 1 (
+            echo The branch %branch% already exists locally. Deleting and recreating.
+            git branch -D %branch% 2>nul
+            git checkout -b %branch% 2>nul
+        )
         REM If the branch is code-development, push it to the remote
         if /i "%branch%"=="code-development" (
             git push -u origin %branch% 2>nul
@@ -97,7 +105,7 @@ if /i "%branch%"=="main" (
         REM Branch exists on the remote, delete local branch if it exists
         git branch -D %branch% 2>nul
         REM Check out the remote branch
-        git checkout -b %branch% origin/%branch% 2>nul
+        git checkout -b %branch% origin/%branch%
     )
 )
 
@@ -107,7 +115,7 @@ REM Rename directory if needed
 call :renameDirectory
 
 REM Commit the directory rename
-git commit -m "Renamed directory for %branch% [skip ci]" 2>nul
+git commit -m "Renamed directory for %branch% [skip CI]" 2>nul
 
 REM Display results
 call :displayResults
