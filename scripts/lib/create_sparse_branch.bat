@@ -59,7 +59,7 @@ if /i "%branch%"=="main" (
             if /i "%branch%"=="code-development" (
                 git push -u origin %branch%
             ) else (
-                echo Remote branch creation for %branch% is managed by GitHub Actions.
+                echo Branch %branch% created locally. Remote branch creation for this branch is managed by GitHub Actions.
             )
         )
     ) else (
@@ -74,7 +74,7 @@ REM Ensure working directory is clean
 git diff-index --quiet HEAD
 if errorlevel 1 (
     echo Working directory is not clean. Stashing changes.
-    git stash
+    git stash  >nul 2>&1
     set stashed=1
 )
 
@@ -82,12 +82,7 @@ REM Rename directory if needed
 call :renameDirectory
 
 REM Commit the directory rename
-git commit -m "Renamed directory for %branch%"
-
-REM If changes were stashed, pop them
-if defined stashed (
-    git stash pop
-)
+git commit -m "Renamed directory for %branch% [skip CI]"
 
 REM Display results
 call :displayResults
