@@ -33,33 +33,25 @@ if !valid! equ 0 (
 REM Move to repository directory
 pushd "%~dp0.."
 
-set "branch_created=0"
-REM Check out the appropriate branch
-if /i "%~1"=="main" (
-    git checkout main
+REM Check if the branch exists locally
+git branch --list | findstr /R /C:"^  *%~1$" >nul
+if errorlevel 1 (
+    echo Branch %~1 does not exist locally.
 ) else (
-    REM Check if the branch exists on the remote
-    git ls-remote --exit-code --heads origin %~1 >nul 2>&1
-    if errorlevel 1 (
-        REM Branch does not exist on the remote, create it locally
-        git checkout -b %~1
-        REM Push the new branch to the remote
-        git push -u origin %~1
-        set "branch_created=1"
-    ) else (
-        REM Branch exists on the remote, delete local branch if it exists
-        git branch -D %~1 2>nul
-        REM Check out the remote branch
-        git checkout -b %~1 origin/%~1
-        set "branch_created=1"
-    )
+    REM Delete the branch locally
+    git branch -D %~1
+    echo Deleted local branch %~1.
 )
 
-if "!branch_created!"=="0" (
-    echo Branch was not created, remaining on current branch.
+REM Check if the branch exists on the remote
+git ls-remote --exit-code --heads origin %~1 >nul 2>&1
+if errorlevel 1 (
+    echo Branch %~1 does not exist on the remote.
+) else (
+    REM Delete the branch remotely
+    git push origin --delete %~1
+    echo Deleted remote branch %~1.
 )
-
-REM Rest of the code goes here ...
 
 REM Return to the original directory
 popd
