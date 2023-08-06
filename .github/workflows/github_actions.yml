@@ -27,6 +27,7 @@ jobs:
           echo "github.event_name is ${{ github.event_name }}"
           echo "github.workspace is ${{ github.workspace }}"
           echo "Project path is ${{ env.PROJECT_PATH }}"
+          echo "github.event.head_commit.message is ${{ (github.event.head_commit.message }}"
   
   # DEVELOPMENT ENVIRONMENT - NUnit and Xunit unit tests
   dev-unit-tests:
