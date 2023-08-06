@@ -104,7 +104,7 @@ REM Rename directory if needed
 call :renameDirectory
 
 REM Commit the directory rename
-git commit -m "Renamed directory for %branch% [skip CI]" 2>nul
+git commit -m "Renamed directory for %branch% [skip ci]" 2>nul
 
 REM Display results
 call :displayResults
