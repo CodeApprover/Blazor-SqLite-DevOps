@@ -35,7 +35,7 @@ echo =======================================================================
 echo.
 
 REM Fetch updates from all remote branches.
-git fetch --all >nul
+git fetch --all
 
 REM Check if a branch name was provided as an argument.
 if "%branch%"=="" (
@@ -66,7 +66,6 @@ if !valid! equ 0 (
 )
 
 REM Define a temporary branch name and directory for operations.
-set "temp_branch=Temp"
 set "temp_dir=..\temp_dir"
 
 REM If temp_dir exists, delete it. Then, create a fresh temp_dir.
@@ -74,63 +73,63 @@ if exist "%tempDir%" rmdir /s /q "%tempDir%"
 mkdir "%tempDir%"
 
 REM If temp_branch exists locally, delete it. Then, create and checkout a new temp_branch.
-git rev-parse --verify %temp_branch% >nul
-if not errorlevel 1 git branch -D %temp_branch% >nul
-git checkout -b %temp_branch% >nul
+git rev-parse --verify temp_branch
+if not errorlevel 1 git branch -D temp_branch
+git checkout -b temp_branch
 
 REM ########################################################################
 REM Create Empty Requested Branch Locally
 REM ########################################################################
 
 REM Check if the requested branch exists locally.
-git rev-parse --verify %branch% >nul
+git rev-parse --verify %branch%
 
 REM If the branch exists locally, checkout the branch, stash any changes and delete all files associated with it.
 if not errorlevel 1 (
 
-    git checkout %branch% >nul
-    git stash push -u -m "Stash before deleting %branch%" >nul
+    git checkout %branch%
+    git stash push -u -m "Stash before deleting %branch%"
     echo "Changes have been stashed with the message: Stash before deleting %branch%."
     echo "Please note this for future reference."
     timeout /t 5
-    git rm -rf %REPO_DIR%/* >nul
-    git branch -D %branch% >nul
+    git rm -rf %REPO_DIR%/*
+    git branch -D %branch%
 
 ) else (
     REM If the branch doesn't exist locally, create an empty orphan branch with that name.
-    git checkout --orphan %branch% >nul
-    git rm -rf . >nul
+    git checkout --orphan %branch%
+    git rm -rf .
 )
 
 REM Switch back to the temporary branch for further operations.
-git checkout %temp_branch% >nul
+git checkout %temp_branch%
 
 REM ########################################################################
 REM Populate Requested Branch Locally
 REM ########################################################################
 
 REM Check if the requested branch exists on the remote.
-git ls-remote --exit-code --heads origin %branch% >nul
+git ls-remote --exit-code --heads origin %branch%
 
 REM If the branch doesn't exist remotely, clone the main branch from the remote repository into temp_dir.
 if errorlevel 1 (
     for /f "tokens=*" %%i in ('git remote get-url origin') do set "remoteURL=%%i"
-    git clone "%remoteURL%" -b main "%temp_dir%" >nul
+    git clone "%remoteURL%" -b main "%temp_dir%"
 
 ) else ( 
     REM If the branch exists remotely, clone that specific branch into temp_dir.
-    git clone "%remoteURL%" -b %branch% %temp_dir% >nul
+    git clone "%remoteURL%" -b %branch% %temp_dir%
 )
 
 REM After cloning, checkout the %branch% locally and copy the contents of temp_dir to the current directory (REPO_DIR).
-git checkout %branch% >nul
+git checkout %branch%
 xcopy /E /I /Y "%temp_dir%\*" "%REPO_DIR%"
 
 REM Cleanup: Delete all files in temp_dir, the temp_dir itself, and the temp_branch.
-git rm -rf %temp_dir%/* >nul
-git clean %temp_dir% -fd >nul
-rmdir /s /q "%temp_dir%" >nul
-git branch -D %temp_branch% >nul
+git rm -rf %temp_dir%/*
+git clean %temp_dir% -fd
+rmdir /s /q "%temp_dir%"
+git branch -D %temp_branch%
 
 REM ########################################################################
 REM Rename Directory Based on Branch
@@ -146,7 +145,7 @@ for %%d in (development staging production) do (
     if exist "%%d" (
         if NOT "%desired_dir_name%"=="%%d" (
             echo Renaming %%d to %desired_dir_name%
-            git mv "%%d" "%desired_dir_name%" >nul 2>&1
+            git mv "%%d" "%desired_dir_name%" 2>&1
         )
     )
 )
