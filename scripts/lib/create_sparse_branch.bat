@@ -94,7 +94,7 @@ if /i "%branch%"=="main" (
         REM Branch exists on the remote, delete local branch if it exists
         git branch -D %branch% 2>nul
         REM Check out the remote branch
-        git checkout -b %branch% origin/%branch%
+        git checkout -b %branch% origin/%branch% 2>nul
     )
 )
 
