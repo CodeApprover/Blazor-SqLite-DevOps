@@ -20,46 +20,23 @@ echo.
 echo code-development
 echo code-staging
 echo code-production
-echo main
 echo ======================================
 echo.
-echo [1] Create Sparse Branch
-echo [2] Reset All Branches
-echo [3] Reset Main Branch
-echo [4] Reset Sparse Branch
-echo [5] Switch User
-echo [6] Display Directory Structure
-echo [7] Exit
+echo [1] Create Branch
+echo [2] Switch User
+echo [3] Display Directory Structure
+echo [4] Exit
 echo.
 set /p choice="Enter choice: "
 
-if "%choice%"=="1" goto create_sparse_branch
-if "%choice%"=="2" goto reset_all_branches
-if "%choice%"=="3" goto reset_main_branch
-if "%choice%"=="4" goto reset_sparse_branch
-if "%choice%"=="5" goto switch_user
-if "%choice%"=="6" goto display_structure
-if "%choice%"=="7" cls & goto :eof
+if "%choice%"=="1" goto create_branch
+if "%choice%"=="2" goto switch_user
+if "%choice%"=="3" goto display_structure
+if "%choice%"=="4" cls & goto :eof
 
-:create_sparse_branch
+:create_branch
 set /p branch=Enter branch name: 
-call "%scripts_dir%\lib\create_sparse_branch.bat" %branch%
-pause
-goto menu
-
-:reset_all_branches
-call "%scripts_dir%\lib\reset_all_branches.bat"
-pause
-goto menu
-
-:reset_main_branch
-call "%scripts_dir%\lib\reset_main_branch.bat"
-pause
-goto menu
-
-:reset_sparse_branch
-set /p branch=Enter branch name: 
-call "%scripts_dir%\lib\reset_sparse_branch.bat" %branch%
+call "%scripts_dir%\lib\create_branch.bat" %branch%
 pause
 goto menu
 
@@ -82,5 +59,5 @@ popd & popd
 pause
 goto menu
 
-REM Return to the original directory
+REM Return to the starting directory
 popd
