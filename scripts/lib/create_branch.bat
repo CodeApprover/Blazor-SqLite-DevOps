@@ -1,24 +1,43 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Ensure we are in the top directory
+REM ########################################################################
+REM Setup
+REM ########################################################################
+
+REM Ensure the script is executed from the top directory of the repository.
 if "%~dp0"=="%~dp0scripts\lib\" (
     pushd "..\.."
 ) else if "%~dp0"=="%~dp0scripts\" (
     pushd ".."
 )
 
-REM Get the current branch
-for /f "tokens=2" %%a in ('git branch ^| findstr "\*"') do set "current_branch=%%a"
+REM Set the main directory of the repository.
+set "REPO_DIR=%CD%"
 
-REM Define a variable for the valid environment options
+REM Define the valid branch names and capture the branch name provided as an argument.
 set "valid_branches=code-development code-staging code-production"
 set "branch=%~1"
 
-REM Display description
-call :displayDescription
+REM Display a script description and check if the provided branch name is valid.
+echo.
+echo =======================================================================
+echo  - Creates clean Git branch for %branch%:
+echo  - %valid_branches%
+echo.
+echo - If a branch doesn't exist locally, it's created.
+echo - Local changes will be lost.
+echo - Untracked files are stashed and removed.
+echo - Tracked files are replaced by remote counterparts.
+echo.
+echo  - WARNING: Use with caution.
+echo =======================================================================
+echo.
 
-REM Check if an argument is provided
+REM Fetch updates from all remote branches.
+git fetch --all >nul
+
+REM Check if a branch name was provided as an argument.
 if "%branch%"=="" (
     echo.
     echo Usage: %~nx0 ^<branch_name^>
@@ -28,7 +47,7 @@ if "%branch%"=="" (
     exit /b 1
 )
 
-REM Check if the argument is one of the valid branches
+REM Validate the provided branch name against the list of valid branches.
 set "valid=0"
 for %%e in (%valid_branches%) do (
     if /i "%branch%"=="%%e" (
@@ -36,7 +55,7 @@ for %%e in (%valid_branches%) do (
     )
 )
 
-REM Prompt valid branches
+REM If the provided branch name is invalid, display an error message.
 if !valid! equ 0 (
     echo.
     echo Invalid branch requested.
@@ -46,124 +65,83 @@ if !valid! equ 0 (
     exit /b 1
 )
 
-REM If we are in the main branch, stash any untracked files
-if /i "%current_branch%"=="main" (
-    git stash save --include-untracked "Stashed untracked files from main branch [skip ci]" 2>nul
-    echo.
-    echo Untracked files in main have been stashed:
-    git stash list -n 1
-    echo.
-    echo To retrieve the stashed changes, use the command:
-    echo git stash apply
-    echo.
-    timeout /t 5 /nobreak >nul
-)
+REM Define a temporary branch name and directory for operations.
+set "temp_branch=Temp"
+set "temp_dir=%TEMP%\temp_dir"
 
-REM If the original branch is the same as the requested branch (and it's not main)
-if /i "%current_branch%"=="%branch%" (
-    REM Check out the main branch to a temporary branch to allow deletion of the target branch
-    git checkout -b temp_main_branch origin/main 2>nul
+REM If temp_dir exists, delete it. Then, create a fresh temp_dir.
+if exist "%tempDir%" rmdir /s /q "%tempDir%"
+mkdir "%tempDir%"
 
-    REM Delete the local target branch
-    git branch -D %branch% 2>nul
+REM If temp_branch exists locally, delete it. Then, create and checkout a new temp_branch.
+git rev-parse --verify %temp_branch% >nul
+if not errorlevel 1 git branch -D %temp_branch% >nul
+git checkout -b %temp_branch% >nul
 
-    REM Check out the remote branch to a new local branch
-    git checkout -b %branch% origin/%branch% 2>nul
+REM ########################################################################
+REM Create Empty Requested Branch Locally
+REM ########################################################################
 
-    REM Checkout the newly created local branch
-    git checkout %branch% 2>nul
+REM Check if the requested branch exists locally.
+git rev-parse --verify %branch% >nul
 
-    REM Delete the temporary main branch
-    git branch -D temp_main_branch 2>nul
+REM If the branch exists locally, checkout the branch, stash any changes and delete all files associated with it.
+if not errorlevel 1 (
 
-    goto endScript
-)
+    git checkout %branch% >nul
+    git stash push -u -m "Stash before deleting %branch%" >nul
+    echo "Changes have been stashed with the message: Stash before deleting %branch%."
+    echo "Please note this for future reference."
+    timeout /t 5
+    git rm -rf %REPO_DIR%/* >nul
+    git branch -D %branch% >nul
 
-REM Fetch the latest changes from the remote and prune deleted branches
-git fetch -p
-
-REM Check out the appropriate branch
-if /i "%branch%"=="main" (
-    git checkout main 2>nul
 ) else (
-    REM Check if the branch exists on the remote
-    git ls-remote --exit-code --heads origin %branch% >nul 2>&1
-    if errorlevel 1 (
-        REM Branch does not exist on the remote, create it locally based on main
-        git checkout main
-        git checkout -b %branch% 2>nul
-        if errorlevel 1 (
-            echo The branch %branch% already exists locally. Deleting and recreating.
-            git branch -D %branch% 2>nul
-            git checkout -b %branch% 2>nul
-        )
-        REM If the branch is code-development, push it to the remote
-        if /i "%branch%"=="code-development" (
-            git push -u origin %branch% 2>nul
-        )
-    ) else (
-        REM Branch exists on the remote, delete local branch if it exists
-        git branch -D %branch% 2>nul
-        REM Check out the remote branch
-        git checkout -b %branch% origin/%branch%
-    )
+    REM If the branch doesn't exist locally, create an empty orphan branch with that name.
+    git checkout --orphan %branch% >nul
+    git rm -rf . >nul
 )
 
-:endScript
+REM Switch back to the temporary branch for further operations.
+git checkout %temp_branch% >nul
 
-REM Rename directory if needed
-call :renameDirectory
+REM ########################################################################
+REM Populate Requested Branch Locally
+REM ########################################################################
 
-REM Commit the directory rename
-git commit -m "Renamed directory for %branch% [skip CI]" 2>nul
+REM Check if the requested branch exists on the remote.
+git ls-remote --exit-code --heads origin %branch% >nul
 
-REM Display results
-call :displayResults
+REM If the branch doesn't exist remotely, clone the main branch from the remote repository into temp_dir.
+if errorlevel 1 (
+    for /f "tokens=*" %%i in ('git remote get-url origin') do set "remoteURL=%%i"
+    git clone "%remoteURL%" -b main "%temp_dir%" >nul
 
-endlocal
-exit /b 0
-
-:displayDescription
-(
-    echo.
-    echo =======================================================================
-    echo  - Create Sparse Branch manages Git branches for:
-    echo  - %valid_branches%
-    echo.
-    echo - If a branch doesn't exist locally, it's created.
-    echo - Existing local branches are replaced by their remote counterparts.
-    echo.
-    echo - Only 'code-development' can be created remotely.
-    echo - if 'code-development' exists remotely, the local is
-    echo - replaced by its remote counterpart.
-    echo.
-    echo - All other remote branch creation is managed by GitHub Actions.
-    echo.
-    echo  - WARNING: Use with caution.
-    echo =======================================================================
-    echo.
+) else ( 
+    REM If the branch exists remotely, clone that specific branch into temp_dir.
+    git clone "%remoteURL%" -b %branch% %temp_dir% >nul
 )
-cls
-goto :eof
 
-:displayResults
-echo.
-echo =======================================================================
-echo Results:
-echo.
-echo - Local branch %branch% has been created locally.
-echo - Remote branch %branch% was created.
-echo =======================================================================
-echo.
-goto :eof
+REM After cloning, checkout the %branch% locally and copy the contents of temp_dir to the current directory (REPO_DIR).
+git checkout %branch% >nul
+xcopy /E /I /Y "%temp_dir%\*" "%REPO_DIR%"
 
-:renameDirectory
-REM Determine the desired directory name based on the branch
+REM Cleanup: Delete all files in temp_dir, the temp_dir itself, and the temp_branch.
+git rm -rf %temp_dir%/* >nul
+git clean %temp_dir% -fd >nul
+rmdir /s /q "%temp_dir%" >nul
+git branch -D %temp_branch% >nul
+
+REM ########################################################################
+REM Rename Directory Based on Branch
+REM ########################################################################
+
+REM Determine the desired directory name based on the branch.
 if /i "%branch%"=="code-development" set "desired_dir_name=development"
 if /i "%branch%"=="code-staging" set "desired_dir_name=staging"
 if /i "%branch%"=="code-production" set "desired_dir_name=production"
 
-REM Iterate through possible directory names and rename if necessary
+REM Rename directories as needed based on the branch name.
 for %%d in (development staging production) do (
     if exist "%%d" (
         if NOT "%desired_dir_name%"=="%%d" (
@@ -172,4 +150,3 @@ for %%d in (development staging production) do (
         )
     )
 )
-goto :eof
