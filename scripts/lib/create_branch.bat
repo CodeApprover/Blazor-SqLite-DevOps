@@ -67,7 +67,7 @@ if !valid! equ 0 (
 
 REM Define a temporary branch name and directory for operations.
 set "temp_branch=Temp"
-set "temp_dir=%TEMP%\temp_dir"
+set "temp_dir=..\temp_dir"
 
 REM If temp_dir exists, delete it. Then, create a fresh temp_dir.
 if exist "%tempDir%" rmdir /s /q "%tempDir%"
