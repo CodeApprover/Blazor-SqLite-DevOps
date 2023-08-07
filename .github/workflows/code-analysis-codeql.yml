@@ -8,8 +8,9 @@ on:
       - completed
 
 env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club"
-
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
+  CSPROJ_PATH: "${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+  
 jobs:
 
   # Staging, Production, Main - https://github.com/github/codeql
@@ -42,9 +43,9 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ env.PROJECT_PATH }}/Blazor SqlLite Golf Club.csproj"
+        run: dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
       - name: Dotnet build
-        run: dotnet build --no-restore "${{ env.PROJECT_PATH }}/Blazor SqlLite Golf Club.csproj"
+        run: dotnet build --no-restore "${{ env.CSPROJ_PATH }}"
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
  
