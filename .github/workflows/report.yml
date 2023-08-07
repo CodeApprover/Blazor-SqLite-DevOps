@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360 
     steps:
-    - name: Report Timestamp
+    - name: Log Timestamp
       run: date
      
     - name: GitHub Environment Details
