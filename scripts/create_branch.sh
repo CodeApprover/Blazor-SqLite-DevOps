@@ -76,13 +76,6 @@ fi
 git checkout "$branch"
 git stash push -u -m "Stashing untracked files in $branch"
 
-if [[ -d "$temp_dir" ]]; then
-    rm -rf "$temp_dir"
-fi
-if git rev-parse --verify "$temp_branch"; then
-    git branch -D "$temp_branch"
-fi
-
 # Strip 'code-' from the branch name to get the desired directory name
 desired_dir_name="${branch#code-}"
 
@@ -97,6 +90,13 @@ for dir in development staging production; do
         git mv "$dir" "$desired_dir_name"
     fi
 done
+
+if [[ -d "$temp_dir" ]]; then
+    rm -rf "$temp_dir"
+fi
+if git rev-parse --verify "$temp_branch"; then
+    git branch -D "$temp_branch"
+fi
 
 git add .
 
