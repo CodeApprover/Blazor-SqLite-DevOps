@@ -16,6 +16,7 @@ jobs:
   stylecop-linting:
     name: Dev StyleCop Linting
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     if: github.event_name == 'workflow_run'
     steps:
       - name: StyleCop Checkout repository
