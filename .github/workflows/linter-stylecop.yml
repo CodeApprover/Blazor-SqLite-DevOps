@@ -2,7 +2,7 @@ name: "Stylecop Linter"
 
 on:
   workflow_run:
-    workflows: "Report Usage"
+    workflows: "Report"
     types:
       - completed
 
