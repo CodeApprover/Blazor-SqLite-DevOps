@@ -5,9 +5,6 @@ on:
   push:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
-env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
-
 jobs:
 
   # DEVELOPPMENT ENVIRONMENT - Report usage
