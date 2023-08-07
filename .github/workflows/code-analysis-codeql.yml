@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360 
     if: >
-      (startsWith(github.ref, 'refs/heads/code-staging') || 
-      startsWith(github.ref, 'refs/heads/code-production') || 
-      startsWith(github.ref, 'refs/heads/main')) && 
+      (github.ref == 'refs/heads/code-staging' || 
+      github.ref == 'refs/heads/code-production' || 
+      github.ref == 'refs/heads/main') && 
       github.event_name == 'workflow_run'
     permissions:
       actions: read
