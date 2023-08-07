@@ -1,0 +1,50 @@
+---
+name: "CodeQL Analysis"
+
+on:
+  workflow_run:
+    workflows: ["Stylecop Linter"]
+    types:
+      - completed
+
+env:
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club"
+
+jobs:
+
+  # Staging, Production, Main - https://github.com/github/codeql
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 
+    if: >
+      (startsWith(github.ref, 'refs/heads/code-staging') || 
+      startsWith(github.ref, 'refs/heads/code-production') || 
+      startsWith(github.ref, 'refs/heads/main')) && 
+      github.event_name == 'workflow_run'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['csharp']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+      - name: Restore Dependencies
+        run: dotnet restore --no-cache "${{ env.PROJECT_PATH }}/Blazor SqlLite Golf Club.csproj"
+      - name: Dotnet build
+        run: dotnet build --no-restore "${{ env.PROJECT_PATH }}/Blazor SqlLite Golf Club.csproj"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+ 
