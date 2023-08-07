@@ -12,12 +12,6 @@ jobs:
     name: Report
     runs-on: ubuntu-latest
     timeout-minutes: 360
-
-    if: >
-      (github.ref == 'refs/heads/code-development' ||
-      github.ref == 'refs/heads/code-staging' ||
-      github.ref == 'refs/heads/code-production' ||
-      github.ref == 'erfs/heads/main')
   
     steps:
     - name: Log Timestamp
