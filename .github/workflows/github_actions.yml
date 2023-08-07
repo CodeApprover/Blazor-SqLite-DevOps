@@ -156,23 +156,21 @@ jobs:
         run: |
           git config --local user.email "auto_action@github.com"
           git config --local user.name "Dev to Staging CI push"
-      - name: Rename development dir
-        run: mv "${{ github.workspace }}/development" "${{ github.workspace }}/staging"
-      - name: Commit renamed dir
+      - name: Check existence and checkout or create Staging Branch
         run: |
+          git fetch origin code-staging
+          if git show-ref --verify --quiet refs/remotes/origin/code-staging; then
+              git checkout code-staging
+          else
+              git checkout -b code-staging
+          fi
+      - name: Copy contents from development to staging
+        run: |
+          cp -r "${{ github.workspace }}/development/" "${{ github.workspace }}/staging/"
           git add .
-          git commit -m "Renamed development dir to staging [skip CI]"
-      - name: Checkout or Create Staging Branch
+      - name: Commit and push changes to Staging
         run: |
-          git fetch origin code-staging || true
-          git checkout code-staging || git checkout -b code-staging
-      - name: Merge Dev -> Staging
-        run: git merge -X ours ${{ github.ref }}
-      - name: Push to Staging
-        run: |
-          git add .
-          # Committing a placeholder change to ensure the branch is pushed
-          git commit --allow-empty -m "Pushing changes to staging [skip CI]"
+          git commit -m "Pushing changes from development to staging [skip CI]"
           git push origin code-staging
 
   # DEVELOPMENT ENVIRONMENT - Delete Development Branch
