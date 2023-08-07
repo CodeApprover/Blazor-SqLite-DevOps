@@ -8,6 +8,7 @@ on:
 
 env:
   PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
+  PROJ_FILE: "Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
 jobs:
 
@@ -26,7 +27,7 @@ jobs:
         uses: actions/checkout@v3.5.3
       - name: Compute CSPROJ_PATH
         id: compute-path
-        run: echo "CSPROJ_PATH=${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" >> $GITHUB_ENV
+        run: echo "CSPROJ_PATH=${{ env.PROJECT_PATH }}/${{ PROJ_FILE }}" >> $GITHUB_ENV
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
@@ -34,4 +35,8 @@ jobs:
       - name: Restore Dependencies
         run: dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
       - name: Build with StyleCop
-        run: dotnet build --no-restore "${{ env.CSPROJ_PATH }}" /p:StyleCopEnabled=true /p:StyleCopTreatErrorsAsWarnings=false /p:StyleCopForceFullAnalysis=false
+        run: |
+          dotnet build --no-restore "${{ env.CSPROJ_PATH }}"
+          /p:StyleCopEnabled=true
+          /p:StyleCopTreatErrorsAsWarnings=false
+          /p:StyleCopForceFullAnalysis=false
