@@ -1,8 +1,11 @@
-name: "Linter StyleCop"
+---
+name: "2. Linter StyleCop"  # https://github.com/StyleCop/StyleCop
+
+# code-development code-staging code-production main
 
 on:
   workflow_run:
-    workflows: "Report"
+    workflows: "1. Report"
     types:
       - completed
 
