@@ -2,8 +2,10 @@
 name: "DEV-CI"
 
 on:
-  push:
-    branches: ["code-development", "code-production", "code-staging"]
+  workflow_run:
+    workflows: ["Report"] # report.yml
+    types:
+      - completed
 
 env:
   PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
@@ -14,6 +16,8 @@ jobs:
   report:
     name: Report
     runs-on: ubuntu-latest
+    environment:
+      development
     steps:
     - name: Report usage
       run: |
@@ -31,7 +35,9 @@ jobs:
   dev-unit-tests:
     name: Dev Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      development
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
     needs: report
     strategy:
       matrix:
@@ -78,7 +84,9 @@ jobs:
   stylecop-dev-linting:
     name: Dev StyleCop Linting
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      development
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
     needs: dev-unit-tests
     steps:
       - name: StyleCop Checkout repository
@@ -107,7 +115,9 @@ jobs:
   build-dev-artifact:
     name: Dev Build BackUp Artifact
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      development
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
     needs: stylecop-dev-linting
     steps:
       - name: Artifact checkout repository
@@ -145,7 +155,9 @@ jobs:
   deploy-to-staging:
     name: Dev Deploy to Staging
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      development
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
     needs: build-dev-artifact
     steps:
       - name: Checkout code
@@ -177,7 +189,9 @@ jobs:
   delete-development-branch:
     name: Delete Development Branch
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'push'
+    environment:
+      development
+    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
     needs: deploy-to-staging
     steps:
       - name: Checkout code
