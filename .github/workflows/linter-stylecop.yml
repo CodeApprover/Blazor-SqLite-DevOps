@@ -8,7 +8,6 @@ on:
 
 env:
   PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  CSPROJ_PATH: "${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
 jobs:
 
@@ -20,11 +19,14 @@ jobs:
       (github.ref == 'refs/heads/code-development' ||
       github.ref == 'refs/heads/code-staging' ||
       github.ref == 'refs/heads/code-production' ||
-      github.ref == 'erfs/heads/main' &&
+      github.ref == 'refs/heads/main') &&
       github.event_name == 'workflow_run'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
+      - name: Compute CSPROJ_PATH
+        id: compute-path
+        run: echo "CSPROJ_PATH=${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj" >> $GITHUB_ENV
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
