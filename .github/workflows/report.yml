@@ -16,8 +16,7 @@ jobs:
       (github.ref == 'refs/heads/code-development' ||
       github.ref == 'refs/heads/code-staging' ||
       github.ref == 'refs/heads/code-production' ||
-      github.ref == 'erfs/heads/main') &&
-      github.event_name == 'workflow_run'
+      github.ref == 'erfs/heads/main')
     steps:
     - name: Log Timestamp
       run: date
