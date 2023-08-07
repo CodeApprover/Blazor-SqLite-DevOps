@@ -7,10 +7,6 @@ on:
     types:
       - completed
 
-env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  CSPROJ_PATH: "${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-  
 jobs:
 
   # Staging, Production, Main - https://github.com/github/codeql
