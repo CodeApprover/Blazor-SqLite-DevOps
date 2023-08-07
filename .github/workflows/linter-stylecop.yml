@@ -16,7 +16,12 @@ jobs:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    if: github.event_name == 'workflow_run'
+    if: >
+      (github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'erfs/heads/main' &&
+      github.event_name == 'workflow_run'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
