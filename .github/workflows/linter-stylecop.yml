@@ -12,7 +12,6 @@ env:
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
-
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
@@ -23,8 +22,7 @@ jobs:
         run: date
 
       - name: Set filepaths
-        run: |
-          CSPROJ="${{ env.PROJ_PATH }}/${{ env.PROJ_DIR }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+        run: echo "CSPROJ=${{ env.PROJ_PATH }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
@@ -36,12 +34,12 @@ jobs:
 
       - name: Restore Dependencies
         run: |
-          echo "CSPROJ == ${{ env.CSPROJ }}"
-          dotnet restore --no-cache "${{ env.CSPROJ }}"
+          echo "CSPROJ == $CSPROJ"
+          dotnet restore --no-cache "$CSPROJ"
 
       - name: Dotnet Build
         run: |
-          dotnet build --no-restore "${{ env.CSPROJ }}"
-          /p:StyleCopEnabled=true
-          /p:StyleCopTreatErrorsAsWarnings=false
+          dotnet build --no-restore "$CSPROJ" \
+          /p:StyleCopEnabled=true \
+          /p:StyleCopTreatErrorsAsWarnings=false \
           /p:StyleCopForceFullAnalysis=false
