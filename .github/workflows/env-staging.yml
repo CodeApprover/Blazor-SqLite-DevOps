@@ -1,9 +1,9 @@
 ---
-name: "Staging"
+name: "Staging Tests"  # code-staging
 
 on:
   workflow_run:
-    workflows: "Development"
+    workflows: "Development Tests"
     types:
       - completed
 
