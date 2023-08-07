@@ -1,4 +1,4 @@
-name: "Stylecop Linter"
+name: "Linter StyleCop"
 
 on:
   workflow_run:
@@ -7,7 +7,9 @@ on:
       - completed
 
 env:
-  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
+  PROJ_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
+  PROJ_DIR: "Blazor SqlLite Golf Club/"
+  PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
 
@@ -15,28 +17,29 @@ jobs:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    if: >
-      (github.ref == 'refs/heads/code-development' ||
-      github.ref == 'refs/heads/code-staging' ||
-      github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main')
+
     steps:
       - name: Log Timestamp
         run: date
+
+      - name: Set filepaths
+        run: CSPROJ="${{ env.PROJ_PATH }}/${{ env.PROJ_DIR }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
+
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
+
       - name: Restore Dependencies
         run: |
-          PROJ_FILE="Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
-          CSPROJ_PATH=${{ env.PROJECT_PATH }}/${{ PROJ_FILE }} >> $GITHUB_ENV
-          dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
+          dotnet restore --no-cache "${{ env.CSPROJ }}"
+
       - name: Dotnet Build
         run: |
-          dotnet build --no-restore "${{ env.CSPROJ_PATH }}"
+          dotnet build --no-restore "${{ env.CSPROJ }}"
           /p:StyleCopEnabled=true
           /p:StyleCopTreatErrorsAsWarnings=false
           /p:StyleCopForceFullAnalysis=false
