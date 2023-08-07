@@ -1,5 +1,5 @@
 ---
-name: "DEV-CI"
+name: "Development Tests"
 
 on:
   workflow_run:
@@ -9,7 +9,6 @@ on:
 
 env:
   PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  CSPROJ_PATH: "${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
 
 jobs:
 
@@ -24,6 +23,8 @@ jobs:
       matrix:
         test_framework: ['Nunit', 'Xunit']
     steps:
+      - name: Log Timestamp
+        run: date
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
       - name: Install dependencies
@@ -89,21 +90,25 @@ jobs:
         uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
+      - name: Set csproj path
+          PROJ_DIR="Blazor SqlLite Golf Club/"
+          PROJ_FILE="Blazor SqlLite Golf Club.csproj"
+          CSPROJ_PATH="${{ env.PROJECT_PATH }}/${{ PROJ_DIR }}/${{ PROJ_FILE }}" >> $GITHUB_ENV
       - name: Artifact restore dependencies
         run: |
           command="dotnet restore --no-cache"
-          command="${command} \"${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club.csproj\""
+          command="${command} "${{ env.CSPROJ_PATH }}""
           eval "${command}"
       - name: Build Artifact
         run: |
           command="dotnet build --no-restore --configuration Release"
-          command="${command} \"${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club.csproj\""
+          command="${command} ${{ env.CSPROJ_PATH }}"
           eval "${command}"
       - name: Publish Artifact
         run: |
           command="dotnet publish --configuration Release"
           command="${command} --no-build --output ./publish"
-          command="${command} \"${{ env.PROJECT_PATH }}Blazor SqlLite Golf Club.csproj\""
+          command="${command} ${{ env.CSPROJ_PATH }}"
           eval "${command}"
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
@@ -112,40 +117,6 @@ jobs:
           path: ./publish/*
           if-no-files-found: error # warn/ignore
 
-  # DEVELOPMENT ENVIRONMENT - Deploy to Staging
-  deploy-to-staging:
-    name: Dev Deploy to Staging
-    runs-on: ubuntu-latest
-    environment:
-      development
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
-    needs: build-dev-artifact
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3.5.3
-        with:
-          fetch-depth: 0
-      - name: Configure Git User
-        run: |
-          git config --local user.email "auto_action@github.com"
-          git config --local user.name "Dev to Staging CI push"
-      - name: Check existence and checkout or create Staging Branch
-        run: |
-          git fetch origin code-staging
-          if git show-ref --verify --quiet refs/remotes/origin/code-staging; then
-              git checkout code-staging
-          else
-              git checkout -b code-staging
-          fi
-      - name: Copy contents from development to staging
-        run: |
-          cp -r "${{ github.workspace }}/development/" "${{ github.workspace }}/staging/"
-          git add .
-      - name: Commit and push changes to Staging
-        run: |
-          git commit -m "Pushing changes from development to staging [skip CI]"
-          git push origin code-staging
-
   # DEVELOPMENT ENVIRONMENT - Delete Development Branch
   delete-development-branch:
     name: Delete Development Branch
@@ -153,7 +124,7 @@ jobs:
     environment:
       development
     if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
-    needs: deploy-to-staging
+    needs:  build-dev-artifact
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.5.3
