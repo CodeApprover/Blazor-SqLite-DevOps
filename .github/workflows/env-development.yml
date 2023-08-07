@@ -45,8 +45,7 @@ jobs:
             envrn="Xunit_Game_Unit_Tests"
           fi
           dotnet restore --no-cache "${{ github.workspace }}/tests/${envrn}/${envrn}.csproj"
-  
-      - name: Run unit tests
+      - name: Run Xunit tests
         run: |
           if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
             envrn="Nunit_Player_Unit_Tests"
@@ -60,8 +59,7 @@ jobs:
           command="${command} --logger \"trx;LogFileName=${log_file_name}\""
           command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
           eval "${command}"
-
-      - name: Run unit tests
+      - name: Run Nunit tests
         run: |
           if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
             envrn="Nunit_Player_Unit_Tests"
@@ -70,8 +68,11 @@ jobs:
             envrn="Xunit_Game_Unit_Tests"
             log_file_name="xunit-results.trx"
           fi
-          dotnet test --no-restore --verbosity detailed --logger "trx;LogFileName=${log_file_name}" "${{ github.workspace }}/tests/${envrn}/${envrn}.csproj"
-
+          command="dotnet test"
+          command="${command} --no-restore --verbosity detailed"
+          command="${command} --logger "trx;LogFileName=${log_file_name}"
+          command="${command} \"${{ github.workspace }}/tests/${envrn}/${envrn}.csproj\""
+          eval ${command}
   
   # DEVELOPMENT ENVIRONMENT - Build backUp artifact
   build-dev-artifact:
@@ -79,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       development
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
+    if: startsWith(github.ref, 'refs/heads/code-development')
     needs: dev-unit-tests
     steps:
       - name: Artifact checkout repository
@@ -123,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       development
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
+    if: startsWith(github.ref, 'refs/heads/code-development')
     needs:  build-dev-artifact
     steps:
       - name: Checkout code
