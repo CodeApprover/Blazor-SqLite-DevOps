@@ -19,8 +19,7 @@ jobs:
       github.ref == 'erfs/heads/main')
     steps:
     - name: Log Timestamp
-      run: date
-     
+      run: date     
     - name: GitHub Environment Details
       run: |
         echo "Actions Report"
