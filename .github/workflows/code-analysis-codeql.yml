@@ -6,6 +6,8 @@ on:
     workflows: "Stylecop Linter"
     types:
       - completed
+env:
+  PROJECT_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
 
 jobs:
 
@@ -38,7 +40,10 @@ jobs:
         with:
           dotnet-version: '7.0.x'
       - name: Restore Dependencies
-        run: dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
+        run: |
+          PROJ_FILE: "Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
+          CSPROJ_PATH = "${{ env.PROJECT_PATH }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+          dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
       - name: Dotnet build
         run: dotnet build --no-restore "${{ env.CSPROJ_PATH }}"
       - name: Perform CodeQL Analysis
