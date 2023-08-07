@@ -3,7 +3,7 @@ name: "Linters"
 
 on:
   workflow_run:
-    workflows: ["Report"] # report.yml
+    workflows: Report
     types:
       - completed
 
