@@ -1,5 +1,5 @@
 ---
-name: "Report"
+name: "1. Report"
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
 
   # ALL Branches - Report Usage
   report:
-    name: Report
+    name: 1. Report
     runs-on: ubuntu-latest
     timeout-minutes: 360
   
