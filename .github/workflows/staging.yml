@@ -1,5 +1,5 @@
 ---
-name: Deploy to Staging
+name: "Staging"
 
 on:
   workflow_run:
@@ -19,5 +19,3 @@ jobs:
       with:
         name: staging-artifact
         path: ./publish
-
-    # ... your deployment steps using the ./publish directory
