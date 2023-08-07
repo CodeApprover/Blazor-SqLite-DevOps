@@ -1,43 +1,52 @@
 ---
-name: "Report"
+name: "Report Usage"
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 jobs:
-
-  # DEVELOPPMENT ENVIRONMENT - Report usage
-  report:
+  # ALL Branches - Report Usage
+  report-usage:
     name: Report
     runs-on: ubuntu-latest
+    timeout-minutes: 360 
     steps:
-    - name: Report usage
+    - name: Report Timestamp
+      run: date
+     
+    - name: GitHub Environment Details
       run: |
-        echo "GitHub Actions Report"
+        echo "Actions Report"
         echo "Environment: $(echo \"${{ github.ref }}\" | grep -oE '[^-]+$')"
-        echo "Runner OS: ${{ runner.os }}"
-        echo "Repository: ${{ github.repository }}"
         echo "Ref: ${{ github.ref }}"
         echo "Event Name: ${{ github.event_name }}"
-        echo "Workspace: ${{ github.workspace }}"
-        echo "Project Path: ${{ env.PROJECT_PATH }}"
-        echo "Commit Message: ${{ github.event.head_commit.message }}"
-        echo "Commit Author: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})"
-        echo "Pusher Name: ${{ github.event.pusher.name }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
-        echo "Actor: ${{ github.actor }}"
-        echo "SHA: ${{ github.sha }}"
+        echo "Repository: ${{ github.repository }}"
         echo "Workflow: ${{ github.workflow }}"
         echo "Action: ${{ github.action }}"
         echo "Base Ref: ${{ github.base_ref }}"
         echo "Head Ref: ${{ github.head_ref }}"
+        echo "Event Path: ${{ github.event_path }}"
+        echo "Workspace: ${{ github.workspace }}"
+        echo "Action Repository: ${{ github.action_ref }}"
+        echo "Action SHA: ${{ github.action_sha }}"
+        
+    - name: GitHub Commit & Actor Details
+      run: |
+        echo "Commit Message: ${{ github.event.head_commit.message }}"
+        echo "Commit Author: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})"
+        echo "Pusher Name: ${{ github.event.pusher.name }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "SHA: ${{ github.sha }}"
+
+    - name: Runner Details
+      run: |
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory: ${{ runner.temp }}"
+
+    - name: Job & Run Details
+      run: |
         echo "Job Name: ${{ github.job }}"
-        echo "GitHub Event Path: ${{ github.event_path }}"
-        echo "GitHub Workspace: ${{ github.workspace }}"
-        echo "GitHub Action Repository: ${{ github.action_ref }}"
-        echo "GitHub Action SHA: ${{ github.action_sha }}"
-        echo "GitHub Runner OS: ${{ runner.os }}"
-        echo "GitHub Runner Tool Cache: ${{ runner.tool_cache }}"
-        echo "GitHub Runner Temp Directory: ${{ runner.temp }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
