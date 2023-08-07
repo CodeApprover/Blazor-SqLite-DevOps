@@ -1,9 +1,11 @@
 ---
-name: "Linter Superlinter"
+name: "4. Linter Superlinter"  # https://github.com/super-linter/super-linter
+
+# code-production main
 
 on:
   workflow_run:
-    workflows: ["CodeQL Analysis"]
+    workflows: ["3. CodeQL Analysis"]
     types:
       - completed
 
