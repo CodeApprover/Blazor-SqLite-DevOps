@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/production') &&
+      github.ref == 'refs/heads/code-production') &&
       github.event_name == 'workflow_run'
     steps:
       - name: Superlint checkout code
