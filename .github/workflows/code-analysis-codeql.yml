@@ -29,6 +29,8 @@ jobs:
       matrix:
         language: ['csharp']
     steps:
+      - name: Log Timestamp
+        run: date
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Initialize CodeQL
