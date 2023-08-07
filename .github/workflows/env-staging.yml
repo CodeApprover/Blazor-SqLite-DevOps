@@ -3,7 +3,7 @@ name: "Staging"
 
 on:
   workflow_run:
-    workflows: ["DEV-CI"] # development.yml workflow
+    workflows: "Development CI"
     types:
       - completed
 
