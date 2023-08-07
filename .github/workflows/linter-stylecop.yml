@@ -32,7 +32,7 @@ jobs:
           PROJ_FILE="Blazor SqlLite Golf Club/Blazor SqlLite Golf Club.csproj"
           CSPROJ_PATH=${{ env.PROJECT_PATH }}/${{ PROJ_FILE }} >> $GITHUB_ENV
           dotnet restore --no-cache "${{ env.CSPROJ_PATH }}"
-      - name: Build with StyleCop
+      - name: Dotnet Build
         run: |
           dotnet build --no-restore "${{ env.CSPROJ_PATH }}"
           /p:StyleCopEnabled=true
