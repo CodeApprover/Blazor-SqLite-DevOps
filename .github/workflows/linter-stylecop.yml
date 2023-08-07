@@ -25,7 +25,6 @@ jobs:
       - name: Set filepaths
         run: |
           CSPROJ="${{ env.PROJ_PATH }}/${{ env.PROJ_DIR }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
-          echo "csproj filepath: ${CSPROJ}"
 
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
@@ -37,6 +36,7 @@ jobs:
 
       - name: Restore Dependencies
         run: |
+          echo ""${{ env.CSPROJ }}""
           dotnet restore --no-cache "${{ env.CSPROJ }}"
 
       - name: Dotnet Build
