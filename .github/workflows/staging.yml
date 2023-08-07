@@ -1,1 +1,22 @@
+name: Deploy to Staging
 
+on:
+  workflow_run:
+    workflows: ["DEV-CI"] # development.yml workflow
+    types:
+      - completed
+
+jobs:
+  deploy-to-staging:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
+
+    - name: Download build artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: staging-artifact
+        path: ./publish
+
+    # ... your deployment steps using the ./publish directory
