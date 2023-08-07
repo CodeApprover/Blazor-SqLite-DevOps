@@ -34,7 +34,8 @@ jobs:
     - name: GitHub Commit & Actor Details
       run: |
         echo "Commit Message: ${{ github.event.head_commit.message }}"
-        echo "Commit Author: ${{ github.event.head_commit.author.name }} (${{ github.event.head_commit.author.email }})"
+        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
+        echo "Committer Email:(${{ github.event.head_commit.author.email }})"
         echo "Pusher Name: ${{ github.event.pusher.name }}"
         echo "Actor: ${{ github.actor }}"
         echo "SHA: ${{ github.sha }}"
