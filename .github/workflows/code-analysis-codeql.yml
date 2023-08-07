@@ -1,6 +1,5 @@
 ---
-name: "CodeQL Analysis"
-
+name: "CodeQL Analysis"  # https://github.com/github/codeql
 on:
   workflow_run:
     workflows: "Stylecop Linter"
@@ -12,7 +11,7 @@ env:
 
 jobs:
 
-  # Staging, Production, Main - https://github.com/github/codeql
+  # Staging Production Main
   codeql-analysis:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
