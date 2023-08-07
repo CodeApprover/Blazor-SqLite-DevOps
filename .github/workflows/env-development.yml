@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       development
-    if: startsWith(github.ref, 'refs/heads/code-development') && github.event_name == 'workflow_run'
+    if: startsWith(github.ref, 'refs/heads/code-development')
     strategy:
       matrix:
         test_framework: ['Nunit', 'Xunit']
