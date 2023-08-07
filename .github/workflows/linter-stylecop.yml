@@ -36,7 +36,7 @@ jobs:
 
       - name: Restore Dependencies
         run: |
-          echo ""${{ env.CSPROJ }}""
+          echo "CSPROJ == ${{ env.CSPROJ }}"
           dotnet restore --no-cache "${{ env.CSPROJ }}"
 
       - name: Dotnet Build
