@@ -1,0 +1,33 @@
+---
+name: "Superlinter"
+
+on:
+  workflow_run:
+    workflows: ["CodeQL Analysis"]
+    types:
+      - completed
+
+jobs:
+
+  # Production & Main - https://github.com/marketplace/actions/super-linter
+  super-linter:
+    name: SuperLinter 
+    runs-on: ubuntu-latest
+    if: >
+      if: github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/production' && 
+      github.event_name == 'workflow_run'
+    steps:
+      - name: Superlint checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Print JSCPD config path
+        run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
+      - name: Lint code-base
+        uses: super-linter/super-linter@v5
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.AUTH }}
+          JSCPD_CONFIG_FILE: .jscpd.json
