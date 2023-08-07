@@ -12,9 +12,9 @@ env:
 
 jobs:
 
-  #  All branches must pass StyleCop Linting - https://github.com/StyleCop/StyleCop
+  #  All Branches - https://github.com/StyleCop/StyleCop
   stylecop-linting:
-    name: Dev StyleCop Linting
+    name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
     if: github.event_name == 'workflow_run'
