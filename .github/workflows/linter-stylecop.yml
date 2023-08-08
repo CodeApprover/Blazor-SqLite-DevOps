@@ -9,7 +9,7 @@ on:
 
 env:
   BASE_PATH: "${{ github.workspace }}"
-  PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
+  PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
   stylecop-linting:
@@ -24,12 +24,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3.5.3
 
-    - name: Set BRANCH_NAME and CSPROJ path
+    - name: Set ENV_NAME and CSPROJ path
       run: |
-        BRANCH_NAME=$(echo "${{ github.ref }}" | grep -oE '[^-]+$')
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-        PROJ_DIR="/$BRANCH_NAME/Blazor SqlLite Golf Club/"
-        CSPROJ="${{ env.BASE_PATH }}$PROJ_DIR${{ env.PROJ_FILE }}"
+        ENV_NAME=$(echo "${{ github.ref }}" | sed -e "s#refs/heads/##")
+        echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
+        CSPROJ="${{ env.BASE_PATH }}/$ENV_NAME/"
+        CSPROJ+=${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Setup .NET environment
