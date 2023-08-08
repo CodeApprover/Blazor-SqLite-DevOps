@@ -38,10 +38,11 @@ jobs:
       run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
 
     - name: Push the revert commit
-      run: git push https://${{ secrets.auth }}:x-oauth-basic@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${BRANCH_NAME}
+      continue-on-error: true
       env:
         BRANCH_NAME: ${{ env.BRANCH_NAME }}
         GH_PAT: ${{ secrets.AUTH }}
+      run: git push https://$GH_PAT@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${BRANCH_NAME}
 
     - name: Notify Committer
       run: |
@@ -53,8 +54,10 @@ jobs:
         COMMENT_BODY+="address any issues and try pushing again. Thank you!"
         
         CURL_CMD="curl -X POST"
-        CURL_CMD+=" -H \"Authorization: token ${{ secrets.AUTH }}\""
+        CURL_CMD+=" -H \"Authorization: token $GH_PAT\""
         CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
         CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/comments"
         CURL_CMD+=" -d \"{\\\"body\\\":\\\"$COMMENT_BODY\\\"}\""
         eval "$CURL_CMD"
+      env:
+        GH_PAT: ${{ secrets.AUTH }}
