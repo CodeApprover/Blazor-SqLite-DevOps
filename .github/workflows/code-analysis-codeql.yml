@@ -1,21 +1,21 @@
 ---
-name: "3. Code Analysis CodeQL"  # https://github.com/github/codeql
+name: "CodeQL Code Analysis"  # https://github.com/github/codeql
 
 # code-staging code-production main
 
 on:
   workflow_run:
-    workflows: "2. Linter StyleCop"
+    workflows: "StyleCop Linting"
     types:
       - completed
+
 env:
-  PROJ_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  PROJ_DIR: "Blazor SqlLite Golf Club/"
+  BASE_PATH: "${{ github.workspace }}"
+  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
+  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
-
-  # Staging Production Main
   codeql-analysis-codeql:
     name: Code Analysis CodeQL
     runs-on: ubuntu-latest
@@ -26,18 +26,27 @@ jobs:
       contents: read
       security-events: write
 
+    if: >
+      (github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main') &&
+      github.event_name == 'workflow_run'
+
     strategy:
       fail-fast: false
       matrix:
         language: ['csharp']
 
     steps:
-
       - name: Log Timestamp
         run: date
 
       - name: Set filepaths
-        run: CSPROJ="${{ env.PROJ_PATH }}/${{ env.PROJ_DIR }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+        run: |
+          CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}"
+          CSPROJ+="${{ env.PROJ_DIR }}"
+          CSPROJ+="${{ env.PROJ_FILE }}"
+          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -54,10 +63,13 @@ jobs:
 
       - name: Restore Dependencies
         run: |
-          dotnet restore --no-cache "${{ env.CSPROJ }}"
+          CMD="dotnet restore --no-cache \"$CSPROJ\""
+          eval "$CMD"
 
       - name: Dotnet build
-        run: dotnet build --no-restore "${{ env.CSPROJ }}"
+        run: |
+          CMD="dotnet build --no-restore \"$CSPROJ\""
+          eval "$CMD"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
