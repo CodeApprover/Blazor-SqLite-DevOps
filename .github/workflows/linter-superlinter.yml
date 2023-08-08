@@ -5,7 +5,7 @@ name: "Superlinter"  # https://github.com/super-linter/super-linter
 
 on:
   workflow_run:
-    workflows: ["CodeQL Code Analysis"]
+    workflows: "CodeQL Code Analysis"
     types:
       - completed
 
