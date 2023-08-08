@@ -32,11 +32,14 @@ jobs:
         ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0 # get entire history
   
+    - name: Get branch name
+      run: echo "BRANCH_NAME=$(git symbolic-ref --short HEAD)" >> $GITHUB_ENV
+  
     - name: Reset the last commit
       run: git reset --hard HEAD~1
   
     - name: Force push the changes
-      run: git push origin +${{ steps.getbranch.outputs.branch }}
+      run: git push origin +${BRANCH_NAME}
   
     - name: Notify Committer
       run: |
