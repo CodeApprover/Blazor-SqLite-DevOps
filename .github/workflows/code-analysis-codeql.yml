@@ -12,7 +12,7 @@ on:
 
 env:
   BASE_PATH: "${{ github.workspace }}"
-  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
+  ENV_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
   PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
