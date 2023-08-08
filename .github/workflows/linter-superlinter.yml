@@ -17,8 +17,8 @@ jobs:
     timeout-minutes: 360
 
     if: >
-      (github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main')
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main'
     
     steps:
       - name: Log Timestamp
