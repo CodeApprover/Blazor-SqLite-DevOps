@@ -5,7 +5,8 @@ name: "Development"
 
 on:
   workflow_run:
-    workflows: "StyleCop"
+    workflows: 
+      - StyleCop
     types:
       - completed
 
