@@ -1,11 +1,11 @@
 ---
-name: "Development Tests"
+name: "Development"
 
 # code-development
 
 on:
   workflow_run:
-    workflows: "StyleCop Linting"
+    workflows: "StyleCop"
     types:
       - completed
 
