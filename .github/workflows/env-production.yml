@@ -1,5 +1,7 @@
 ---
-name: "Production Tests"  # code-production
+name: "Production Tests"
+
+# code-production
 
 on:
   workflow_run:
@@ -8,8 +10,15 @@ on:
       - completed
 
 jobs:
-  deploy-to-staging:
+  deploy-to-production:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    if: >
+      (github.ref == 'refs/heads/code-production ||
+      github.ref == 'refs/heads/main') &&
+      github.event_name == 'workflow_run'
+
     steps:
     - name: Log Timestamp
       run: date
