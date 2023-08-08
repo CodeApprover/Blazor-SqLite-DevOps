@@ -1,5 +1,7 @@
 ---
-name: "Staging Tests"  # code-staging
+name: "Staging Tests"
+
+# code-staging
 
 on:
   workflow_run:
@@ -10,6 +12,16 @@ on:
 jobs:
   deploy-to-staging:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    environment:
+      staging
+
+    if: >
+      (github.ref == 'refs/heads/code-staging ||
+      github.ref == 'refs/heads/main') &&
+      github.event_name == 'workflow_run'
+
     steps:
     - name: Log Timestamp
       run: date
