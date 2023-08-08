@@ -1,4 +1,4 @@
-name: Reject on Failure
+name: Failure
 
 on:
   workflow_run:
@@ -21,10 +21,21 @@ jobs:
         token: ${{ secrets.AUTH }}
         ref: ${{ github.event.workflow_run.head_sha }} # the commit
 
-    - name: Revert Commit
-      run: |
-        git reset --hard HEAD~1
-        git push origin +${{ github.head_ref }}
+  revert-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.workflow_run.head_sha }}
+        fetch-depth: 0 # This is important to get the entire history
+
+    - name: Reset the last commit
+      run: git reset --hard HEAD~1
+
+    - name: Force push the changes
+      run: git push origin +${{ github.ref }}
 
     - name: Notify Committer
       run: |
