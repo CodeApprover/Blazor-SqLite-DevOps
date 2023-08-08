@@ -46,15 +46,14 @@ jobs:
       run: |
         COMMITTER=$(git log -1 --pretty=format:'%an')
         WORKFLOW_LINK="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        COMMENT_BODY="Hello @$COMMITTER, your recent commit {{ github.event.workflow_run.head_sha }}"
-        COMMENT_BODY="has failed and has been automatically reverted. "
-        COMMENT_BODY+="Please check the [workflow run]($WORKFLOW_LINK) for details,"
-        COMMENT_BODY="address any issues and try pushing again. Thank you!"
+        COMMENT_BODY="Hello @$COMMITTER, your recent commit ${{ github.event.workflow_run.head_sha }} "
+        COMMENT_BODY+="has failed and has been automatically reverted. "
+        COMMENT_BODY+="Please check the [workflow run]($WORKFLOW_LINK) for details, "
+        COMMENT_BODY+="address any issues and try pushing again. Thank you!"
         
         CURL_CMD="curl -X POST"
-        CURL_CMD+=" -H \"Authorisation: token ${{ secrets.AUTH }}\""
+        CURL_CMD+=" -H \"Authorization: token ${{ secrets.AUTH }}\""
         CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
-        CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/"
-        CURL_CMD+="commits/${{ github.event.workflow_run.head_sha }}/comments"
+        CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/comments"
         CURL_CMD+=" -d \"{\\\"body\\\":\\\"$COMMENT_BODY\\\"}\""
         eval "$CURL_CMD"
