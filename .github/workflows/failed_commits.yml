@@ -22,7 +22,7 @@ jobs:
         fetch-depth: 0 # get entire history
 
     - name: Extract branch name
-      run: echo "BRANCH_NAME=$(echo ${{ github.ref }} | grep -oE '[^/]+$')" >> $GITHUB_ENV
+      run: echo "BRANCH_NAME=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
 
     - name: Switch to target branch
       run: git checkout ${BRANCH_NAME}
