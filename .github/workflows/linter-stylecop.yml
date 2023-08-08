@@ -3,7 +3,8 @@ name: "StyleCop Linting"
 
 on:
   workflow_run:
-    workflows: "Report"
+    workflows:
+      - Report
     types:
       - completed
 
