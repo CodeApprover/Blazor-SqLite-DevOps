@@ -1,4 +1,3 @@
----
 name: "StyleCop"
 
 on:
@@ -10,8 +9,6 @@ on:
 
 env:
   BASE_PATH: "${{ github.workspace }}"
-  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
-  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
@@ -21,31 +18,34 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Log Timestamp
-        run: date
+    - name: Log Timestamp
+      run: date
 
-      - name: Set filepaths
-        run: |
-            CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}"
-            echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+    - name: Checkout repository
+      uses: actions/checkout@v3.5.3
 
-      - name: Checkout repository
-        uses: actions/checkout@v3.5.3
+    - name: Set BRANCH_NAME and CSPROJ path
+      run: |
+        BRANCH_NAME=$(echo "${{ github.ref }}" | grep -oE '[^-]+$')
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+        PROJ_DIR="/$BRANCH_NAME/Blazor SqlLite Golf Club/"
+        CSPROJ="${{ env.BASE_PATH }}$PROJ_DIR${{ env.PROJ_FILE }}"
+        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3.2.0
-        with:
-          dotnet-version: '7.0.x'
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v3.2.0
+      with:
+        dotnet-version: '7.0.x'
 
-      - name: Restore Dependencies
-        run: |
-          echo "CSPROJ == $CSPROJ"
-          dotnet restore --no-cache "$CSPROJ"
+    - name: Restore Dependencies
+      run: |
+        echo "CSPROJ == $CSPROJ"
+        dotnet restore --no-cache "$CSPROJ"
 
-      - name: Dotnet Build
-        run: |
-          CMD="dotnet build --no-restore \"$CSPROJ\""
-          CMD+=" /p:StyleCopEnabled=true"
-          CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
-          CMD+=" /p:StyleCopForceFullAnalysis=false"
-          eval "$CMD"
+    - name: Dotnet Build
+      run: |
+        CMD="dotnet build --no-restore \"$CSPROJ\""
+        CMD+=" /p:StyleCopEnabled=true"
+        CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
+        CMD+=" /p:StyleCopForceFullAnalysis=false"
+        eval "$CMD"
