@@ -8,7 +8,7 @@ on:
     workflows: 
       - StyleCop
     types:
-      - completed
+      - success
 
 env:
   BASE_PATH: "${{ github.workspace }}"
