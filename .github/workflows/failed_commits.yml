@@ -29,6 +29,11 @@ jobs:
       env:
         BRANCH_NAME: ${{ env.BRANCH_NAME }}
 
+    - name: Set git user
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
     - name: Revert the failed commit
       run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
 
