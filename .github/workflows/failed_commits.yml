@@ -18,7 +18,7 @@ jobs:
   
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3.5.3
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0 # get entire history
@@ -33,6 +33,12 @@ jobs:
 
     - name: Revert the failed commit locally
       run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
+
+    - name: Print current branch
+      run: git rev-parse --abbrev-ref HEAD
+
+    - name: Print branches containing the commit
+      run: git branch --contains ${{ github.event.workflow_run.head_sha }}
 
     - name: Push the revert commit remotely
       continue-on-error: true
