@@ -9,7 +9,7 @@ on:
     types:
       - completed
 env:
-  BRANCH_NAME: "${{ github.event.workflow_run.head_branch }}"
+  BRANCH_NAME: "$(git branch -r --contains ${{ github.event.workflow_run.head_sha }} | sed -n 1p | sed 's/origin\///')"
 
 jobs:
   revert-commit:
