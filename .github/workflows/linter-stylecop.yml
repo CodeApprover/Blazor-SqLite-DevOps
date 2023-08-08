@@ -1,17 +1,16 @@
 ---
-name: "2. Linter StyleCop"  # https://github.com/StyleCop/StyleCop
-
-# code-development code-staging code-production main
+name: "StyleCop Linting"
 
 on:
   workflow_run:
-    workflows: "1. Report"
+    workflows: "Report"
     types:
       - completed
 
 env:
-  PROJ_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  PROJ_DIR: "Blazor SqlLite Golf Club/"
+  BASE_PATH: "${{ github.workspace }}"
+  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
+  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
@@ -25,7 +24,9 @@ jobs:
         run: date
 
       - name: Set filepaths
-        run: echo "CSPROJ=${{ env.PROJ_PATH }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+        run: |
+            CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}"
+            echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
@@ -42,7 +43,8 @@ jobs:
 
       - name: Dotnet Build
         run: |
-          dotnet build --no-restore "$CSPROJ" \
-          /p:StyleCopEnabled=true \
-          /p:StyleCopTreatErrorsAsWarnings=false \
-          /p:StyleCopForceFullAnalysis=false
+          CMD="dotnet build --no-restore \"$CSPROJ\""
+          CMD+=" /p:StyleCopEnabled=true"
+          CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
+          CMD+=" /p:StyleCopForceFullAnalysis=false"
+          eval "$CMD"
