@@ -25,10 +25,10 @@ jobs:
       development
 
     if: >
-      (github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-development' ||
       github.ref == 'refs/heads/code-staging' ||
       github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main')
+      github.ref == 'refs/heads/main'
 
     strategy:
       matrix:
