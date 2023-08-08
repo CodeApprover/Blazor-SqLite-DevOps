@@ -38,7 +38,7 @@ jobs:
       run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
 
     - name: Push the revert commit
-      run: git push https://${GH_PAT}:x-oauth-basic@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${BRANCH_NAME}
+      run: git push https://${{ secrets.auth }}:x-oauth-basic@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${BRANCH_NAME}
       env:
         BRANCH_NAME: ${{ env.BRANCH_NAME }}
         GH_PAT: ${{ secrets.AUTH }}
