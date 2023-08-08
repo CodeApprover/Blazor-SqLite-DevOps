@@ -29,7 +29,7 @@ jobs:
         ENV_NAME=$(echo "${{ github.ref }}" | sed -e "s#refs/heads/##")
         echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
         CSPROJ="${{ env.BASE_PATH }}/$ENV_NAME/"
-        CSPROJ+=${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
+        CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Setup .NET environment
