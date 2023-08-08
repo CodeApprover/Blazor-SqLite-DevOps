@@ -1,20 +1,25 @@
 ---
-name: "4. Linter Superlinter"  # https://github.com/super-linter/super-linter
+name: "Superlinter"  # https://github.com/super-linter/super-linter
 
 # code-production main
 
 on:
   workflow_run:
-    workflows: ["3. CodeQL Analysis"]
+    workflows: ["CodeQL Code Analysis"]
     types:
       - completed
 
 jobs:
 
-  # Production & Main - https://github.com/marketplace/actions/super-linter
   super-linter:
     name: SuperLinter 
     runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    if: >
+      (github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main') &&
+      github.event_name == 'workflow_run'
     
     steps:
       - name: Log Timestamp
