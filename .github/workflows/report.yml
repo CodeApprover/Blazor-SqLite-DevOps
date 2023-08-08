@@ -1,5 +1,5 @@
 ---
-name: "1. Report"
+name: "Report"
 
 # code-development code-staging code-production main
 
@@ -11,7 +11,7 @@ jobs:
 
   # ALL Branches - Report Usage
   report:
-    name: 1. Report
+    name: Report
     runs-on: ubuntu-latest
     timeout-minutes: 360
   
