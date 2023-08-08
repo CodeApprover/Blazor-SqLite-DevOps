@@ -1,11 +1,12 @@
 ---
-name: "Production Tests"
+name: "Production"
 
 # code-production
 
 on:
   workflow_run:
-    workflows: "Staging Tests"
+    workflows:
+      - Staging
     types:
       - completed
 
