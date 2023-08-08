@@ -5,7 +5,7 @@ name: "Development Tests"
 
 on:
   workflow_run:
-    workflows: "Linter StyleCop"
+    workflows: "StyleCop Linting"
     types:
       - completed
 
