@@ -18,8 +18,7 @@ jobs:
 
     if: >
       (github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main') &&
-      github.event_name == 'workflow_run'
+      github.ref == 'refs/heads/main')
     
     steps:
       - name: Log Timestamp
