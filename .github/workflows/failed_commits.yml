@@ -38,7 +38,7 @@ jobs:
       run: git rev-parse --abbrev-ref HEAD
 
     - name: Print Branch Name
-      run: echo ${{ env,BRANCH_NAME }}
+      run: echo ${{ env.BRANCH_NAME }}
 
     - name: Print branches containing the commit
       run: git branch --contains ${{ github.event.workflow_run.head_sha }}
