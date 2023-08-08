@@ -9,7 +9,6 @@ on:
     types:
       - completed
 env:
-  BASE_PATH: "${{ github.workspace }}"
   BRANCH_NAME: "${{ github.event.workflow_run.head_branch }}"
 
 jobs:
@@ -32,12 +31,12 @@ jobs:
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
 
-    - name: Revert the failed commit
+    - name: Revert the failed commit locally
       run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
 
-    - name: Push the revert commit
+    - name: Push the revert commit remotely
       continue-on-error: true
-      run: git push https://${{ env.GH_PAT }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${{ env.BRANCH_NAME }}
+      run: git push https://${{ secrets.AUTH }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${{ env.BRANCH_NAME }}
 
   notify-committer:
     runs-on: ubuntu-latest
