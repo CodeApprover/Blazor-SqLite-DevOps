@@ -1,5 +1,7 @@
 ---
-name: "Development Tests"  # code-development
+name: "Development Tests"
+
+# code-development
 
 on:
   workflow_run:
@@ -8,19 +10,26 @@ on:
       - completed
 
 env:
-  PROJ_PATH: "${{ github.workspace }}/$(echo ${{ github.ref }} | grep -oE '[^-]+$')/Blazor-SqlLite-DevOps/"
-  PROJ_DIR: "Blazor SqlLite Golf Club/"
+  BASE_PATH: "${{ github.workspace }}"
+  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
+  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
   PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
 
 jobs:
-
   # DEVELOPMENT ENVIRONMENT - NUnit and Xunit unit tests
   dev-unit-tests:
     name: Dev Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
-
+    timeout-minutes: 360
     environment:
       development
+
+    if: >
+      (github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main') &&
+      github.event_name == 'workflow_run'
 
     strategy:
       matrix:
@@ -31,7 +40,7 @@ jobs:
         run: date
 
       - name: Set filepaths
-        run: CSPROJ="${{ env.PROJ_PATH }}/${{ env.PROJ_DIR }}/${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+        run: CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3.5.3
@@ -43,21 +52,10 @@ jobs:
           else
             test_type="Xunit_Game_Unit_Tests"
           fi
-          command="dotnet restore --no-cache"
-          command="${command} \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "${command}"
-  
-      - name: Install dependencies
-        run: |
-          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
-            test_type="Nunit_Player_Unit_Tests"
-          else
-            test_type="Xunit_Game_Unit_Tests"
-          fi
-          command="dotnet restore --no-cache"
-          command="${command} \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "${command}"
-  
+          CMD="dotnet restore --no-cache"
+          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+          eval "$CMD"
+
       - name: Run Nunit and Xunit unit tests
         run: |
           if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
@@ -67,12 +65,12 @@ jobs:
             test_type="Xunit_Game_Unit_Tests"
             log_file_name="xunit-results.trx"
           fi
-          command="dotnet test"
-          command="${command} --no-restore --verbosity detailed"
-          command="${command} --logger \"trx;LogFileName=${log_file_name}\""
-          command="${command} \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "${command}"
-  
+          CMD="dotnet test"
+          CMD+=" --no-restore --verbosity detailed"
+          CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
+          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+          eval "$CMD"
+
   # DEVELOPMENT ENVIRONMENT - Build backUp artifact
   build-dev-artifact:
     name: Dev Build BackUp Artifact
@@ -84,7 +82,7 @@ jobs:
     steps:
       - name: Artifact checkout repository
         uses: actions/checkout@v3.5.3
-      
+
       - name: Artifact remove existing .NET Core SDK
         run: sudo rm -rf /usr/share/dotnet
 
@@ -95,22 +93,22 @@ jobs:
 
       - name: Artifact restore dependencies
         run: |
-          command="dotnet restore --no-cache"
-          command="${command} "${{ env.CSPROJ }}""
-          eval "${command}"
+          CMD="dotnet restore --no-cache"
+          CMD+=" \"${{ env.CSPROJ }}\""
+          eval "$CMD"
 
       - name: Build Artifact
         run: |
-          command="dotnet build --no-restore --configuration Release"
-          command="${command} ${{ env.CSPROJ }}"
-          eval "${command}"
+          CMD="dotnet build --no-restore --configuration Release"
+          CMD+=" \"${{ env.CSPROJ }}\""
+          eval "$CMD"
 
       - name: Publish Artifact
         run: |
-          command="dotnet publish --configuration Release"
-          command="${command} --no-build --output ./publish"
-          command="${command} ${{ env.CSPROJ }}"
-          eval "${command}"
+          CMD="dotnet publish --configuration Release"
+          CMD+=" --no-build --output ./publish"
+          CMD+=" \"${{ env.CSPROJ }}\""
+          eval "$CMD"
 
       - name: Archive Artifact
         uses: actions/upload-artifact@v3.1.2
