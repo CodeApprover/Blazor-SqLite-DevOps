@@ -1,11 +1,12 @@
 ---
-name: "CodeQL Code Analysis"  # https://github.com/github/codeql
+name: "CodeQL"  # https://github.com/github/codeql
 
 # code-staging code-production main
 
 on:
   workflow_run:
-    workflows: "StyleCop Linting"
+    workflows:
+      - StyleCop
     types:
       - completed
 
