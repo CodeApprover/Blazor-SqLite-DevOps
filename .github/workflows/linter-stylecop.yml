@@ -1,5 +1,5 @@
 ---
-name: "StyleCop Linting"
+name: "StyleCop"
 
 on:
   workflow_run:
