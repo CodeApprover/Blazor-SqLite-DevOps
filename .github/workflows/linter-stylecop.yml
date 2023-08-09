@@ -2,7 +2,7 @@
 name: "StyleCop"
 on:
   repository_dispatch:
-    types: report_dispatch
+    types: trigger-stylecop
 
 env:
   BASE_PATH: "${{ github.workspace }}"
@@ -19,28 +19,12 @@ jobs:
     - name: Set Branch Name
       uses: actions/checkout@v3
       with:
-        ref: ${{ github.event.client_payload.ref }}
+        ref: ${{ github.event.client_payload.branch }}
 
-    - name: Get branch name for SHA
-      id: get_branch
-      uses: actions/github-script@v6
-      with:
-        github-token: ${{ secrets.AUTH }}
-        script: |
-          const { sha } = context.eventPayload.client_payload;
-          const branches = await github.repos.listBranchesForHeadCommit({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: sha
-          });
-          if (branches.data.length > 0) {
-            return branches.data[0].name;
-          } else {
-            throw new Error(`No branches found for commit ${sha}`);
-          }
-
-    - name: Set BRANCH_NAME environment variable
-      run: echo "BRANCH_NAME=${{ steps.get_branch.outputs.result }}" >> $GITHUB_ENV
+    - name: Echo branch name
+      run: |
+        echo "Branch name is: ${{ github.event.client_payload.branch }}"
+        echo "BRANCH_NAME=${{ github.event.client_payload.branch }}" >> $GITHUB_ENV
 
     - name: Verify Branch Name
       run: |
