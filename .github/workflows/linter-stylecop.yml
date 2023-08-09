@@ -30,13 +30,8 @@ jobs:
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
 
-    - name: Download Branch Name Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: branch_name
-
-    - name: Set env Branch Name
-      run: echo "BRANCH_NAME=$(cat branch_name.txt)" >> $GITHUB_ENV
+    - name: Set env Branch Name from ENV
+      run: echo "BRANCH_NAME=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
 
     - name: Verify Branch Name
       run: |
