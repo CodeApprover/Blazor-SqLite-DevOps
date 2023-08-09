@@ -1,12 +1,8 @@
 ---
 name: "StyleCop"
-
 on:
-  workflow_run:
-    workflows:
-      - Report
-    types:
-      - completed
+  repository_dispatch:
+    types: report_dispatch
 
 env:
   BASE_PATH: "${{ github.workspace }}"
@@ -19,21 +15,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    
-    - name: Log Timestamp
-      run: date
-      
-    - name: Log Job & Run Details
-      run: |
-        date
-        echo "Job Name: ${{ github.job }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
 
     - name: Set Branch Name
-      uses: ./.github/actions/set-env-vars
+      uses: actions/checkout@v3
       with:
-        varFilePath: ./.github/variables/.env
+        ref: ${{ github.event.client_payload.ref }}
+
+    - name: Get branch name for SHA
+      id: get_branch
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.AUTH }}
+        script: |
+          const { sha } = context.eventPayload.client_payload;
+          const branches = await github.repos.listBranchesForHeadCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: sha
+          });
+          if (branches.data.length > 0) {
+            return branches.data[0].name;
+          } else {
+            throw new Error(`No branches found for commit ${sha}`);
+          }
+
+    - name: Set BRANCH_NAME environment variable
+      run: echo "BRANCH_NAME=${{ steps.get_branch.outputs.result }}" >> $GITHUB_ENV
 
     - name: Verify Branch Name
       run: |
