@@ -15,16 +15,17 @@ jobs:
 
     - name: Determine Branch Name
       run: |
-        for bname in ("code-development" "code-production" "code-staging" "main"); do
-          echo "${{ github.ref }}"
-          if [[ "${{ github.ref }}" == "refs/heads/$BRANCH" ]]; then
+        branch=""
+        for bname in "code-development" "code-production" "code-staging" "main"; do
+          if [[ "refs/heads/main" == "refs/heads/$bname" ]]; then
             branch=${bname}
             break
-          else
-            exit 1
           fi
         done
-  
+        if [[ -z "$branch" ]]; then 
+          exit 1
+        fi
+
     - name: GitHub Environment Details
       run: |
         echo "Actions Report"
