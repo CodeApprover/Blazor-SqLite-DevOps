@@ -1,3 +1,4 @@
+---
 name: "Report"
 
 on:
@@ -5,13 +6,17 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 jobs:
-
   report:
     name: Report
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-  
+    timeout-minutes: 15
+
     steps:
+
+    - name: Set Environment Variables
+      uses: ./.github/actions/set-env-vars
+      with:
+        varFilePath: ./.github/variables/.env
 
     - name: Determine Branch Name
       run: |
