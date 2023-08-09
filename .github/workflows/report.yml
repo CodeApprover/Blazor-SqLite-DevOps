@@ -57,7 +57,7 @@ jobs:
 
     - name: Job & Run Details
       run: |
-        run: date
+        date
         echo "Job Name: ${{ github.job }}"
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
