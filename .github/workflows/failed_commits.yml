@@ -23,9 +23,16 @@ jobs:
 
     - name: Calculate target branch
       run: |
-        branch=$(git branch -r --contains ${{ github.event.workflow_run.head_sha }} | sed -n 1p | sed 's/origin\///')
-        echo "Branch name is: $branch"
-        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+        BRANCHES=("code-development" "code-production" "code-staging" "main")
+        for BRANCH in "${BRANCHES[@]}"; do
+          if [[ "${{ github.ref }}" == "refs/heads/$BRANCH" ]]; then
+            echo "branch_name=$BRANCH" >> $GITHUB_ENV
+            echo "::set-output name=branch_name::$BRANCH"
+            break
+          fi
+        done
+        echo "Branch name is: $branch_name"
+        echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
       
     - name: Switch to target branch
       run: git checkout $BRANCH_NAME
