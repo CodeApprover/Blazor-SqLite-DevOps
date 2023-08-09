@@ -1,3 +1,4 @@
+---
 name: "StyleCop"
 
 on:
@@ -12,23 +13,49 @@ env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
+
+  setup:
+    name: Get Branch Name
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: Log Timestamp
+      run: date
+      
+    - name: Log Job & Run Details
+      run: |
+        date
+        echo "Job Name: ${{ github.job }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+
+    - name: Download Branch Name Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: branch-name
+
+    - name: Set env Branch Name
+      run: echo "BRANCH_NAME=$(cat branch_name.txt)" >> $GITHUB_ENV
+
+    - name: Verify Branch Name
+      run: |
+        if [[ -z "${{ BRANCH_NAME }}" ]]; then 
+          exit 1
+        fi
+
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
     steps:
-    - name: Log Timestamp
-      run: date
-
     - name: Checkout repository
       uses: actions/checkout@v3.5.3
 
-    - name: Set ENV_NAME and CSPROJ path
+    - name: Set CSPROJ path
       run: |
-        ENV_NAME=$(echo "${{ github.ref }}" | sed -e "s#refs/heads/##")
-        echo "ENV_NAME=$ENV_NAME" >> $GITHUB_ENV
-        CSPROJ="${{ env.BASE_PATH }}/$ENV_NAME/"
+        CSPROJ="${{ env.BASE_PATH }}/$BRANCH_NAME/"
         CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
