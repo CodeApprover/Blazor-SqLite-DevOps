@@ -8,8 +8,6 @@ on:
       - SuperLinter
     types:
       - completed
-env:
-  BRANCH_NAME: "$(git branch -r --contains ${{ github.event.workflow_run.head_sha }} | sed -n 1p | sed 's/origin\///')"
 
 jobs:
   revert-commit:
@@ -23,29 +21,27 @@ jobs:
         ref: ${{ github.event.workflow_run.head_sha }}
         fetch-depth: 0 # get entire history
 
-    - name: Switch to target branch
-      run: git checkout ${{ env.BRANCH_NAME }}
-
-    - name: Set git user
+    - name: Calculate target branch
       run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
-
-    - name: Revert the failed commit locally
-      run: git revert ${{ github.event.workflow_run.head_sha }} --no-edit
+        branch=$(git branch -r --contains ${{ github.event.workflow_run.head_sha }} | sed -n 1p | sed 's/origin\///')
+        echo "Branch name is: $branch"
+        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+      
+    - name: Switch to target branch
+      run: git checkout $BRANCH_NAME
 
     - name: Print current branch
       run: git rev-parse --abbrev-ref HEAD
 
     - name: Print Branch Name
-      run: echo ${{ env.BRANCH_NAME }}
+      run: echo $BRANCH_NAME
 
     - name: Print branches containing the commit
       run: git branch --contains ${{ github.event.workflow_run.head_sha }}
 
     - name: Push the revert commit remotely
       continue-on-error: true
-      run: git push https://${{ secrets.AUTH }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${{ env.BRANCH_NAME }}
+      run: git push https://${{ secrets.AUTH }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git $BRANCH_NAME
 
   notify-committer:
     runs-on: ubuntu-latest
