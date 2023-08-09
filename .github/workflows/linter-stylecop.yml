@@ -33,14 +33,14 @@ jobs:
     - name: Download Branch Name Artifact
       uses: actions/download-artifact@v3
       with:
-        name: branch-name
+        name: branch_name
 
     - name: Set env Branch Name
       run: echo "BRANCH_NAME=$(cat branch_name.txt)" >> $GITHUB_ENV
 
     - name: Verify Branch Name
       run: |
-        if [[ -z "${{ BRANCH_NAME }}" ]]; then 
+        if [[ -z "${{ env.BRANCH_NAME }}" ]]; then 
           exit 1
         fi
 
