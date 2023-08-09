@@ -17,8 +17,9 @@ jobs:
       run: |
         branch=""
         for bname in "code-development" "code-production" "code-staging" "main"; do
-          if [[ "refs/heads/main" == "refs/heads/$bname" ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/$bname" ]]; then
             branch=${bname}
+            echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
             break
           fi
         done
