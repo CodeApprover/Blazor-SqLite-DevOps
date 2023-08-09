@@ -63,11 +63,12 @@ jobs:
         echo "Run Number: ${{ github.run_number }}"
         
     - name: Save branch name to file
-      run: echo "${{ env.BRANCH_NAME }}" > ~/branch_name.txt
+      run: echo "${{ env.BRANCH_NAME }}" > branch_name.txt
       
     - name: Upload branch_name artifact
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: branch_name
-        path: ~/branch_name.txt
+        path: branch_name.txt
         if-no-files-found: error # ignore / warn
+
