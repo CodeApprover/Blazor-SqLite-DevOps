@@ -10,11 +10,20 @@ on:
       - completed
 
 jobs:
+
   revert-commit:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion != 'success' }}
   
     steps:
+    
+    - name: Job & Run Details
+      run: |
+        run: date
+        echo "Job Name: ${{ github.job }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+
     - name: Checkout repository
       uses: actions/checkout@v3.5.3
       with:
@@ -26,16 +35,15 @@ jobs:
         BRANCHES=("code-development" "code-production" "code-staging" "main")
         for BRANCH in "${BRANCHES[@]}"; do
           if [[ "${{ github.ref }}" == "refs/heads/$BRANCH" ]]; then
-            echo "branch_name=$BRANCH" >> $GITHUB_ENV
-            echo "::set-output name=branch_name::$BRANCH"
+            echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
             break
           fi
         done
-        echo "Branch name is: $branch_name"
-        echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
       
     - name: Switch to target branch
-      run: git checkout $BRANCH_NAME
+      run: |
+          echo "Branch is ${{ BRANCH_NAME }}
+          git checkout $BRANCH_NAME
 
     - name: Print current branch
       run: git rev-parse --abbrev-ref HEAD
@@ -55,6 +63,7 @@ jobs:
     needs: revert-commit
     
     steps:
+
     - name: Notify Committer
       run: |
           COMMITTER=$(git log -1 --pretty=format:'%an')
