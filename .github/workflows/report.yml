@@ -67,13 +67,10 @@ jobs:
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
         
-    - name: Save branch name to file
-      run: echo "${{ env.BRANCH_NAME }}" > branch_name.txt
-      
-    - name: Upload branch_name artifact
-      uses: actions/upload-artifact@v3
+    - name: Repository Dispatch Branch Name
+      uses: peter-evans/repository-dispatch@v2.1.1
       with:
-        name: branch_name
-        path: branch_name.txt
-        if-no-files-found: error # ignore / warn
-
+        token: ${{ secrets.AUTH }}
+        repository: ${{ github.repository }}
+        event-type: report_dispatch
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
