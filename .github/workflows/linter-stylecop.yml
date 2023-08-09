@@ -14,7 +14,7 @@ env:
 
 jobs:
 
-  setup:
+  get-branch-name:
     name: Get Branch Name
     runs-on: ubuntu-latest
 
@@ -30,8 +30,10 @@ jobs:
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
 
-    - name: Set env Branch Name from ENV
-      run: echo "BRANCH_NAME=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+    - name: Set Branch Name
+      uses: ./.github/actions/set-env-vars
+      with:
+        varFilePath: ./.github/variables/.env
 
     - name: Verify Branch Name
       run: |
