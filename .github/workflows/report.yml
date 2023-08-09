@@ -13,11 +13,6 @@ jobs:
 
     steps:
 
-    - name: Set Environment Variables
-      uses: ./.github/actions/set-env-vars
-      with:
-        varFilePath: ./.github/variables/.env
-
     - name: Determine Branch Name
       run: |
         branch=""
