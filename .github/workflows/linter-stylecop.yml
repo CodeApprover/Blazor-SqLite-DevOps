@@ -3,7 +3,7 @@ name: "StyleCop"
 
 on:
   repository_dispatch:
-    types: "Stylecop Linter"
+    types: "trigger-stylecop"
 
 env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
