@@ -2,75 +2,92 @@
 name: "StyleCop"
 on:
   repository_dispatch:
-    types: [trigger-stylecop]
+    types: trigger-stylecop
 
 env:
   BASE_PATH: "${{ github.workspace }}"
   PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
-
   prepare:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deserialize and Display Report
-        run: |
-          # Deserialize and build a readable string
-          REPORT="Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Repository')\n"
-          # ... (rest of the REPORT construction)
-          
-          # Print the REPORT
-          echo -e "${REPORT}"
+    - name: Deserialize and Display Report
+      run: |
+        # Deserialize and build a readable string
+        REPORT="Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Repository')\n"
+        REPORT+="Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Ref')\n"
+        REPORT+="Branch Name: $(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')\n"
+        REPORT+="Commit SHA: $(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')\n"
+        REPORT+="Commit Message: $(echo ${{ github.event.client_payload }} | jq -r '.Commit Message')\n"
+        REPORT+="Commit Author: $(echo ${{ github.event.client_payload }} | jq -r '.Commit Author')\n"
+        REPORT+="Committer Email: $(echo ${{ github.event.client_payload }} | jq -r '.Committer Email')\n"
+        REPORT+="Pusher Name: $(echo ${{ github.event.client_payload }} | jq -r '.Pusher Name')\n"
+        REPORT+="Actor: $(echo ${{ github.event.client_payload }} | jq -r '.Actor')\n"
+        REPORT+="Workflow: $(echo ${{ github.event.client_payload }} | jq -r '.Workflow')\n"
+        REPORT+="Action: $(echo ${{ github.event.client_payload }} | jq -r '.Action')\n"
+        REPORT+="Event Name: $(echo ${{ github.event.client_payload }} | jq -r '.Event Name')\n"
+        REPORT+="Base Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Base Ref')\n"
+        REPORT+="Head Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Head Ref')\n"
+        REPORT+="Event Path: $(echo ${{ github.event.client_payload }} | jq -r '.Event Path')\n"
+        REPORT+="Workspace: $(echo ${{ github.event.client_payload }} | jq -r '.Workspace')\n"
+        REPORT+="Action Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Action Repository')\n"
+        REPORT+="Action SHA: $(echo ${{ github.event.client_payload }} | jq -r '.Action SHA')\n"
+        REPORT+="Runner OS: $(echo ${{ github.event.client_payload }} | jq -r '.Runner OS')\n"
+        REPORT+="Runner Tool Cache: $(echo ${{ github.event.client_payload }} | jq -r '.Runner Tool Cache')\n"
+        REPORT+="Runner Temp Directory: $(echo ${{ github.event.client_payload }} | jq -r '.Runner Temp Directory')"
+        # Print the REPORT
+        echo -e "${REPORT}"
 
-      - name: Extract SHA for Checkout
-        run: |
-          echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')" >> $GITHUB_ENV
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')" >> $GITHUB_ENV
 
-      - name: Extract Branch Name
-        run: |
-          echo "BRANCH_NAME=$(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')" >> $GITHUB_ENV
+    - name: Extract Branch Name
+      run: |
+        echo "BRANCH_NAME=$(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')" >> $GITHUB_ENV
 
-      - name: Verify Branch Name
-        run: |
-          valid_branches=("code-development" "code-production" "code-staging" "main")
-          if [[ ! " ${valid_branches[@]} " =~ " ${{ env.BRANCH_NAME }} " ]]; then
-            echo "Invalid branch name: ${{ env.BRANCH_NAME }}"
-            exit 1
-          fi
+    - name: Verify Branch Name
+      run: |
+        valid_branches=("code-development" "code-production" "code-staging" "main")
+        if [[ ! " ${valid_branches[@]} " =~ " ${{ env.BRANCH_NAME }} " ]]; then
+          echo "Invalid branch name: ${{ env.BRANCH_NAME }}"
+          exit 1
+        fi
 
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    needs: [prepare]
+    needs: prepare
 
     steps:
-      - name: Checkout SHA repository
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ env.SHA }}
+    - name: Checkout SHA repository
+      uses: actions/checkout@v2.3.4 # As of the latest version I know of.
+      with:
+        ref: ${{ env.SHA }}
 
-      - name: Set CSPROJ path
-        run: |
-          CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}/"
-          CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
-          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+    - name: Set CSPROJ path
+      run: |
+        CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}/"
+        CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
+        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-      - name: Setup .NET environment
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '7.0.x'
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0.x'
 
-      - name: Restore Dependencies
-        run: |
-          echo "CSPROJ == $CSPROJ"
-          dotnet restore --no-cache "$CSPROJ"
+    - name: Restore Dependencies
+      run: |
+        echo "CSPROJ == $CSPROJ"
+        dotnet restore --no-cache "$CSPROJ"
 
-      - name: Dotnet Build
-        run: |
-          CMD="dotnet build --no-restore \"$CSPROJ\""
-          CMD+=" /p:StyleCopEnabled=true"
-          CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
-          CMD+=" /p:StyleCopForceFullAnalysis=false"
-          eval "$CMD"
+    - name: Dotnet Build
+      run: |
+        CMD="dotnet build --no-restore \"$CSPROJ\""
+        CMD+=" /p:StyleCopEnabled=true"
+        CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
+        CMD+=" /p:StyleCopForceFullAnalysis=false"
+        eval "$CMD"
