@@ -2,7 +2,7 @@
 name: "StyleCop"
 on:
   repository_dispatch:
-    types: trigger-stylecop
+    types: [trigger-stylecop]
 
 env:
   BASE_PATH: "${{ github.workspace }}"
@@ -10,57 +10,67 @@ env:
 
 jobs:
 
-  get-branch-name:
-    name: Get Branch Name
+  prepare:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Deserialize and Display Report
+        run: |
+          # Deserialize and build a readable string
+          REPORT="Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Repository')\n"
+          # ... (rest of the REPORT construction)
+          
+          # Print the REPORT
+          echo -e "${REPORT}"
 
-    - name: Set Branch Name
-      uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.client_payload.branch }}
+      - name: Extract SHA for Checkout
+        run: |
+          echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')" >> $GITHUB_ENV
 
-    - name: Echo branch name
-      run: |
-        echo "Branch name is: ${{ github.event.client_payload.branch }}"
-        echo "BRANCH_NAME=${{ github.event.client_payload.branch }}" >> $GITHUB_ENV
+      - name: Extract Branch Name
+        run: |
+          echo "BRANCH_NAME=$(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')" >> $GITHUB_ENV
 
-    - name: Verify Branch Name
-      run: |
-        if [[ -z "${{ env.BRANCH_NAME }}" ]]; then 
-          exit 1
-        fi
+      - name: Verify Branch Name
+        run: |
+          valid_branches=("code-development" "code-production" "code-staging" "main")
+          if [[ ! " ${valid_branches[@]} " =~ " ${{ env.BRANCH_NAME }} " ]]; then
+            echo "Invalid branch name: ${{ env.BRANCH_NAME }}"
+            exit 1
+          fi
 
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    needs: [prepare]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3.5.3
+      - name: Checkout SHA repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ env.SHA }}
 
-    - name: Set CSPROJ path
-      run: |
-        CSPROJ="${{ env.BASE_PATH }}/$BRANCH_NAME/"
-        CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
-        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+      - name: Set CSPROJ path
+        run: |
+          CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}/"
+          CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
+          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-    - name: Setup .NET environment
-      uses: actions/setup-dotnet@v3.2.0
-      with:
-        dotnet-version: '7.0.x'
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '7.0.x'
 
-    - name: Restore Dependencies
-      run: |
-        echo "CSPROJ == $CSPROJ"
-        dotnet restore --no-cache "$CSPROJ"
+      - name: Restore Dependencies
+        run: |
+          echo "CSPROJ == $CSPROJ"
+          dotnet restore --no-cache "$CSPROJ"
 
-    - name: Dotnet Build
-      run: |
-        CMD="dotnet build --no-restore \"$CSPROJ\""
-        CMD+=" /p:StyleCopEnabled=true"
-        CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
-        CMD+=" /p:StyleCopForceFullAnalysis=false"
-        eval "$CMD"
+      - name: Dotnet Build
+        run: |
+          CMD="dotnet build --no-restore \"$CSPROJ\""
+          CMD+=" /p:StyleCopEnabled=true"
+          CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
+          CMD+=" /p:StyleCopForceFullAnalysis=false"
+          eval "$CMD"
