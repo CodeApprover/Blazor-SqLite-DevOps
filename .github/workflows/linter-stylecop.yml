@@ -42,12 +42,13 @@ jobs:
 
     - name: Set CSPROJ path
       run: |
-        CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}/"
+        bname=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
+        CSPROJ="${{ env.BASE_PATH }}/${bname}/"
         CSPROJ+="${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Setup .NET environment
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.5.0
       with:
         dotnet-version: '7.0.x'
 
