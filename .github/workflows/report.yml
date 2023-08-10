@@ -13,18 +13,13 @@ jobs:
 
     steps:
 
-    - name: Determine Branch Name for SHA Commit
+    - name: Determine Branch Name
       run: |
-        BRANCH_NAME=$(git branch -r --contains ${{ env.SHA }} | sed -n '/origin\//s///p')
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
-    - name: Verify Branch Name
-      run: |
-        valid_branches=("code-development" "code-production" "code-staging" "main")
-        if [[ ! " ${valid_branches[@]} " =~ " ${{ env.BRANCH_NAME }} " ]]; then
-          echo "Invalid branch name: ${{ env.BRANCH_NAME }}"
+        ref=${{ github.ref#refs/heads/ }}
+        if [[ ! " code-development code-production code-staging main " =~ " $ref " ]]; then 
           exit 1
         fi
+        echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
 
     - name: GitHub Environment Details
       run: |
