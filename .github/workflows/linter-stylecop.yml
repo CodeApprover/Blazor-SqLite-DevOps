@@ -28,6 +28,9 @@ jobs:
       with:
         ref: ${{ env.SHA }}
 
+    - name: Fetch all branches
+      run: git fetch --all
+
     - name: Extract Branch Name from SHA Commit
       run: |
         branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
