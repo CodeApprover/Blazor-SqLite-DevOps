@@ -15,7 +15,7 @@ jobs:
 
     - name: Determine Branch Name
       run: |
-        ref=${{ github.ref#refs/heads/ }}
+        ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         if [[ ! " code-development code-production code-staging main " =~ " $ref " ]]; then 
           exit 1
         fi
