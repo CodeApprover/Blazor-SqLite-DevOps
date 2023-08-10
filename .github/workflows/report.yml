@@ -62,7 +62,12 @@ jobs:
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
         
-    - name: Trigger stylecop workflow
+    - name: Delay Triggering Stylecop Workflow
+      run: |
+        #sleep 900  # Delay for 15 minutes (300 seconds)
+        sleep 60
+        
+    - name: Trigger Stylecop Workflow
       if: success()
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
