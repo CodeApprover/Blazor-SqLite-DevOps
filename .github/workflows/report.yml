@@ -70,7 +70,7 @@ jobs:
       run: |
         echo "$REPORT"
 
-    - name: Trigger stylecop workflow
+    - name: Trigger StyleCop Workflow
       if: success()
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
