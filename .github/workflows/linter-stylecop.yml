@@ -21,7 +21,6 @@ jobs:
       run: |
         echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
-
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
@@ -41,8 +40,10 @@ jobs:
 
     - name: Set CSPROJ path
       run: |
+        ls -la ./*
         bname=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         repo_name=$(basename ${{ github.workspace }})
+        echo "Project is $bname"
         CSPROJ="${{ github.workspace }}/${bname}/${repo_name}/${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
