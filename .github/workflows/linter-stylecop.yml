@@ -1,5 +1,6 @@
 ---
 name: "StyleCop"
+
 on:
   repository_dispatch:
     types: trigger-stylecop
@@ -9,60 +10,32 @@ env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Deserialize and Display Report
-      run: |
-        # Deserialize and build a readable string
-        REPORT="Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Repository')\n"
-        REPORT+="Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Ref')\n"
-        REPORT+="Branch Name: $(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')\n"
-        REPORT+="Commit SHA: $(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')\n"
-        REPORT+="Commit Message: $(echo ${{ github.event.client_payload }} | jq -r '.Commit Message')\n"
-        REPORT+="Commit Author: $(echo ${{ github.event.client_payload }} | jq -r '.Commit Author')\n"
-        REPORT+="Committer Email: $(echo ${{ github.event.client_payload }} | jq -r '.Committer Email')\n"
-        REPORT+="Pusher Name: $(echo ${{ github.event.client_payload }} | jq -r '.Pusher Name')\n"
-        REPORT+="Actor: $(echo ${{ github.event.client_payload }} | jq -r '.Actor')\n"
-        REPORT+="Workflow: $(echo ${{ github.event.client_payload }} | jq -r '.Workflow')\n"
-        REPORT+="Action: $(echo ${{ github.event.client_payload }} | jq -r '.Action')\n"
-        REPORT+="Event Name: $(echo ${{ github.event.client_payload }} | jq -r '.Event Name')\n"
-        REPORT+="Base Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Base Ref')\n"
-        REPORT+="Head Ref: $(echo ${{ github.event.client_payload }} | jq -r '.Head Ref')\n"
-        REPORT+="Event Path: $(echo ${{ github.event.client_payload }} | jq -r '.Event Path')\n"
-        REPORT+="Workspace: $(echo ${{ github.event.client_payload }} | jq -r '.Workspace')\n"
-        REPORT+="Action Repository: $(echo ${{ github.event.client_payload }} | jq -r '.Action Repository')\n"
-        REPORT+="Action SHA: $(echo ${{ github.event.client_payload }} | jq -r '.Action SHA')\n"
-        REPORT+="Runner OS: $(echo ${{ github.event.client_payload }} | jq -r '.Runner OS')\n"
-        REPORT+="Runner Tool Cache: $(echo ${{ github.event.client_payload }} | jq -r '.Runner Tool Cache')\n"
-        REPORT+="Runner Temp Directory: $(echo ${{ github.event.client_payload }} | jq -r '.Runner Temp Directory')"
-        # Print the REPORT
-        echo -e "${REPORT}"
-
-    - name: Extract SHA for Checkout
-      run: |
-        echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.Commit SHA')" >> $GITHUB_ENV
-
-    - name: Extract Branch Name
-      run: |
-        echo "BRANCH_NAME=$(echo ${{ github.event.client_payload }} | jq -r '.Branch Name')" >> $GITHUB_ENV
-
-    - name: Verify Branch Name
-      run: |
-        valid_branches=("code-development" "code-production" "code-staging" "main")
-        if [[ ! " ${valid_branches[@]} " =~ " ${{ env.BRANCH_NAME }} " ]]; then
-          echo "Invalid branch name: ${{ env.BRANCH_NAME }}"
-          exit 1
-        fi
 
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    needs: prepare
+    timeout-minutes: 15
 
     steps:
+
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.sha')" >> $GITHUB_ENV
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v2.3.4
+      with:
+        ref: ${{ env.SHA }}
+
+    - name: Extract Branch Name from SHA Commit
+      run: |
+        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "$branch" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          exit 1
+        fi
+        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+
     - name: Checkout SHA repository
       uses: actions/checkout@v2.3.4 # As of the latest version I know of.
       with:
