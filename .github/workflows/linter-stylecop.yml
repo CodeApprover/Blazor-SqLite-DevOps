@@ -40,11 +40,9 @@ jobs:
 
     - name: Set CSPROJ path
       run: |
-        ls -la ./*
-        bname=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
-        repo_name=$(basename ${{ github.workspace }})
-        echo "Project is $bname"
-        CSPROJ="${{ github.workspace }}/${bname}/${repo_name}/${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
+        breanch=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
+        repo_name=$(dirname "${{ github.workspace }}" | xargs basename)
+        CSPROJ="${{ github.workspace }}/${branch}/${repo_name}/${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Setup .NET environment
