@@ -20,10 +20,11 @@ jobs:
 
     - name: Extract SHA for Checkout
       run: |
-        echo "SHA=$(echo ${{ github.event.client_payload }} | jq -r '.sha')" >> $GITHUB_ENV
+        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+
 
     - name: Checkout SHA repository
-      uses: actions/checkout@v2.3.4
+      uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
 
@@ -35,11 +36,6 @@ jobs:
           exit 1
         fi
         echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
-
-    - name: Checkout SHA repository
-      uses: actions/checkout@v2.3.4 # As of the latest version I know of.
-      with:
-        ref: ${{ env.SHA }}
 
     - name: Set CSPROJ path
       run: |
