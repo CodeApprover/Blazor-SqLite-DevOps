@@ -7,7 +7,7 @@ on:
 
 jobs:
   report:
-    name: Report Usage
+    name: Report for Commit ${{ github.sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
