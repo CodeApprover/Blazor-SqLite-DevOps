@@ -14,7 +14,7 @@ jobs:
 
   stylecop-linting:
   
-    name: StyleCop Linting for SHA ${{ github.event.client_payload.sha }}
+    name: StyleCop Linting for Commit ${{ substr(github.event.client_payload.sha, 0, 7) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
