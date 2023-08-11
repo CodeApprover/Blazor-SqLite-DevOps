@@ -12,13 +12,23 @@ env:
 
 jobs:
 
-  stylecop-linting:
-  
+  setup:
+
     name: StyleCop Linting for Commit ${{ substr(github.event.client_payload.sha, 0, 7) }}
+    runs-on: ubuntu-latest
+    steps:
+    
+    - run: |
+        COMMIT=$(echo "${{ github.event.client_payload.sha }}" | cut -c 1-7)
+        echo "COMMIT=${COMMIT}" >> $GITHUB_ENV
+
+  stylecop-linting:
+
+    name: StyleCop Linting for Commit ${{ env.COMMIT }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    steps:        
+    steps:
 
     - name: Extract SHA for Checkout
       run: |
