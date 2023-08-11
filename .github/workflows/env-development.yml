@@ -23,7 +23,7 @@ jobs:
   
     steps:
 
-    - name: Extract SHA for Checkout
+    - name: Extract SHA for ${{ github.event.client_payload.sha }}
       run: |
         echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
