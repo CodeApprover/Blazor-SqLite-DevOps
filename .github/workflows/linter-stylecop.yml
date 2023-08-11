@@ -58,12 +58,6 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
-    - name: Checkout SHA repository
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
-
     - name: Restore Dependencies
       run: dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
 
