@@ -18,16 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    if: |
+    if: >
+      (github.event.workflow_run.conclusion == 'success' &&
       github.ref == 'refs/heads/code-development' ||
       github.ref == 'refs/heads/code-staging' ||
       github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main')
 
-    steps:
-    
-    - name: Log Timestamp
-      run: date
+    steps:        
 
     - name: Extract SHA for Checkout
       run: |
@@ -52,6 +50,13 @@ jobs:
       run: |
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
+    - name: Log Details
+      run: |
+        date
+        echo "Branch=${{ env.BRANCH_NAME }}"
+        echo "SHA=${{ env.SHA }}"
+        echo "Committer=$(git log -1 --pretty=format:'%an')"
 
     - name: Setup .NET environment
       uses: actions/setup-dotnet@v3.2.0
