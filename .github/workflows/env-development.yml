@@ -68,3 +68,9 @@ jobs:
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
   
+    - name: Push Commit to code-staging Branch
+      run: |
+        git config --global user.name "CodeApprover"
+        git config --global user.email "pucfada@pm.me@github.com"
+        git checkout code-staging
+        git push -v origin code-staging
