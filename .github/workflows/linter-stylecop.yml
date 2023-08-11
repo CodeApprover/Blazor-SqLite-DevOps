@@ -42,11 +42,11 @@ jobs:
     - name: Extract Branch Name from SHA Commit
       run: |
         branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        if [[ -z "$branch" ]]; then
+        if [[ -z "${branch}" ]]; then
           echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
-          exit 1
+          exit 1 
         fi
-        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
     - name: Determine .csproj
       run: |
@@ -59,7 +59,7 @@ jobs:
         dotnet-version: '7.0.x'
 
     - name: Restore Dependencies
-      run: dotnet restore --no-cache \"${{ env.CSPROJ }}\" -v detailed
+      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
 
     - name: Dotnet Build with StyleCop
       run: |
