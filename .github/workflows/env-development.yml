@@ -72,10 +72,6 @@ jobs:
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
 
-  createPR:
-    runs-on: ubuntu-latest
-    if: success()
-    steps:
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
@@ -90,4 +86,18 @@ jobs:
     - name: Create Pull Request
       run: |
         echo "${{ secrets.AUTH }}" | gh auth login --with-token
-        gh pr create --title "Automated: Merge ${{ github.event.client_payload.branch_name }} after StyleCop linting for commit ${{ env.SHA }}" --body "This PR passed the StyleCop linting tests and is ready for review." --base code-development --head ${{ github.event.client_payload.branch_name }}
+        
+        title="Automated: Merge "
+        title+="${{ github.event.client_payload.branch_name }} "
+        title+="after StyleCop linting for commit "
+        title+="${{ env.SHA }}"
+        
+        body="This PR passed the StyleCop linting "
+        body+="and Development Xunit and Nunit tests "
+        body+="and is ready for review."
+
+        CMD="gh pr create --title \"$title\" "
+        CMD+="--body \"$body\" "
+        CMD+="--base code-development "
+        CMD+="--head ${{ env.BRANCH_NAME }}"
+        eval ${CMD}
