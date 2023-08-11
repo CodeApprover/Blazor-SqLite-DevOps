@@ -70,11 +70,13 @@ jobs:
 
     - name: Restore Dependencies
       run: |
-        dotnet restore --no-cache ${{ env.CSPROJ }}
+        [[ -z "$CSPROJ" ]] && echo "Error: .csproj file not found." && exit 2 || echo "CSPROJ=${{ env.CSPROJ }}"
+        dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
 
     - name: Dotnet Build with StyleCop
       run: |
         CMD="dotnet build --no-restore \"${{ env.CSPROJ }}\""
+        CMD+="  -v detailed"
         CMD+=" /p:StyleCopEnabled=true"
         CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
         CMD+=" /p:StyleCopForceFullAnalysis=false"
