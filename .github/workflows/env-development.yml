@@ -91,5 +91,3 @@ jobs:
       run: |
         echo "${{ secrets.AUTH }}" | gh auth login --with-token
         gh pr create --title "Automated: Merge ${{ github.event.client_payload.branch_name }} after StyleCop linting for commit ${{ env.SHA }}" --body "This PR passed the StyleCop linting tests and is ready for review." --base code-development --head ${{ github.event.client_payload.branch_name }}
-      env:
-        GH_TOKEN: ${{ secrets.AUTH }}
