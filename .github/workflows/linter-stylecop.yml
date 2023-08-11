@@ -71,11 +71,11 @@ jobs:
 
     - name: Restore Dependencies
       run: |
-        dotnet restore --no-cache "${{ env.$CSPROJ }}"
+        dotnet restore --no-cache ${{ env.CSPROJ }}
 
     - name: Dotnet Build with StyleCop
       run: |
-        CMD="dotnet build --no-restore \"{{ env.$CSPROJ }}\""
+        CMD="dotnet build --no-restore \"${{ env.CSPROJ }}\""
         CMD+=" /p:StyleCopEnabled=true"
         CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
         CMD+=" /p:StyleCopForceFullAnalysis=false"
