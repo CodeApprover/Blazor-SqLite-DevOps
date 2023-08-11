@@ -1,7 +1,7 @@
 ---
 name: "StyleCop"
 
-# All branches
+# All commits on all valid branches must pass StyleCop linting
 
 on:
   repository_dispatch:
@@ -15,6 +15,14 @@ jobs:
   setup:
     name: Setup Repository
     runs-on: ubuntu-latest
+
+    if: >
+        github.ref == 'refs/heads/code-development ||
+        github.ref == 'refs/heads/code-staging ||
+        github.ref == 'refs/heads/code-production ||
+        github.ref == 'refs/heads/main ||
+        github.ref == 'refs/heads/main'
+
     steps:
     
     - name: Log Timestamp
@@ -55,13 +63,19 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+
     - name: Restore Dependencies
       run: |
-        dotnet restore --no-cache "$CSPROJ"
+        dotnet restore --no-cache "${{ env.$CSPROJ }}"
 
     - name: Dotnet Build with StyleCop
       run: |
-        CMD="dotnet build --no-restore \"$CSPROJ\""
+        CMD="dotnet build --no-restore \"{{ env.$CSPROJ }}\""
         CMD+=" /p:StyleCopEnabled=true"
         CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
         CMD+=" /p:StyleCopForceFullAnalysis=false"
