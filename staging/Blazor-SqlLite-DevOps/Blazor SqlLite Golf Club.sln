@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33414.496
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blazor SqlLite Golf Club", "Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj", "{15A908C3-B050-4174-87A5-B8C83F5D66E1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xunit_Game_Unit_Tests", "..\Xunit_Game_Unit_Tests\Xunit_Game_Unit_Tests.csproj", "{21D68F07-25A5-42CF-8567-B2AB2718C1C7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nunit_Player_Unit_Tests", "..\Nunit_Player_Unit_Tests\Nunit_Player_Unit_Tests.csproj", "{0BF17C6D-3FC2-4E54-8A8C-3959EC231F28}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MSTest_Integration_Tests", "..\MSTest_Integration_Tests\MSTest_Integration_Tests.csproj", "{514FE718-C106-4B6C-8A2F-F5F632AA22CC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StyleCop_CSharp_Linting", "..\StyleCop_CSharp_Linting\StyleCop_CSharp_Linting.csproj", "{E80DAA1B-4A29-4C73-8ED2-FED916B63483}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{15A908C3-B050-4174-87A5-B8C83F5D66E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15A908C3-B050-4174-87A5-B8C83F5D66E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15A908C3-B050-4174-87A5-B8C83F5D66E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15A908C3-B050-4174-87A5-B8C83F5D66E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21D68F07-25A5-42CF-8567-B2AB2718C1C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21D68F07-25A5-42CF-8567-B2AB2718C1C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21D68F07-25A5-42CF-8567-B2AB2718C1C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21D68F07-25A5-42CF-8567-B2AB2718C1C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BF17C6D-3FC2-4E54-8A8C-3959EC231F28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BF17C6D-3FC2-4E54-8A8C-3959EC231F28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BF17C6D-3FC2-4E54-8A8C-3959EC231F28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BF17C6D-3FC2-4E54-8A8C-3959EC231F28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{514FE718-C106-4B6C-8A2F-F5F632AA22CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{514FE718-C106-4B6C-8A2F-F5F632AA22CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{514FE718-C106-4B6C-8A2F-F5F632AA22CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{514FE718-C106-4B6C-8A2F-F5F632AA22CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E80DAA1B-4A29-4C73-8ED2-FED916B63483}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E80DAA1B-4A29-4C73-8ED2-FED916B63483}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E80DAA1B-4A29-4C73-8ED2-FED916B63483}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E80DAA1B-4A29-4C73-8ED2-FED916B63483}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A7F63015-9AA0-4FD5-BB4C-B8FCF240722B}
+	EndGlobalSection
+EndGlobal
