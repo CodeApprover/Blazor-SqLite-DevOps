@@ -12,19 +12,9 @@ env:
 
 jobs:
 
-  setup:
-
-    name: Setup
-    runs-on: ubuntu-latest
-    steps:
-    
-    - run: |
-        COMMIT=$(echo "${{ github.event.client_payload.sha }}" | cut -c 1-7)
-        echo "COMMIT=${COMMIT}" >> $GITHUB_ENV
-
   stylecop-linting:
 
-    name: StyleCop Linting for Commit ${{ env.COMMIT }}
+    name: StyleCop Linting Commit ${{ github.event.client_payload.sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
