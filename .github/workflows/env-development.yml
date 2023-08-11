@@ -1,7 +1,7 @@
 ---
 name: "Development"
 
-# code-development
+# All branches
 
 on:
   workflow_run:
@@ -11,19 +11,14 @@ on:
       - success
 
 env:
-  BASE_PATH: "${{ github.workspace }}"
-  BRANCH_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
-  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
-  PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
+  PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
-  # DEVELOPMENT ENVIRONMENT - NUnit and Xunit unit tests
+
   dev-unit-tests:
-    name: Dev Unit Tests (${{ matrix.test_framework }})
+    name: Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-    environment:
-      development
+    timeout-minutes: 15
 
     if: >
       github.ref == 'refs/heads/code-development' ||
@@ -31,88 +26,73 @@ jobs:
       github.ref == 'refs/heads/code-production' ||
       github.ref == 'refs/heads/main'
 
-    strategy:
-      matrix:
-        test_framework: ['Nunit', 'Xunit']
-
     steps:
-      - name: Log Timestamp
-        run: date
 
-      - name: Set filepaths
-        run: CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}${{ env.PROJ_DIR }}${{ env.PROJ_FILE }}" >> $GITHUB_ENV
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
-      - name: Checkout repository
-        uses: actions/checkout@v3.5.3
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
 
-      - name: Install dependencies
-        run: |
-          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
-            test_type="Nunit_Player_Unit_Tests"
-          else
-            test_type="Xunit_Game_Unit_Tests"
-          fi
-          CMD="dotnet restore --no-cache"
-          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "$CMD"
+    - name: Fetch all branches
+      run: git fetch --all
 
-      - name: Run Nunit and Xunit unit tests
-        run: |
-          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
-            test_type="Nunit_Player_Unit_Tests"
-            log_file_name="nunit-results.trx"
-          else
-            test_type="Xunit_Game_Unit_Tests"
-            log_file_name="xunit-results.trx"
-          fi
-          CMD="dotnet test"
-          CMD+=" --no-restore --verbosity detailed"
-          CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
-          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "$CMD"
+    - name: Extract Branch Name from SHA Commit
+      run: |
+        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "$branch" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          exit 1
+        fi
+        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
 
-  # DEVELOPMENT ENVIRONMENT - Build backUp artifact
-  build-dev-artifact:
-    name: Dev Build BackUp Artifact
+    - name: Install dependencies
+      run: |
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+        fi
+        CMD="dotnet restore --no-cache"
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
+
+    - name: Run Nunit and Xunit unit tests
+      run: |
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+          log_file_name="nunit-results.trx"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+          log_file_name="xunit-results.trx"
+        fi
+        CMD="dotnet test"
+        CMD+=" --no-restore --verbosity detailed"
+        CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
+
+  createPR:
     runs-on: ubuntu-latest
-    environment:
-      development
-    if: startsWith(github.ref, 'refs/heads/code-development')
-    needs: dev-unit-tests
+    if: success()
     steps:
-      - name: Artifact checkout repository
-        uses: actions/checkout@v3.5.3
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
 
-      - name: Artifact remove existing .NET Core SDK
-        run: sudo rm -rf /usr/share/dotnet
+    - name: Set up GH CLI
+      run: |
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+        sudo apt-add-repository https://cli.github.com/packages
+        sudo apt update
+        sudo apt install gh
 
-      - name: Artifact setup .NET environment
-        uses: actions/setup-dotnet@v3.2.0
-        with:
-          dotnet-version: '7.0.x'
-
-      - name: Artifact restore dependencies
-        run: |
-          CMD="dotnet restore --no-cache"
-          CMD+=" \"${{ env.CSPROJ }}\""
-          eval "$CMD"
-
-      - name: Build Artifact
-        run: |
-          CMD="dotnet build --no-restore --configuration Release"
-          CMD+=" \"${{ env.CSPROJ }}\""
-          eval "$CMD"
-
-      - name: Publish Artifact
-        run: |
-          CMD="dotnet publish --configuration Release"
-          CMD+=" --no-build --output ./publish"
-          CMD+=" \"${{ env.CSPROJ }}\""
-          eval "$CMD"
-
-      - name: Archive Artifact
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: staging-artifact
-          path: ./publish/*
-          if-no-files-found: error # warn/ignore
+    - name: Create Pull Request
+      run: |
+        git config --global user.name "CodeApprover"
+        git config --global user.email "pucfada@pm.me@github.com"
+        gh pr create --title "Automated: Merge ${{ github.event.client_payload.branch_name }} after StyleCop linting for commit ${{ env.SHA }}" --body "This PR passed the StyleCop linting tests and is ready for review." --base code-development --head ${{ github.event.client_payload.branch_name }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
