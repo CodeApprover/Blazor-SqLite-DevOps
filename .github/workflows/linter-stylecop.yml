@@ -12,9 +12,11 @@ env:
 
 jobs:
 
-  setup:
+  stylecop-linting:
+  
     name: Setup Repository
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     if: |
       github.ref == 'refs/heads/code-development' ||
@@ -51,12 +53,6 @@ jobs:
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-  linting:
-    name: StyleCop Linting
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-
     - name: Setup .NET environment
       uses: actions/setup-dotnet@v3.2.0
       with:
@@ -69,10 +65,7 @@ jobs:
         fetch-depth: 0 # Fetch all
 
     - name: Restore Dependencies
-      run: |
-      
-        [[ -z "${{ env.CSPROJ }}" ]] && echo "Error .csproj file not found." && exit 2 || echo "CSPROJ=${{ env.CSPROJ }}"
-        dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
+      run: dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
 
     - name: Dotnet Build with StyleCop
       run: |
@@ -82,12 +75,6 @@ jobs:
         CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
         CMD+=" /p:StyleCopForceFullAnalysis=false"
         eval "$CMD"
-
-  trigger-tests:
-    name: Trigger Environment-Specific Tests
-    runs-on: ubuntu-latest
-    needs: linting
-    steps:
 
     - name: Trigger Appropriate Workflow
       if: success()
