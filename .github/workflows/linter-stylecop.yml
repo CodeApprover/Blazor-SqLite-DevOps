@@ -59,7 +59,7 @@ jobs:
         dotnet-version: '7.0.x'
 
     - name: Restore Dependencies
-      run: dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
+      run: dotnet restore --no-cache \"${{ env.CSPROJ }}\" -v detailed
 
     - name: Dotnet Build with StyleCop
       run: |
