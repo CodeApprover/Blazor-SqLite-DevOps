@@ -1,5 +1,7 @@
 name: Failure
 
+# All branches
+
 on:
   workflow_run:
     workflows:
@@ -7,75 +9,76 @@ on:
       - CodeQL
       - SuperLinter
     types:
-      - completed
+      - complete
+
+env:
+  PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
 
   revert-commit:
+    name: Revert Failed Commit
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion != 'success' }}
-  
-    steps:
-    
-    - name: Job & Run Details
-      run: |
-        run: date
-        echo "Job Name: ${{ github.job }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
+    timeout-minutes: 15
 
-    - name: Checkout repository
+    if: >
+      github.event.workflow_run.conclusion != 'success' &&
+      github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main'
+
+    steps:
+
+    - name: Log Timestamp
+      run: date
+
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+
+    - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ github.event.workflow_run.head_sha }}
-        fetch-depth: 0 # get entire history
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # fetch entire history
 
-    - name: Calculate target branch
+    - name: Extract Branch Name from SHA Commit
       run: |
-        BRANCHES=("code-development" "code-production" "code-staging" "main")
-        for BRANCH in "${BRANCHES[@]}"; do
-          if [[ "${{ github.ref }}" == "refs/heads/$BRANCH" ]]; then
-            echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
-            break
-          fi
-        done
-      
+        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "$branch" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          exit 1
+        fi
+        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+
     - name: Switch to target branch
       run: |
-          echo "Branch is ${{ BRANCH_NAME }}
-          git checkout $BRANCH_NAME
-
-    - name: Print current branch
-      run: git rev-parse --abbrev-ref HEAD
-
-    - name: Print Branch Name
-      run: echo $BRANCH_NAME
-
-    - name: Print branches containing the commit
-      run: git branch --contains ${{ github.event.workflow_run.head_sha }}
+        echo "Branch is ${{ env.BRANCH_NAME }}"
+        git checkout ${{ env.BRANCH_NAME }}
 
     - name: Push the revert commit remotely
       continue-on-error: true
-      run: git push https://${{ secrets.AUTH }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git $BRANCH_NAME
+      run: git push https://${{ secrets.AUTH }}@github.com/CodeApprover/Blazor-SqLite-DevOps.git ${{ env.BRANCH_NAME }}
 
   notify-committer:
     runs-on: ubuntu-latest
     needs: revert-commit
-    
+
     steps:
 
     - name: Notify Committer
       run: |
-          COMMITTER=$(git log -1 --pretty=format:'%an')
-          WORKFLOW_LINK="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          COMMENT_BODY="Hello @$COMMITTER, your recent commit ${{ github.event.workflow_run.head_sha }} "
-          COMMENT_BODY+="has failed and has been automatically reverted. "
-          COMMENT_BODY+="Please check the [workflow run]($WORKFLOW_LINK) for details, "
-          COMMENT_BODY+="address any issues and try pushing again. Thank you!"
-          
-          CURL_CMD="curl -X POST"
-          CURL_CMD+=" -H \"Authorization: token $GH_PAT\""
-          CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
-          CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/comments"
-          CURL_CMD+=" -d \"{\\\"body\\\":\\\"$COMMENT_BODY\\\"}\""
-          eval "$CURL_CMD"
+        COMMITTER=$(git log -1 --pretty=format:'%an')
+        WORKFLOW_LINK="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        COMMENT_BODY="Hello @$COMMITTER, your recent commit ${{ github.event.workflow_run.head_sha }} "
+        COMMENT_BODY+="has failed and has been automatically reverted. "
+        COMMENT_BODY+="Please check the [workflow run]($WORKFLOW_LINK) for details, "
+        COMMENT_BODY+="address any issues and try pushing again. Thank you!"
+        
+        CURL_CMD="curl -X POST"
+        CURL_CMD+=" -H \"Authorization: token ${{ secrets.AUTH }}\""
+        CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
+        CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/comments"
+        CURL_CMD+=" -d \"{\\\"body\\\":\\\"$COMMENT_BODY\\\"}\""
+        eval "$CURL_CMD"
