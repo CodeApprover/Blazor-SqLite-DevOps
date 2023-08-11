@@ -86,5 +86,5 @@ jobs:
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
         CMD+="-d '{\"event_type\": \"$EVENT_TYPE\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
+        CMD+="\"client_payload\": {\"sha\": \"${{ env.sha }}\"}}'"
         eval ${CMD}
