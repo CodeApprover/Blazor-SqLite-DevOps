@@ -49,7 +49,7 @@ jobs:
     - name: Determine .csproj
       run: |
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
-        [[ -z "$CSPROJ" ]] && echo "Error: .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
   linting:
     name: StyleCop Linting
@@ -70,7 +70,8 @@ jobs:
 
     - name: Restore Dependencies
       run: |
-        [[ -z "$CSPROJ" ]] && echo "Error: .csproj file not found." && exit 2 || echo "CSPROJ=${{ env.CSPROJ }}"
+      
+        [[ -z "${{ env.CSPROJ }}" ]] && echo "Error .csproj file not found." && exit 2 || echo "CSPROJ=${{ env.CSPROJ }}"
         dotnet restore --no-cache ${{ env.CSPROJ }} -v detailed
 
     - name: Dotnet Build with StyleCop
