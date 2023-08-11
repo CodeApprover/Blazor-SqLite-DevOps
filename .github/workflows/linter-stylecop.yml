@@ -1,6 +1,8 @@
 ---
 name: "StyleCop"
 
+# All branches
+
 on:
   repository_dispatch:
     types: "trigger-stylecop"
@@ -15,7 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    if: >
+      github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main'
+
     steps:
+    
+    - name: Log Timestamp
+      run: date
 
     - name: Extract SHA for Checkout
       run: |
