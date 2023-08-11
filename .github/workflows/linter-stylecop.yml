@@ -16,11 +16,10 @@ jobs:
     name: Setup Repository
     runs-on: ubuntu-latest
 
-    if: >
+    if: |
         github.ref == 'refs/heads/code-development ||
         github.ref == 'refs/heads/code-staging ||
         github.ref == 'refs/heads/code-production ||
-        github.ref == 'refs/heads/main ||
         github.ref == 'refs/heads/main'
 
     steps:
