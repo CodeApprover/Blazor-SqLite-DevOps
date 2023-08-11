@@ -1,7 +1,7 @@
 ---
 name: "Development Tests"
 
-# Development Enviromnent (code-development) Tests
+# Development Environment (code-development) Tests
 
 on:
   repository_dispatch:
@@ -20,27 +20,14 @@ jobs:
     strategy:
       matrix:
         test_framework: [Nunit, Xunit]
-  
+
     steps:
-
-    - name: Extract SHA for ${{ github.event.client_payload.sha }}
-      run: |
-        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
-
+    
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ env.SHA }}
+        ref: $(echo '${{ github.event.client_payload.sha }}')
         fetch-depth: 0 # Fetch all
-
-    - name: Extract Branch Name from SHA Commit
-      run: |
-        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        if [[ -z "$branch" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
-          exit 1
-        fi
-        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
 
     - name: Install dependencies
       run: |
@@ -67,7 +54,19 @@ jobs:
         CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
-  
+
+  push-to-staging:
+    needs: dev-unit-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: $(echo '${{ github.event.client_payload.sha }}')
+        fetch-depth: 0 # Fetch all
+
     - name: Push Commit to code-staging Branch
       run: |
         git config --global user.name "CodeApprover"
