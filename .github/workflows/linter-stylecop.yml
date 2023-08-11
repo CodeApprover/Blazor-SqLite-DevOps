@@ -38,12 +38,10 @@ jobs:
         fi
         echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
 
-    - name: Set CSPROJ path
+    - name: Determine .csproj
       run: |
-        devops_env=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
-        repo_name=$(dirname "${{ github.workspace }}" | xargs basename)
-        CSPROJ="${{ github.workspace }}/${devops_env}/${repo_name}/${{ env.PROJ_NAME }}/${{ env.PROJ_NAME }}.csproj"
-        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        [[ -z "$CSPROJ" ]] && echo "Error: .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Setup .NET environment
       uses: actions/setup-dotnet@v3.2.0
