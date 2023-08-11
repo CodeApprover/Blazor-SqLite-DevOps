@@ -14,7 +14,7 @@ jobs:
 
   stylecop-linting:
   
-    name: Setup Repository
+    name: StyleCop Linting for SHA ${{ github.event.client_payload.sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
