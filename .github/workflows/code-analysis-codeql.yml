@@ -1,0 +1,75 @@
+---
+name: "CodeQL"  # https://github.com/github/codeql
+
+# code-staging code-production main
+
+on:
+  workflow_run:
+    workflows:
+      - StyleCop
+    types:
+      - success
+
+env:
+  BASE_PATH: "${{ github.workspace }}"
+  ENV_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
+  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
+  PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
+
+jobs:
+  codeql-analysis-codeql:
+    name: Code Analysis CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    if: >
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['csharp']
+
+    steps:
+      - name: Log Timestamp
+        run: date
+
+      - name: Set filepaths
+        run: |
+          CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}"
+          CSPROJ+="${{ env.PROJ_DIR }}"
+          CSPROJ+="${{ env.PROJ_FILE }}"
+          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Restore Dependencies
+        run: |
+          CMD="dotnet restore --no-cache \"$CSPROJ\""
+          eval "$CMD"
+
+      - name: Dotnet build
+        run: |
+          CMD="dotnet build --no-restore \"$CSPROJ\""
+          eval "$CMD"
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2

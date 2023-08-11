@@ -1,0 +1,36 @@
+---
+name: "Staging"
+
+# code-staging
+
+on:
+  workflow_run:
+    workflows: 
+      - Development
+    types:
+      - success
+
+jobs:
+  deploy-to-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    environment:
+      staging
+
+    if: >
+      github.ref == 'refs/heads/code-staging ||
+      github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Log Timestamp
+      run: date
+     
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
+
+    - name: Download build artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: staging-artifact
+        path: ./publish

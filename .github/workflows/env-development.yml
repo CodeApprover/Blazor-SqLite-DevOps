@@ -1,0 +1,88 @@
+---
+name: "Development Tests"
+
+# Development Environment (code-development) Tests
+
+on:
+  repository_dispatch:
+    types: "trigger-development-tests"
+
+env:
+  PROJ_NAME: "Blazor SqlLite Golf Club"
+
+jobs:
+
+  dev-unit-tests:
+
+    name: Unit Tests (${{ matrix.test_framework }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        test_framework: [Nunit, Xunit]
+
+    steps:
+    
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Install dependencies
+      run: |
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+        fi
+        CMD="dotnet restore --no-cache"
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
+
+    - name: Run Nunit and Xunit unit tests
+      run: |
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+          log_file_name="nunit-results.trx"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+          log_file_name="xunit-results.trx"
+        fi
+        CMD="dotnet test"
+        CMD+=" --no-restore --verbosity detailed"
+        CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
+
+  push-to-staging:
+  
+    needs: dev-unit-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Push Commit to code-staging Branch
+      run: |
+        development_path=$(find . -type d -name "development" -print -quit)
+        [[ -n "$development_path" ]] && mv "$development_path" "${development_path%/*}/staging" || { echo "No 'development' directory found!"; exit 1; }
+        
+        git config --global user.name "CodeApprover"
+        git config --global user.email "pucfada@pm.me@github.com"
+        
+        git checkout code-staging
+        git add . 
+        git commit -m "Committing code-development SHA ${{ github.event.client_payload.sha }}"
+        git push -v origin code-staging
+
+        - name: Create PR using GitHub CLI
+          run: |
+            gh auth login --with-token <<< "${{ secrets.AUTH }}"
+            gh pr create --base main --head code-staging --title "Merge code-staging" --body "Merging changes from code-development commit ${{ github.event.client_payload.sha }}" --repo ${{ github.repository }} --draft

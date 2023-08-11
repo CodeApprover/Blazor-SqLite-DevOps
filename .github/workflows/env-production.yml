@@ -1,0 +1,33 @@
+---
+name: "Production"
+
+# code-production
+
+on:
+  workflow_run:
+    workflows:
+      - Staging
+    types:
+      - success
+
+jobs:
+  deploy-to-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    if: >
+      github.ref == 'refs/heads/code-production ||
+      github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Log Timestamp
+      run: date
+     
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
+
+    - name: Download build artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: staging-artifact
+        path: ./publish

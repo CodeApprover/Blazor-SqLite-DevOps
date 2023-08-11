@@ -1,0 +1,87 @@
+---
+name: "StyleCop"
+
+# All commits on all valid branches must pass StyleCop linting
+
+on:
+  repository_dispatch:
+    types: "trigger-stylecop"
+
+env:
+  PROJ_NAME: "Blazor SqlLite Golf Club"
+
+jobs:
+
+  stylecop-linting:
+
+    name: StyleCop Linting Commit ${{ github.event.client_payload.sha }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Extract Branch Name from SHA Commit
+      run: |
+        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "${branch}" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          exit 1 
+        fi
+        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+
+    - name: Determine .csproj
+      run: |
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
+    - name: Log Details
+      run: |
+        date
+        echo "Branch=${{ env.BRANCH_NAME }}"
+        echo "SHA=${{ env.SHA }}"
+        echo "Committer=$(git log -1 --pretty=format:'%an')"
+
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v3.2.0
+      with:
+        dotnet-version: '7.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
+
+    - name: Dotnet Build with StyleCop
+      run: |
+        CMD="dotnet build --no-restore \"${{ env.CSPROJ }}\""
+        CMD+="  -v detailed"
+        CMD+=" /p:StyleCopEnabled=true"
+        CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
+        CMD+=" /p:StyleCopForceFullAnalysis=false"
+        eval "$CMD"
+
+    - name: Trigger Appropriate Workflow
+      if: success()
+      run: |
+        ENV_NAME=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
+        case $ENV_NAME in
+          development) EVENT_TYPE="trigger-development-tests" ;;
+          staging) EVENT_TYPE="trigger-env-staging-tests" ;;
+          production) EVENT_TYPE="trigger-production-tests" ;;
+          main) EVENT_TYPE="trigger-production-tests" ;;
+          *) echo "Error: Unexpected environment name"; exit 1 ;;
+        esac
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\": \"$EVENT_TYPE\", "
+        CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
+        eval ${CMD}
