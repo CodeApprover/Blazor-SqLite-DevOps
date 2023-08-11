@@ -1,0 +1,12 @@
+---
+name: "Pass"
+
+on:
+  workflow_run:
+    workflows: 
+      - Development
+    types:
+      - success
+env:
+  PROJ_NAME: "Blazor SqlLite Golf Club"
+
