@@ -17,8 +17,14 @@ jobs:
     name: Display Project Name
     runs-on: ubuntu-latest
 
+    if: >
+      github.event.workflow_run.conclusion != 'success' &&
+      github.ref == 'refs/heads/code-development' ||
+      github.ref == 'refs/heads/code-staging' ||
+      github.ref == 'refs/heads/code-production' ||
+      github.ref == 'refs/heads/main'
+
     steps:
     
     - name: Echo Project Name
-      run: echo "The Project Name is: ${{ env.PROJ_NAME }}"
-
+      run: echo "The Project Name is ${{ env.PROJ_NAME }}"
