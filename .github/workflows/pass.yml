@@ -7,6 +7,18 @@ on:
       - Development
     types:
       - success
+
 env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
+
+jobs:
+  
+  display-proj-name:
+    name: Display Project Name
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - name: Echo Project Name
+      run: echo "The Project Name is: ${{ env.PROJ_NAME }}"
 
