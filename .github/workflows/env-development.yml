@@ -1,14 +1,11 @@
 ---
 name: "Development"
 
-# All branches
+# Development Enviromnent (code-development) Tests
 
 on:
-  workflow_run:
-    workflows: 
-      - StyleCop
-    types:
-      - complete
+  repository_dispatch:
+    types: "trigger-development-tests"
 
 env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
@@ -20,13 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    if: >
-      github.event.workflow_run.conclusion != 'success' &&
-      github.ref == 'refs/heads/code-development' ||
-      github.ref == 'refs/heads/code-staging' ||
-      github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/code-development'
 
+    strategy:
+      matrix:
+        test_framework: [Nunit, Xunit]
+  
     steps:
 
     - name: Extract SHA for Checkout
@@ -37,9 +33,7 @@ jobs:
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
-
-    - name: Fetch all branches
-      run: git fetch --all
+        fetch-depth: 0 # Fetch all
 
     - name: Extract Branch Name from SHA Commit
       run: |
@@ -80,20 +74,20 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     steps:
-    - name: Checkout code
+    - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
-
-    - name: Set up GH CLI
-      run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo apt-add-repository https://cli.github.com/packages
-        sudo apt update
-        sudo apt install gh
-
-    - name: Create Pull Request
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+  
+    - name: Set up Git user
       run: |
         git config --global user.name "CodeApprover"
         git config --global user.email "pucfada@pm.me@github.com"
+  
+    - name: Create Pull Request
+      run: |
+        echo "$GH_TOKEN" | gh auth login --with-token
         gh pr create --title "Automated: Merge ${{ github.event.client_payload.branch_name }} after StyleCop linting for commit ${{ env.SHA }}" --body "This PR passed the StyleCop linting tests and is ready for review." --base code-development --head ${{ github.event.client_payload.branch_name }}
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.AUTH }}
