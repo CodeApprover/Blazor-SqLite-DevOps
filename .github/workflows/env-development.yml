@@ -8,7 +8,7 @@ on:
     workflows: 
       - StyleCop
     types:
-      - success
+      - complete
 
 env:
   PROJ_NAME: "Blazor SqlLite Golf Club"
@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 15
 
     if: >
+      github.event.workflow_run.conclusion != 'success' &&
       github.ref == 'refs/heads/code-development' ||
       github.ref == 'refs/heads/code-staging' ||
       github.ref == 'refs/heads/code-production' ||
