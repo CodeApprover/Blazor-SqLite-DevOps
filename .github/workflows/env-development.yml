@@ -81,3 +81,8 @@ jobs:
         git add . 
         git commit -m "Committing code-development SHA ${{ github.event.client_payload.sha }}"
         git push -v origin code-staging
+
+        - name: Create PR using GitHub CLI
+          run: |
+            gh auth login --with-token <<< "${{ secrets.AUTH }}"
+            gh pr create --base main --head code-staging --title "Merge code-staging" --body "Merging changes from code-development commit ${{ github.event.client_payload.sha }}" --repo ${{ github.repository }} --draft
