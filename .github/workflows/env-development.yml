@@ -67,12 +67,6 @@ jobs:
         CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
-
-    - name: Checkout SHA repository
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
   
     - name: Set up Git user
       run: |
@@ -84,7 +78,7 @@ jobs:
         echo "${{ secrets.AUTH }}" | gh auth login --with-token
         
         title="Automated: Merge "
-        title+="${{ github.event.client_payload.branch_name }} "
+        title+="${{ env.BRANCH_NAME }} "
         title+="after StyleCop linting for commit "
         title+="${{ env.SHA }}"
         
