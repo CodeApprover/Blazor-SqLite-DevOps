@@ -1,15 +1,12 @@
 ---
 name: Failure
 
-# All branches
-
 on:
   workflow_run:
     workflows:
-      - Report
-      - StyleCop Linter
       - Development Tests
-      - Docker Deploy
+      - Staging Tests
+      - Production Tests
     types:
       - complete
 
