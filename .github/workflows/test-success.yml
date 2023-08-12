@@ -60,7 +60,8 @@ jobs:
 
     - name: Increment version
       run: |
-        IFS='.' read -ra VERSION_ARRAY <<< "${{ secrets.VERSION }}"
+        #IFS='.' read -ra VERSION_ARRAY <<< "${{ secrets.VERSION }}"
+        IFS='.' read -ra VERSION_ARRAY <<< "1.2.3"
         PRODUCTION=${VERSION_ARRAY[0]}
         STAGING=${VERSION_ARRAY[1]}
         DEVELOPMENT=${VERSION_ARRAY[2]}
