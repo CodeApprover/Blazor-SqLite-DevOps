@@ -16,9 +16,6 @@ jobs:
     - name: Determine Branch Name
       run: |
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
-        if [[ ! " code-development code-production code-staging main " =~ " $ref " ]]; then 
-          exit 1
-        fi
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
 
     - name: GitHub Environment Details
