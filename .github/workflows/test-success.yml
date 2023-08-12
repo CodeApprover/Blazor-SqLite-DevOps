@@ -38,10 +38,11 @@ jobs:
       if: contains(steps.branch-deploy.outputs.command, '.lock')
       run: echo "Deployments are locked! Exiting." && exit 1
 
-    - name: Enable Docker CLI experimental features
+    - name: Enable Docker Experimental Features
       run: |
-        echo '{ "experimental": "enabled" }' | sudo tee /etc/docker/daemon.json
-        sudo service docker restart
+        echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
+        sudo systemctl restart docker
+        docker version
 
     - name: Extract Branch Name from SHA Commit
       run: |
