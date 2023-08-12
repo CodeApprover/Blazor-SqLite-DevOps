@@ -58,7 +58,7 @@ jobs:
         echo "NEW_VERSION=${PRODUCTION}.${STAGING}.${DEVELOPMENT}" >> $GITHUB_ENV
 
     - name: Log in to Docker Hub
-      uses: docker/login-action@vv2.2.0
+      uses: docker/login-action@v2.2.0
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
