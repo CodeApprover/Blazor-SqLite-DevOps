@@ -1,5 +1,5 @@
 ---
-name: Failure
+name: Test Success
 
 on:
   workflow_run:
@@ -8,7 +8,7 @@ on:
       - Staging Tests
       - Production Tests
     types:
-      - complete
+      - success
 
 jobs:
 
@@ -16,7 +16,6 @@ jobs:
   
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
     - uses: github/branch-deploy@v7.2.0
