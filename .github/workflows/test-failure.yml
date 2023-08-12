@@ -9,7 +9,7 @@ on:
       - Development Tests
       - Staging Tests
       - Production Tests
-      - Docker Deploy
+      - Test Success
     types:
       - failure
 
