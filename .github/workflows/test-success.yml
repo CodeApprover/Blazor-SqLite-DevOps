@@ -1,7 +1,7 @@
 name: Test Success
 
 on:
-  repository_dispatch:
+  repository_disDEVELOPMENT:
     types: trigger-test-success
 
 env:
@@ -60,30 +60,22 @@ jobs:
 
     - name: Increment version
       run: |
-        # Split version into environment values
-        PRODUCTION=$(echo "${{ secrets.VERSION }}" | awk -F'.' '{print $1}')
-        STAGING=$(echo "${{ secrets.VERSION }}" | awk -F'.' '{print $2}')
-        DEVELOPMENT=$(echo "${{ secrets.VERSION }}" | awk -F'.' '{print $3}')
-
-        # Increment version based on branch name
-        if [[ "${{ env.BRANCH_NAME }}" == "code-production" ]]; then
-          ((PRODUCTION++))
-        elif [[ "${{ env.BRANCH_NAME }}" == "code-staging" ]]; then
-          ((STAGING++))
-        elif [[ "${{ env.BRANCH_NAME }}" == "code-development" ]]; then
-          ((DEVELOPMENT++))
-        elif [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
-          : # COMES FROM PRODUCTION
-        else
-          echo "Error: Unknown branch name."
-          exit 1
-        fi
-        echo "NEW_VERSION=${PRODUCTION}.${STAGING}.${DEVELOPMENT}" >> $GITHUB_ENV
+        IFS='.' read -ra VERSION_ARRAY <<< "${{ secrets.VERSION }}"
+        PRODUCTION=${VERSION_ARRAY[0]}
+        STAGING=${VERSION_ARRAY[1]}
+        DEVELOPMENT=${VERSION_ARRAY[2]}
+        declare -a VERSION=( $PRODUCTION $STAGING $DEVELOPMENT )
+        case "${{ env.ENV_NAME }}" in
+          "development") ((VERSION[2]++)) ;;
+          "staging") ((VERSION[1]++)) ;;
+          "production") ((VERSION[0]++)) ;;
+        esac
+        echo "NEW_VERSION=$PRODUCTION.$STAGING.$DEVELOPMENT" >> $GITHUB_ENV
     
-        - name: Build and push Docker image
-          run: |
-            docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
-            docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
     - name: Set new version secret
       uses: hmanzur/actions-set-secret@v2.0.0
