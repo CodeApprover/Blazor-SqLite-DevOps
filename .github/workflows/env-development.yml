@@ -63,23 +63,42 @@ jobs:
     
     steps:
 
-    - name: Checkout SHA repository
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ github.event.client_payload.sha }}
-        fetch-depth: 0 # Fetch all
+       - name: Checkout SHA repository
+         uses: actions/checkout@v3.5.3
+         with:
+           ref: ${{ github.event.client_payload.sha }}
+           fetch-depth: 0 # Fetch all
+  
+       - name: Copy Changed Files to Temporary Directory
+         run: |
+           mkdir ../temp_changes
+          
+           # Get a list of changed files in the commit
+           CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.event.client_payload.sha }})
+          
+           # Copy only those changed files to the temporary directory
+           for FILE in $CHANGED_FILES; do
+             cp --parents "$FILE" ../temp_changes/
+           done
+      
+       - name: Setup Git User
+         run: |
+           git config --global user.name "CodeApprover"
+           git config --global user.email "pucfada@pm.me@github.com"
 
-    - name: Push Commit to code-staging Branch
-      run: |
-        git config --global user.name "CodeApprover"
-        git config --global user.email "pucfada@pm.me@github.com"
-        
-        git checkout code-staging
-        git add .
-        git commit -m "Committing code-development SHA ${{ github.event.client_payload.sha }}"
-        git push -v origin code-staging
-
-        - name: Create PR using GitHub CLI
-          run: |
-            gh auth login --with-token <<< "${{ secrets.AUTH }}"
-            gh pr create --base main --head code-staging --title "Merge code-staging" --body "Merging changes from code-development commit ${{ github.event.client_payload.sha }}" --repo ${{ github.repository }} --draft
+       - name: Checkout code-staging and Apply Changes
+         run: |
+          git checkout code-staging
+      
+          # Copy changes from the temporary directory
+          cp -R ../temp_changes/* .
+      
+          # Add and commit the changes
+          git add .
+          git commit -m "Committing code-development SHA ${{ github.event.client_payload.sha }}"
+          git push -v origin code-staging
+      
+       - name: Create PR using GitHub CLI
+         run: |
+           gh auth login --with-token <<< "${{ secrets.AUTH }}"
+           gh pr create --base main --head code-staging --title "Merge code-staging" --body "Merging changes from code-development commit ${{ github.event.client_payload.sha }}" --repo ${{ github.repository }} --draft
