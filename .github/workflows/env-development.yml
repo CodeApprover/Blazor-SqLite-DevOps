@@ -71,14 +71,11 @@ jobs:
 
     - name: Push Commit to code-staging Branch
       run: |
-        development_path=$(find . -type d -name "development" -print -quit)
-        [[ -n "$development_path" ]] && mv "$development_path" "${development_path%/*}/staging" || { echo "No 'development' directory found!"; exit 1; }
-        
         git config --global user.name "CodeApprover"
         git config --global user.email "pucfada@pm.me@github.com"
         
         git checkout code-staging
-        git add . 
+        git add .
         git commit -m "Committing code-development SHA ${{ github.event.client_payload.sha }}"
         git push -v origin code-staging
 
