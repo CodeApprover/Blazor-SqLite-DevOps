@@ -73,7 +73,7 @@ jobs:
         elif [[ "${{ env.BRANCH_NAME }}" == "code-development" ]]; then
           ((DEVELOPMENT++))
         elif [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
-          ; # COMES FROM PRODUCTION
+          : # COMES FROM PRODUCTION
         else
           echo "Error: Unknown branch name."
           exit 1
