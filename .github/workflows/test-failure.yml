@@ -29,7 +29,7 @@ jobs:
       run: date
 
     - name: Get SHA of Commit
-      run: echo "SHA=${{ github.event.client_payload.sha }}" >> $GITHUB_ENV
+      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
