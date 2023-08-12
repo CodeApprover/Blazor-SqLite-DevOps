@@ -1,14 +1,17 @@
-name: Docker Deploy
+---
+name: Failure
+
+# All branches
 
 on:
-  repository_dispatch:
-    types: "trigger-docker-deploy"
-
-permissions:
-  pull-requests: write
-  deployments: write
-  contents: write
-  checks: read
+  workflow_run:
+    workflows:
+      - Report
+      - StyleCop Linter
+      - Development Tests
+      - Docker Deploy
+    types:
+      - complete
 
 jobs:
 
