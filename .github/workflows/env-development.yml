@@ -23,7 +23,7 @@ jobs:
         test_framework: [Nunit, Xunit]
 
     steps:
-    
+
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
@@ -56,12 +56,26 @@ jobs:
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
 
+  trigger-next-workflow:
+
+    name: Trigger Next Workflow
+    runs-on: ubuntu-latest
+    needs: dev-unit-tests
+    timeout-minutes: 15
+
+    steps:
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
+        fetch-depth: 0 # Fetch all
+
     - name: Trigger Appropriate Workflow
-      if: success()
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
         CMD+="-d '{\"event_type\": \"trigger-test-success\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
+        CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
         eval ${CMD}
