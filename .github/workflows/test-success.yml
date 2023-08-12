@@ -31,11 +31,11 @@ jobs:
       run: |
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
-        envirn=$(echo "${{ BRANCH_NAME }}" | sed 's#code-##')
-        echo "ENVIRN=${envirn}" >> $GITHUB_ENV
 
     - name: Increment version
       run: |
+        envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's#code-##') # Note the change here
+        echo "ENVIRN=${envirn}" >> $GITHUB_ENV
         declare -a VERSION=( $MAJOR $MINOR $PATCH )
         case "${{ env.ENVIRN }}" in
           "development") ((VERSION[2]++)) ;;
