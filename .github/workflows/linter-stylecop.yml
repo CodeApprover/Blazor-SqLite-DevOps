@@ -1,5 +1,5 @@
 ---
-name: "StyleCop"
+name: "StyleCop Linter"
 
 # All commits on all valid branches must pass StyleCop linting
 
