@@ -9,24 +9,39 @@ env:
   IS_LOCKED: false
 
 jobs:
-  build-and-push:
+  docker-job:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    steps:
-    - uses: github/branch-deploy@v7.2.0
-      id: branch-deploy
-      with:
-        trigger: ".deploy"
     
-    - name: Get SHA of Commit
-      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+    steps:
 
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
+        ref: ${{ github.event.client_payload.sha }}
+        fetch-depth: 0
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2.2.0
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    - name: Check if Docker image already exists
+      run: |
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ secrets.VERSION }} > /dev/null; then
+          echo "Docker image already exists! Exiting."
+          # exit 1 # TODO REMOVE LATER #
+        fi
+
+    - name: Check for .lock command
+      if: contains(steps.branch-deploy.outputs.command, '.lock')
+      run: echo "Deployments are locked! Exiting." && exit 1
+
+    - name: Enable Docker CLI experimental features
+      run: |
+        echo '{ "experimental": "enabled" }' | sudo tee /etc/docker/daemon.json
+        sudo service docker restart
 
     - name: Extract Branch Name from SHA Commit
       run: |
@@ -42,13 +57,9 @@ jobs:
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
 
-    - name: Check for .lock command
-      if: contains(steps.branch-deploy.outputs.command, '.lock')
-      run: echo "Deployments are locked! Exiting." && exit 1
-
     - name: Increment version
       run: |
-        declare -a VERSION=( $MAJOR $MINOR $PATCH )
+        declare -a ${{ secrets.VERSION }}=( $MAJOR $MINOR $PATCH )
         case "${{ env.ENV_NAME }}" in
           "development") ((VERSION[2]++)) ;;
           "staging") ((VERSION[1]++)) ;;
@@ -59,17 +70,10 @@ jobs:
         DEVELOPMENT=${VERSION[2]}
         echo "NEW_VERSION=${PRODUCTION}.${STAGING}.${DEVELOPMENT}" >> $GITHUB_ENV
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2.2.0
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-
     - name: Build and push Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.PROJ_NAME }}/Dockerfile" "./${{ env.PROJ_NAME }}"
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}
-        echo "Published ${{ env.SHA }} from ${{ env.BRANCH_NAME }} for the ${{ env.ENV_NAME }} environment to Dockerhub"
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
     - name: Set new version secret
       uses: hmanzur/actions-set-secret@v2.0.0
@@ -79,6 +83,58 @@ jobs:
         repository: ${{ github.repository }}
         token: ${{ secrets.AUTH }}
 
-    - name: Deploy
-      if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
-      run: echo "Deployed ${{ env.SHA }} from ${{ env.BRANCH_NAME }} to ${{ env.ENV_NAME }}"
+  deploy-job:
+
+    needs: docker-job
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+      - uses: github/branch-deploy@v7.2.0
+        id: branch-deploy
+        with:
+          trigger: ".deploy"
+
+      - name: Checkout SHA repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.event.client_payload.sha }}
+          fetch-depth: 0
+
+      - name: Determine Deploy Branch and Directory
+        run: |
+          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
+          deploy_branch="Invalid"
+          deploy_dir="."
+          case "${branch}" in
+            "code-development")
+              deploy_branch="code-staging"
+              deploy_dir="./code-development-in"
+              ;;
+            "code-staging")
+              deploy_branch="code-production"
+              deploy_dir="./code-production-in"
+              ;;
+            "code-production")
+              deploy_branch="main"
+              deploy_dir="."
+              ;;
+          esac
+          [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
+          echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
+          echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+
+      - name: Deploy
+        if: steps.branch-deploy.outputs.continue == 'true'
+        uses: nicholasgriffintn/github-branch-deployment-action@0.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH }}
+          BRANCH: ${{ env.DEPLOY_BRANCH }}
+          FOLDER: ${{ env.DEPLOY_DIR }}
+          MESSAGE: 'Deploy: ({sha}) {msg}'
+
+      - name: Notification
+        if: steps.branch-deploy.outputs.continue == 'true'
+        run: echo "Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
