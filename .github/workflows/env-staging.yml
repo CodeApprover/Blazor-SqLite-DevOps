@@ -1,7 +1,7 @@
 ---
 name: "Staging Tests"
 
-# code-staging
+# Staging Environment: code-staging
 
 on:
   workflow_run:
