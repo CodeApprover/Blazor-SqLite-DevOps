@@ -9,6 +9,8 @@ on:
       - Report
       - StyleCop Linter
       - Development Tests
+      - Staging Tests
+      - Production Tests
       - Docker Deploy
     types:
       - complete
