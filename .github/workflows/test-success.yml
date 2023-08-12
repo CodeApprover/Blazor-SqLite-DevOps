@@ -1,7 +1,7 @@
 name: Test Success
 
 on:
-  repository_disDEVELOPMENT:
+  repository_dispatch:
     types: trigger-test-success
 
 env:
