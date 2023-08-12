@@ -39,7 +39,7 @@ jobs:
     - name: Set Branch Name and Environment
       run: |
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
-        echo "BRANCH_NAME=${ref}" >> $GITHUB_ENV
+        echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
         envirn=$(echo "${{ BANCH_NAME }}" | sed 's#code-##')
         echo "ENVIRN=${envirn}" >> $GITHUB_ENV
 
