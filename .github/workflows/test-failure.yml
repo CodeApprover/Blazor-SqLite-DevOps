@@ -41,7 +41,7 @@ jobs:
 
     - name: Extract Branch Name from SHA Commit
       run: |
-        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        branch=$(git branch -r --contains ${{ env.SHA }} | sed -n 's#^ *origin/##p' | head -n 1)
         if [[ -z "$branch" ]]; then
           echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
           exit 1
