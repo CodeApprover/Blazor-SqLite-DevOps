@@ -5,9 +5,10 @@ name: Failure
 on:
   workflow_run:
     workflows:
-      - StyleCop
-      - CodeQL
-      - SuperLinter
+      - Report
+      - StyleCop Linter
+      - Development Tests
+      - Docker Deploy
     types:
       - complete
 
