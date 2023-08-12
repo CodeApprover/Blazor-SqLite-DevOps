@@ -2,13 +2,8 @@
 name: Test Success
 
 on:
-  workflow_run:
-    workflows:
-      - Development Tests
-      - Staging Tests
-      - Production Tests
-    types:
-      - success
+  repository_dispatch:
+    types: "trigger-test-success"
 
 jobs:
 
