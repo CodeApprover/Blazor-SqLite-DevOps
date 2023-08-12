@@ -1,4 +1,4 @@
-name: Docker Publish
+name: Docker Deploy
 
 on:
   repository_dispatch:
