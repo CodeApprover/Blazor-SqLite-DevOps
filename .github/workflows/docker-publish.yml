@@ -1,0 +1,68 @@
+name: Docker Publish
+
+on:
+  repository_dispatch:
+    types: "trigger-docker-publish"
+
+env:
+  PROJ_NAME: "Blazor SqlLite Golf Club"
+
+jobs:
+
+  build-and-push:
+  
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    
+    - name: Extract SHA for Checkout
+      run: |
+        echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Increment version
+      run: |
+        # Parse the major, minor, and patch version components
+        MAJOR="${{ secrets.VERSION%%.* }}"
+        MINOR_AND_PATCH="${{ secrets.VERSION#*. }}"
+        MINOR="${MINOR_AND_PATCH%%.* }}"
+        PATCH="${MINOR_AND_PATCH#*. }}"
+        
+        # Increment the patch version
+        NEW_PATCH=$((PATCH + 1))
+        
+        # Construct the new version string
+        NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+        
+        # Set the new version as an environment variable
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+    - name: Convert PROJ_NAME to Docker compatible name
+      run: |
+        DOCKER_NAME=$(echo "${{ env.PROJ_NAME }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+        echo "DOCKER_NAME=$DOCKER_NAME" >> $GITHUB_ENV
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@vv2.2.0
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_NAME }}:${{ env.NEW_VERSION }} -f "./${{ env.PROJ_NAME }}/Dockerfile" "./${{ env.PROJ_NAME }}"
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_NAME }}:${{ env.NEW_VERSION }}
+
+    - name: Set new version secret
+      uses: hmanzur/actions-set-secret@v2.0.0
+      with:
+        name: 'VERSION'
+        value: ${{ env.NEW_VERSION }}
+        repository: ${{ github.repository }}
+        token: ${{ secrets.AUTH }}
