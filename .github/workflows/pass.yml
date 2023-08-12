@@ -19,7 +19,7 @@ jobs:
   
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
     - uses: github/branch-deploy@v7.2.0
@@ -27,7 +27,7 @@ jobs:
       with:
         trigger: ".deploy"
 
-    - name: Get SHA of Failed Commit
+    - name: Get SHA of Commit
       run: echo "SHA=$(echo '${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
 
     - name: Checkout SHA repository
@@ -81,7 +81,6 @@ jobs:
         repository: ${{ github.repository }}
         token: ${{ secrets.AUTH }}
 
-    # Conditionally run deployment
     - name: Deploy
-      if: ${{ steps.branch-deploy.outputs.continue == 'true' && steps.branch-deploy.outputs.noop != 'true' }}
+      if: ${{ steps.branch-deploy.outputs.continue == 'true' }}
       run: echo "Deployed ${{ env.SHA }} from ${{ env.BRANCH_NAME }} to ${{ env.ENVIRN }} as ${{ env.DOCKER_NAME }}"
