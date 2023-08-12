@@ -53,22 +53,6 @@ jobs:
         echo "Job Name: ${{ github.job }}"
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
-        
-    - name: Determine Branch Name
-      run: |
-        ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
-        echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
-
-    - name: Check and Create Branch
-      run: |
-        BRANCH_EXISTS=$(git ls-remote --heads origin ${{ env.BRANCH_NAME }} | wc -l)
-        if [ "$BRANCH_EXISTS" -eq "0" ]; then
-          git checkout main
-          git stash
-          git pull origin main
-          git checkout -b ${{ env.BRANCH_NAME }}
-          git push origin ${{ env.BRANCH_NAME }}
-        fi
 
     - name: Trigger Stylecop Workflow
       if: success()
