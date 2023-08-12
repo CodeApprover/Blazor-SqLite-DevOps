@@ -60,21 +60,28 @@ jobs:
 
     - name: Increment version
       run: |
-        declare -a ${{ secrets.VERSION }}=( $MAJOR $MINOR $PATCH )
-        case "${{ env.ENV_NAME }}" in
-          "development") ((VERSION[2]++)) ;;
-          "staging") ((VERSION[1]++)) ;;
-          "production") ((VERSION[0]++)) ;;
-        esac
-        PRODUCTION=${VERSION[0]}
-        STAGING=${VERSION[1]}
-        DEVELOPMENT=${VERSION[2]}
-        echo "NEW_VERSION=${PRODUCTION}.${STAGING}.${DEVELOPMENT}" >> $GITHUB_ENV
-
-    - name: Build and push Docker image
-      run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
+        IFS='.' read -ra VERSION <<< "${{ secrets.VERSION }}" # split the version into its components
+        MAJOR=${VERSION[0]}
+        MINOR=${VERSION[1]}
+        PATCH=${VERSION[2]}
+    
+        # Increment version based on branch name
+        if [[ "${{ env.BRANCH_NAME }}" == "code-development" ]]; then
+          ((PATCH++))
+        elif [[ "${{ env.BRANCH_NAME }}" == "code-staging" ]]; then
+          ((MINOR++))
+        elif [[ "${{ env.BRANCH_NAME }}" == "code-production" ]] || [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
+          ((MAJOR++))
+        else
+          echo "Error: Unknown branch name."
+          exit 1
+        fi
+        echo "NEW_VERSION=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_ENV
+    
+        - name: Build and push Docker image
+          run: |
+            docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
+            docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
     - name: Set new version secret
       uses: hmanzur/actions-set-secret@v2.0.0
