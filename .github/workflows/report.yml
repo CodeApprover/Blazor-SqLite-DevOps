@@ -3,7 +3,7 @@ name: "Report"
 
 on:
   push:
-    branches: ["code-development", "code-production", "code-staging", "main"]
+    branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
   report:
