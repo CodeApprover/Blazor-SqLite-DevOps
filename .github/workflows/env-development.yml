@@ -55,13 +55,3 @@ jobs:
         CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
-     
-    - name: Trigger Docker Publish
-      if: success()
-      run: |
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
-        CMD+="-d '{\"event_type\": \"trigger-docker-deploy\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
-        eval ${CMD}
