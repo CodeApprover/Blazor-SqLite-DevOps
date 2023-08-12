@@ -25,11 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    if: >
-      (github.event.workflow_run.conclusion != 'success' &&
-      github.ref == 'refs/heads/code-development' ||
-      github.ref == 'refs/heads/code-staging' ||
-      github.ref == 'refs/heads/code-production')
+    if: github.event.workflow_run.conclusion != 'success'
 
     steps:
 
