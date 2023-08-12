@@ -40,7 +40,7 @@ jobs:
       run: |
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
-        envirn=$(echo "${{ BANCH_NAME }}" | sed 's#code-##')
+        envirn=$(echo "${{ BRANCH_NAME }}" | sed 's#code-##')
         echo "ENVIRN=${envirn}" >> $GITHUB_ENV
 
     - name: Increment version
