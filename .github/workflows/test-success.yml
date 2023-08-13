@@ -60,7 +60,7 @@ jobs:
 
     - name: Find and read version from file
       run: |
-        VERSION_FILE_PATH=$(find "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/$(echo "code-development" | sed 's/^code-//')" -name "version")
+        VERSION_FILE_PATH=$(find ./${{ env.ENV_NAME }} -name "version")
         VERSION=$(head -n 1 $VERSION_FILE_PATH)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
     
