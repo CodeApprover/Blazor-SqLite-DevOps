@@ -58,6 +58,12 @@ jobs:
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
 
+    - name: Find and read version from file
+      run: |
+        VERSION_FILE_PATH=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name version")
+        VERSION=$(head -n 1 $VERSION_FILE_PATH)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+    
     - name: Increment version
       env:
         VERSION: ${{ secrets.VERSION }}
