@@ -1,0 +1,54 @@
+is_global = true
+build_property.TargetFramework = net7.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = Blazor_SqlLite_Golf_Club
+build_property.RootNamespace = Blazor_SqlLite_Golf_Club
+build_property.ProjectDir = C:\Users\404bo\Desktop\Blazor-SqLite-DevOps\development\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club\
+build_property.EnableComHosting = 
+build_property.RazorLangVersion = 7.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\404bo\Desktop\Blazor-SqLite-DevOps\development\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club
+build_property._RazorSourceGeneratorDebug = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/stylecop.json]
+build_metadata.AdditionalFiles.TargetPath = 
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Pages/FetchData.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRmV0Y2hEYXRhLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Pages/Tools.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVG9vbHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-96umg5fh7b
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/404bo/Desktop/Blazor-SqLite-DevOps/development/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

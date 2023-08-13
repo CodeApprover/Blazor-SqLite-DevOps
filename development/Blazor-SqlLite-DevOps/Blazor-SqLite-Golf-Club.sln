@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33414.496
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blazor SqlLite Golf Club", "Blazor SqlLite Golf Club\Blazor SqlLite Golf Club.csproj", "{15A908C3-B050-4174-87A5-B8C83F5D66E1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blazor-SqLite-Golf-Club", "Blazor-SqLite-Golf-Club\Blazor-SqLite-Golf-Club.csproj", "{15A908C3-B050-4174-87A5-B8C83F5D66E1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xunit_Game_Unit_Tests", "..\Xunit_Game_Unit_Tests\Xunit_Game_Unit_Tests.csproj", "{21D68F07-25A5-42CF-8567-B2AB2718C1C7}"
 EndProject
