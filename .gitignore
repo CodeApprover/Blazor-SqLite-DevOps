@@ -6,3 +6,4 @@ tests/StyleCop_CSharp_Linting/bin/
 tests/StyleCop_CSharp_Linting/obj/
 tests/Xunit_Game_Unit_Tests/bin/
 tests/Xunit_Game_Unit_Tests/obj/
+development\Blazor-SqLite-Golf-Club\Database\database.db  
