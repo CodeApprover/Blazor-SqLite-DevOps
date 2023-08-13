@@ -1,0 +1,401 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Blazor-SqLite-Golf-Club</name>
+    </assembly>
+    <members>
+        <member name="T:Blazor_SqLite_Golf_Club.Data.WeatherForecast">
+            <summary>
+            Represents a weather forecast with date, temperature, and summary.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Data.WeatherForecast.Date">
+            <summary>
+            Gets or sets the date of the weather forecast.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Data.WeatherForecast.TemperatureC">
+            <summary>
+            Gets or sets the temperature in Celsius for the weather forecast.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Data.WeatherForecast.TemperatureF">
+            <summary>
+            Gets the temperature in Fahrenheit for the weather forecast.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Data.WeatherForecast.Summary">
+            <summary>
+            Gets or sets the summary of the weather forecast.
+            </summary>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Data.WeatherForecastService">
+            <summary>
+            Provides weather forecast data.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Data.WeatherForecastService.GetForecastAsync(System.DateOnly)">
+            <summary>
+            Gets the weather forecast asynchronously for the specified start date.
+            </summary>
+            <param name="startDate">The start date for the weather forecast.</param>
+            <returns>An array of weather forecast data.</returns>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext">
+            <summary>
+            Represents the database context for the Golf Club application.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext.#ctor(Microsoft.EntityFrameworkCore.DbContextOptions,System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext"/> class.
+            </summary>
+            <param name="options">The options used to configure the database context.</param>
+            <param name="useInMemoryDatabase">Indicates whether to use an in-memory database (optional).</param>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext.Players">
+            <summary>
+            Gets or sets the database Players.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext.Games">
+            <summary>
+            Gets or sets the database Games.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.DbContext.DatabaseContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder)">
+            <summary>
+            Configures database context options for SQLite.
+            </summary>
+            <param name="optionsBuilder">The options builder used to configure the context.</param>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Models.Game">
+            <summary>
+                Represents a golf game played by members of the golf club.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.GameId">
+            <summary>
+                Gets or sets the unique identifier of the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.Captain">
+            <summary>
+                Gets or sets the captain's player ID for the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.Player2">
+            <summary>
+                Gets or sets the second player's player ID for the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.Player3">
+            <summary>
+                Gets or sets the third player's player ID for the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.Player4">
+            <summary>
+                Gets or sets the fourth player's player ID for the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.GameTime">
+            <summary>
+                Gets or sets the date and time of the game.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Game.GameCard">
+            <summary>
+                Gets or sets the game card for the game.
+            </summary>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Models.Player">
+            <summary>
+                Represents a player in the golf club.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.PlayerId">
+            <summary>
+                Gets or sets the player's unique identifier.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.Firstname">
+            <summary>
+                Gets or sets the player's first name.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.Surname">
+            <summary>
+                Gets or sets the player's surname.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.Email">
+            <summary>
+                Gets or sets the player's email address.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.Gender">
+            <summary>
+                Gets or sets the player's gender.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Models.Player.Handicap">
+            <summary>
+                Gets or sets the player's handicap.
+            </summary>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Pages.ErrorModel">
+            <summary>
+            Represents the model for the error page.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.ErrorModel.#ctor(Microsoft.Extensions.Logging.ILogger{Blazor_SqLite_Golf_Club.Pages.ErrorModel})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Blazor_SqLite_Golf_Club.Pages.ErrorModel"/> class.
+            </summary>
+            <param name="logger">The logger used for logging.</param>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Pages.ErrorModel.RequestId">
+            <summary>
+            Gets or sets the request ID for the error.
+            </summary>
+        </member>
+        <member name="P:Blazor_SqLite_Golf_Club.Pages.ErrorModel.ShowRequestId">
+            <summary>
+            Gets a value indicating whether to show the request ID.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.ErrorModel.OnGet">
+            <summary>
+            Called when the error page is requested.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Index.OnInitializedAsync">
+            <summary>
+                Initializes the component.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Index.Refresh">
+            <summary>
+                Refreshes the player and game data.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Index.Create(System.Object)">
+            <summary>
+                Creates a new Player or a new Game in the database.
+            </summary>
+            <param name="model"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Index.Edit(System.Object)">
+            <summary>
+                Updates an existing player in the database.
+            </summary>
+            <param name="model"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Index.Delete(System.Object)">
+            <summary>
+                Removes a player or game from the database.
+            </summary>
+            <param name="model"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.OnInitializedAsync">
+            <summary>
+                Initializes the component.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.Refresh">
+            <summary>
+                Refreshes the player and game data.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.LoadGameCards(System.Int32)">
+            <summary>
+                Loads the game cards for the selected player.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.OnAfterRenderAsync(System.Boolean)">
+            <summary>
+                Overrides OnAfterRenderAsync to load game cards for the specified player.
+            </summary>
+            <param name="firstRender">A bool representing whether the component is being rendered for the first time.</param>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.OnDropdownChanged(System.Object)">
+            <summary>
+                Handler for Query dropdown selection change
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetAllPlayers">
+            <summary>
+                Displays all players in the golf club
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetAllGames">
+            <summary>
+                Displays all active golf club games
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetMaleGenderPlayers">
+            <summary>
+                Displays male gender members.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetFemaleGenderPlayers">
+            <summary>
+                Displays female gender members.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetOtherGenderPlayers">
+            <summary>
+                Displays other gender members.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetHandicapsUnder10">
+            <summary>
+                Displays members with a handicap under 10.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetHandicapsAbove20">
+            <summary>
+                Displays members with a handicap above 20.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Pages.Tools.GetHandicapsFrom11To20">
+            <summary>
+                Displays members with a handicap from 11 to 20.
+            </summary>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Services.GameService">
+            <summary>
+                Provides functionality to manage games in the database.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.#ctor(Blazor_SqLite_Golf_Club.DbContext.DatabaseContext)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Blazor_SqLite_Golf_Club.Services.GameService"/> class.
+                Initialises database connection.
+            </summary>
+            <param name="databaseContext">The database connection.</param>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.Create(Blazor_SqLite_Golf_Club.Models.Game)">
+            <summary>
+                Creates a new game in the database.
+            </summary>
+            <param name="game">The game to create.</param>
+            <returns>A string representing the game card for the new game.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.Edit(Blazor_SqLite_Golf_Club.Models.Game)">
+            <summary>
+                Edits an existing game in the database.
+            </summary>
+            <param name="game">The game to edit.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the asynchronous operation.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.Delete(Blazor_SqLite_Golf_Club.Models.Game)">
+            <summary>
+                Deletes a game from the database.
+            </summary>
+            <param name="game">The game to be deleted.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the asynchronous operation.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.GetAll">
+            <summary>
+                Returns a list of all games from the database.
+            </summary>
+            <returns>A Task List of Game objects.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.GameCard(Blazor_SqLite_Golf_Club.Models.Game)">
+            <summary>
+                Generates a game card with details of the specified game.
+            </summary>
+            <param name="game">The game for which to generate a card.</param>
+            <returns>A Task string containing the game card.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.GameService.SortTables(System.String)">
+            <summary>
+                Sorts the list of games in ascending or descending order based on the specified column.
+            </summary>
+            <param name="column">The column to sort by.</param>
+            <returns>
+                A Task List of Game objects sorted by column.
+            </returns>
+        </member>
+        <member name="T:Blazor_SqLite_Golf_Club.Services.PlayerService">
+            <summary>
+                Provides operations related to player data in the Golf Club application.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.#ctor(Blazor_SqLite_Golf_Club.DbContext.DatabaseContext)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Blazor_SqLite_Golf_Club.Services.PlayerService"/> class.
+                Initialises database connection.
+            </summary>
+            <param name="databaseContext">The database connection.</param>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.Create(Blazor_SqLite_Golf_Club.Models.Player)">
+            <summary>
+                Creates a new player and adds them to the database.
+            </summary>
+            <param name="player">The new player to be added to the database.</param>
+            <returns>A message indicating whether the player was successfully added or not.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.Edit(Blazor_SqLite_Golf_Club.Models.Player,Blazor_SqLite_Golf_Club.Services.GameService)">
+            <summary>
+                Updates an existing player in the database.
+            </summary>
+            <param name="player">The player to be updated.</param>
+            <param name="gameService">Service object for manipluating games.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the asynchronous operation.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.Delete(Blazor_SqLite_Golf_Club.Models.Player)">
+            <summary>
+                Deletes an existing player from the database.
+            </summary>
+            <param name="player">The player to be deleted.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.Task"/> representing the asynchronous operation.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.GetAll">
+            <summary>
+                Retrieves all players from the database.
+            </summary>
+            <returns>A list of all players in the database, or null if the operation fails.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.SortTables(System.String)">
+            <summary>
+                Sorts the list of players in the database by the specified column.
+            </summary>
+            <param name="column">The column to sort by.</param>
+            <returns>
+                A list of players sorted by the specified column, or the unsorted list if the column is invalid or the
+                operation fails.
+            </returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.IsValidString(System.String)">
+            <summary>
+                Determines if the specified string is a valid name.
+            </summary>
+            <param name="name">The name to validate.</param>
+            <returns>True if the first name or surname is valid, false otherwise.</returns>
+        </member>
+        <member name="M:Blazor_SqLite_Golf_Club.Services.PlayerService.IsValidEmail(System.String)">
+            <summary>
+                Determines if the specified email address is valid.
+            </summary>
+            <param name="email">The email address to validate.</param>
+            <returns>True if the email address is valid, false otherwise.</returns>
+        </member>
+        <member name="T:Blazor_SqlLite_Golf_Club.Program">
+            <summary>
+            The main entry point for the Golf Club application.
+            </summary>
+        </member>
+        <member name="M:Blazor_SqlLite_Golf_Club.Program.Main(System.String[])">
+            <summary>
+            The main method that serves as the entry point for the application.
+            </summary>
+            <param name="args">The command-line arguments.</param>
+        </member>
+    </members>
+</doc>

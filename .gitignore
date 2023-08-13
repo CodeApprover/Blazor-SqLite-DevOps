@@ -1,46 +1,8 @@
-# Ignore all workflows including this
-# /.github/workflows/
 
-# Ignore Visual Studio Code settings directory
-/.vscode/
-/.vs/
-/development/Blazor-SqlLite-DevOps/.vs/
-/staging/Blazor-SqlLite-DevOps/.vs/
-/production/Blazor-SqlLite-DevOps/.vs/
-/tests/Nunit_Player_Unit_Tests/.vs/
-/tests/MSTest_Integration_Tests/.vs/
-/tests/Xunit_Game_Unit_Tests/.vs/
-/tests/StyleCop_CSharp_Linting/.vs/
 
-# Ignore databases
-/development/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/
-/staging/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/
-/production/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/
-
-# Except these database files
-!/development/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/database.db
-!/staging/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/database.db
-!/production/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Database/database.db
-
-# Ignore bin and obj directories
-/tests/MSTest_Integration_Tests/bin/
-/tests/MSTest_Integration_Tests/obj/
-/tests/Nunit_Player_Unit_Tests/bin/
-/tests/Nunit_Player_Unit_Tests/obj/
-/tests/StyleCop_CSharp_Linting/bin/
-/tests/StyleCop_CSharp_Linting/obj/
-/tests/Xunit_Game_Unit_Tests/bin/
-/tests/Xunit_Game_Unit_Tests/obj/
-
-# Include these obj and bin files for building artifacts
-!development/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/bin/
-!development/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/obj/
-!/staging/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/bin/
-!/staging/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/obj/
-!/production/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/bin/
-!/production/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/obj/
-
-# Ignore specific files
-/development/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.user
-/staging/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.user
-/production/Blazor-SqlLite-DevOps/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.user
+tests/Nunit_Player_Unit_Tests/bin/
+tests/Nunit_Player_Unit_Tests/obj/
+tests/StyleCop_CSharp_Linting/bin/
+tests/StyleCop_CSharp_Linting/obj/
+tests/Xunit_Game_Unit_Tests/bin/
+tests/Xunit_Game_Unit_Tests/obj/
