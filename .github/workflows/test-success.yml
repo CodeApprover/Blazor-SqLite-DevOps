@@ -65,8 +65,6 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
     
     - name: Increment version
-      env:
-        VERSION: ${{ secrets.VERSION }}
       run: |
         echo "PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)" >> $GITHUB_ENV
         echo "STAGING=$(echo "$VERSION" | cut -d'.' -f2)" >> $GITHUB_ENV
