@@ -1,6 +1,6 @@
 namespace Xunit_Game_Unit_Tests
 {
-    using Blazor_SqlLite_Golf_Club.Models;
+    using Blazor_SqLite_Golf_Club.Models;
     using System.ComponentModel.DataAnnotations;
 
     public class Xunit_Game_Unit_Tests

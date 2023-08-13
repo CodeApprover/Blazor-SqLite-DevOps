@@ -2,7 +2,7 @@
 // Copyright (c) CodeApprover. All rights reserved.
 // </copyright>
 
-namespace Blazor_SqlLite_Golf_Club
+namespace Blazor_SqLite_Golf_Club
 {
     using Blazor_SqLite_Golf_Club.Data;
     using Blazor_SqLite_Golf_Club.DbContext;

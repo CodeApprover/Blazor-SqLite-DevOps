@@ -21,15 +21,17 @@ namespace StyleCop_CSharp_Linting
         [TestMethod]
         public void TestLintingSuccess()
         {
-            // Set the root path of your main project
-            var mainProjectFilePath = @"..\..\..\..\Blazor-SqlLite-DevOps\Blazor SqlLite Golf Club";
-            mainProjectFilePath = Path.Combine(mainProjectFilePath, "Blazor SqlLite Golf Club.csproj");
 
             // Display where the cmd will navigate to
+            var mainProjectFilePath = "..\\..\\..\\..\\..\\" +
+                "development\\Blazor-SqLite-Golf-Club\\Blazor-SqLite-Golf-Club.csproj";
             Console.WriteLine($"Navigating to: {mainProjectFilePath}");
 
             // Execute build command on the main project
-            var buildCommand = $"dotnet build \"{Path.GetFullPath(mainProjectFilePath)}\"";
+            var buildCommand = $"dotnet build \"{Path.GetFullPath(mainProjectFilePath)}\" "
+                + "/p:StyleCopEnabled=true"
+                + "/p:StyleCopTreatErrorsAsWarnings=false"
+                + "/p:StyleCopForceFullAnalysis=false";
 
             var processInfo = new ProcessStartInfo
             {

@@ -1,12 +1,17 @@
-development/Blazor-SqLite-Golf-Club/.vs/
-
+development/Blazor-SqLite-Golf-Club/Database/
 !/development/Blazor-SqLite-Golf-Club/Database/database.db
 !/development/Blazor-SqLite-Golf-Club/Database/database-orig.db
-development/Blazor-SqLite-Golf-Club/Database/
 
+development/Blazor-SqLite-Golf-Club/bin/
+development/Blazor-SqLite-Golf-Club/obj/
 tests/Nunit_Player_Unit_Tests/bin/
 tests/Nunit_Player_Unit_Tests/obj/
 tests/StyleCop_CSharp_Linting/bin/
 tests/StyleCop_CSharp_Linting/obj/
 tests/Xunit_Game_Unit_Tests/bin/
 tests/Xunit_Game_Unit_Tests/obj/
+
+development/Blazor-SqLite-Golf-Club/.vs/
+tests/StyleCop_CSharp_Linting/.vs/
+tests/Xunit_Game_Unit_Tests/.vs/
+tests/Nunit_Player_Unit_Tests/.vs/
