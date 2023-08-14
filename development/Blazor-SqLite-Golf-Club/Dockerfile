@@ -8,13 +8,13 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 COPY ["Blazor-SqLite-Golf-Club.csproj", "."]
-RUN dotnet restore "./Blazor-SqLite-Golf-Club.csproj"
+RUN dotnet restore "./development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "Blazor-SqLite-Golf-Club.csproj" -c Release -o /app/build
+RUN dotnet build "./development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Blazor-SqLite-Golf-Club.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
