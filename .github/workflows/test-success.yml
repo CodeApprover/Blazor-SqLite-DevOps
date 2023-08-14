@@ -56,7 +56,7 @@ jobs:
 
     - name: Use VERSION
       run: |
-        echo "The version is: v${{ env.VERSION }}"
+        echo "The version is: v${{ vars.VERSION }}"
         echo "VERSION=$VERSION" >> $GITHUB_ENV
     
     - name: Set version number
