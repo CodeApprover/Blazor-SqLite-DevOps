@@ -34,9 +34,12 @@ jobs:
           exit 1
         fi
 
-    - name: Check for .lock command
-      if: contains(steps.branch-deploy.outputs.command, '.lock')
-      run: echo "Deployments are locked! Exiting." && exit 1
+    - name: Check for .lock file
+      run: |
+        if [[ -e ".lock" ]]; then
+          echo "Found .lock file! Deployments are locked! Exiting."
+          exit 1
+        fi
 
     - name: Enable Docker Experimental Features
       run: |
@@ -44,14 +47,11 @@ jobs:
         sudo systemctl restart docker
         docker version
 
-    - name: Extract SHA for Checkout
-      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
-
     - name: Extract Branch Name from SHA Commit
       run: |
-        branch=$(git branch -r --contains ${{ env.SHA }} | sed -n 's#^ *origin/##p' | head -n 1)
+        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
         if [[ -z "$branch" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
           exit 1
         fi
         echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
@@ -94,7 +94,7 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./"
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
   deploy-job:
