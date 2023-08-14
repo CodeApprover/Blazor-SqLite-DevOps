@@ -1,0 +1,13 @@
+{
+	"value": "value",
+	"VERSION": [{
+		"DEVELOPMENT": "0",
+		"STAGING": "2",
+		"PRODUCTION": "1"
+	}],
+	"SHA": {
+		"DEVELOPMENT": "D98HFHG9897765",
+		"STAGING": "S656757HKK4FD6",
+		"PRODUCTION": "P765BCBVC56767"
+	}
+}
