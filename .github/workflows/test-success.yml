@@ -54,13 +54,12 @@ jobs:
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
 
-    - name: Find and read version from file
+    - name: Use VERSION
       run: |
-        VERSION_FILE_PATH=$(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)
-        VERSION=$(head -n 1 $VERSION_FILE_PATH)
+        echo "The version is: v${{ env.VERSION }}"
         echo "VERSION=$VERSION" >> $GITHUB_ENV
     
-    - name: Increment version
+    - name: Set version number
       run: |
         PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
         STAGING=$(echo "$VERSION" | cut -d'.' -f2)
@@ -92,8 +91,15 @@ jobs:
           exit 1
         fi
 
+    - name: Set .csproj path
+      run: |
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+    
+
     - name: Build and push Docker image
       run: |
+        sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g"
         docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
