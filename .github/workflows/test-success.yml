@@ -89,15 +89,20 @@ jobs:
     - name: Set .csproj path
       run: |
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
-        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-        echo $CSPROJ
-        echo "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj"
+        if [[ ! -f "$CSPROJ" ]]; then
+          echo "csproj not found"
+          exit 1
+        fi
+        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
     
     - name: Build and push Docker image
       run: |
         docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
-        sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g" "$docker_file"
-        cat $docker_file
+        if [[ ! -f "$docker_file" ]]; then
+          echo "Dockerfile not found"
+          exit 1
+        fi
+        #sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g" "$docker_file"
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
