@@ -1,0 +1,66 @@
+---
+name: "Deploy SHA to Environment"
+
+on:
+  repository_dispatch:
+    types: "trigger-git-deploy"
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+
+jobs:
+
+  deploy-to-environment:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+      - uses: github/branch-deploy@v7.2.0
+        id: branch-deploy
+        with:
+          trigger: ".deploy"
+
+      - name: Checkout SHA repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.event.client_payload.sha }}
+          fetch-depth: 0
+
+      - name: Determine Deploy Branch and Directory
+        run: |
+          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
+          deploy_branch="Invalid"
+          deploy_dir="."
+          case "${branch}" in
+            "code-development")
+              deploy_branch="code-staging"
+              deploy_dir="./code-development-in"
+              ;;
+            "code-staging")
+              deploy_branch="code-production"
+              deploy_dir="./code-production-in"
+              ;;
+            "code-production")
+              deploy_branch="main"
+              deploy_dir="."
+              ;;
+          esac
+          [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
+          echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
+          echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+
+      - name: Deploy
+        if: steps.branch-deploy.outputs.continue == 'true'
+        uses: nicholasgriffintn/github-branch-deployment-action@0.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.AUTH }}
+          BRANCH: ${{ env.DEPLOY_BRANCH }}
+          FOLDER: ${{ env.DEPLOY_DIR }}
+          MESSAGE: 'Deploy: ({sha}) {msg}'
+
+      - name: Notification
+        if: steps.branch-deploy.outputs.continue == 'true'
+        run: echo "Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
