@@ -88,7 +88,7 @@ jobs:
 
     - name: Set .csproj path
       run: |
-        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        CSPROJ=$(find "${{ github.workspace }}/${{ env.ENV_NAME }}" -name "${{ env.PROJ_NAME }}.csproj")
         if [[ ! -f "$CSPROJ" ]]; then
           echo "csproj not found"
           exit 1
@@ -102,7 +102,8 @@ jobs:
           echo "Dockerfile not found"
           exit 1
         fi
-        #sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g" "$docker_file"
+        cd ${{ github.workspace }}/${{ env.ENV_NAME }}"/${{ env.PROJ_NAME }}/
+        ls ./* 
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
