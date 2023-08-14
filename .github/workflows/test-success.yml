@@ -9,7 +9,7 @@ env:
   DOCKER_REPO: "blazor-sqlite-devops"
 
 jobs:
-  docker-job:
+  save-docker-image:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
@@ -53,40 +53,43 @@ jobs:
       run: |
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
+           
+    - name: Read JSON variables
+      uses: rgarcia-phi/json-to-variables@v1.1.0
+      with:
+        filename: 'version.json'
+        prefix: version
+        masked: true
 
-    - name: Use VERSION
-      run: |
-        echo "The version is: v${{ vars.VERSION }}"
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
-    
     - name: Set version number
       run: |
-        PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
-        STAGING=$(echo "$VERSION" | cut -d'.' -f2)
-        DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
-        
-        case "$ENV_NAME" in
-          "production")
-            PRODUCTION=$((PRODUCTION + 1))
+        development_version=${{ env.environment_development }}
+        staging_version=${{ env.environment_staging }}
+        production_version=${{ env.environment_production }}
+
+        case "${{ env.ENV_NAME }}" in
+          "development")
+            development_version=$((development_version + 1))
             ;;
           "staging")
-            STAGING=$((STAGING + 1))
+            staging_version=$((staging_version + 1))
             ;;
-          "development")
-            DEVELOPMENT=$((DEVELOPMENT + 1))
+          "production")
+            production_version=$((production_version + 1))
+            ;;
+          "main")
+            # Do nothing for main
+            ;;
+          *)
+            echo "Invalid environment"
+            exit 1
             ;;
         esac
+        echo "VERSION=${development_version}.${staging_version}.${production_version}" >> $GITHUB_ENV
         
-        NEW_VERSION="$PRODUCTION.$STAGING.$DEVELOPMENT"
-        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-
-    - name: Write new version number to file
-      run: |
-        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)
-
     - name: Check if Docker image already exists
       run: |
-        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.VERSION }} > /dev/null; then
           echo "Docker image already exists! Exiting."
           exit 1
         fi
@@ -96,17 +99,19 @@ jobs:
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
     
-
     - name: Build and push Docker image
       run: |
         docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
         sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g" "$docker_file"
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.VERSION }} -f "${docker_file}" "${{ github.workspace }}"
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.VERSION }}"
 
-  deploy-job:
+    
 
-    needs: docker-job
+
+  deploy-to-environment:
+
+    needs: save-docker-image
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
