@@ -5,7 +5,8 @@ on:
     types: trigger-test-success
 
 env:
-  DOCKER_REPO: blazor-sqlite-devops
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  DOCKER_REPO: "Blazor-SqLite-DevOps"
 
 jobs:
   docker-job:
@@ -30,7 +31,7 @@ jobs:
       run: |
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ secrets.VERSION }} > /dev/null; then
           echo "Docker image already exists! Exiting."
-          # exit 1 # TODO REMOVE LATER #
+          exit 1
         fi
 
     - name: Check for .lock command
@@ -42,6 +43,9 @@ jobs:
         echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
         sudo systemctl restart docker
         docker version
+
+    - name: Extract SHA for Checkout
+      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
     - name: Extract Branch Name from SHA Commit
       run: |
@@ -59,7 +63,8 @@ jobs:
 
     - name: Find and read version from file
       run: |
-        VERSION=$(head -n 1 $(find ./${{ env.ENV_NAME }} -name "version"))
+        VERSION_FILE_PATH=$(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)
+        VERSION=$(head -n 1 $VERSION_FILE_PATH)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
     
     - name: Increment version
@@ -67,24 +72,29 @@ jobs:
         PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
         STAGING=$(echo "$VERSION" | cut -d'.' -f2)
         DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
+        
         case "$ENV_NAME" in
           "production")
             PRODUCTION=$((PRODUCTION + 1))
             ;;
           "staging")
             STAGING=$((STAGING + 1))
-            PATCH=0
             ;;
           "development")
             DEVELOPMENT=$((DEVELOPMENT + 1))
             ;;
         esac
-        echo "NEW_VERSION=$MAJOR.$MINOR.$PATCH" >> $GITHUB_ENV
-        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version")
+        
+        NEW_VERSION="$PRODUCTION.$STAGING.$DEVELOPMENT"
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+    - name: Write version to file
+      run: |
+        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)
 
     - name: Build and push Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
   deploy-job:
