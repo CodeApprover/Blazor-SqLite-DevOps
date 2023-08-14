@@ -95,9 +95,7 @@ jobs:
       run: |
         docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
         sed -i "s|COPY \[\"Blazor-SqLite-Golf-Club.csproj\", \".\"\]|COPY [\"$CSPROJ\", \".\"]|g" "$docker_file"
-        echo.
         cat $docker_file
-        echo.
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
