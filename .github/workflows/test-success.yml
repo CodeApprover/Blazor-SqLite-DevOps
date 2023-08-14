@@ -59,36 +59,33 @@ jobs:
 
     - name: Find and read version from file
       run: |
-        VERSION_FILE_PATH=$(find ./${{ env.ENV_NAME }} -name "version")
-        VERSION=$(head -n 1 $VERSION_FILE_PATH)
+        VERSION=$(head -n 1 $(find ./${{ env.ENV_NAME }} -name "version"))
         echo "VERSION=$VERSION" >> $GITHUB_ENV
-        echo "Version = v$VERSION"
     
     - name: Increment version
       run: |
-        echo "PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)" >> $GITHUB_ENV
-        echo "STAGING=$(echo "$VERSION" | cut -d'.' -f2)" >> $GITHUB_ENV
-        echo "DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)" >> $GITHUB_ENV
-        declare -a VERSION=( $PRODUCTION $STAGING $DEVELOPMENT )
-        case "${{ env.ENV_NAME }}" in
-          "production") ((VERSION[0]++)) ;;
-          "staging") ((VERSION[1]++)) ;;
-          "development") ((VERSION[2]++)) ;;
+        PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
+        STAGING=$(echo "$VERSION" | cut -d'.' -f2)
+        DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
+        case "$ENV_NAME" in
+          "production")
+            PRODUCTION=$((PRODUCTION + 1))
+            ;;
+          "staging")
+            STAGING=$((STAGING + 1))
+            PATCH=0
+            ;;
+          "development")
+            DEVELOPMENT=$((DEVELOPMENT + 1))
+            ;;
         esac
-        echo "NEW_VERSION=$VERSION[0].$VERSION[1].$VERSION[2]" >> $GITHUB_ENV
-    
+        echo "NEW_VERSION=$MAJOR.$MINOR.$PATCH" >> $GITHUB_ENV
+        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version")
+
     - name: Build and push Docker image
       run: |
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "./${{ env.DOCKER_REPO }}/Dockerfile" "./${{ env.DOCKER_REPO }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
-
-    - name: Set new version secret
-      uses: hmanzur/actions-set-secret@v2.0.0
-      with:
-        name: 'VERSION'
-        value: ${{ env.NEW_VERSION }}
-        repository: ${{ github.repository }}
-        token: ${{ secrets.AUTH }}
 
   deploy-job:
 
