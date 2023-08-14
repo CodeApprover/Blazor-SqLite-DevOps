@@ -102,8 +102,7 @@ jobs:
           echo "Dockerfile not found"
           exit 1
         fi
-        ls ${{ github.workspace }}
-        ls .
+        echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
