@@ -102,8 +102,8 @@ jobs:
           echo "Dockerfile not found"
           exit 1
         fi
-        cd ${{ github.workspace }}/${{ env.ENV_NAME }}"/${{ env.PROJ_NAME }}/
-        ls ./* 
+        ls ${{ github.workspace }}
+        ls .
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
