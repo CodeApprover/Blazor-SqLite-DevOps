@@ -27,13 +27,6 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-    - name: Check if Docker image already exists
-      run: |
-        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ secrets.VERSION }} > /dev/null; then
-          echo "Docker image already exists! Exiting."
-          exit 1
-        fi
-
     - name: Check for .lock file
       run: |
         if [[ -e ".lock" ]]; then
@@ -88,9 +81,16 @@ jobs:
         NEW_VERSION="$PRODUCTION.$STAGING.$DEVELOPMENT"
         echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
-    - name: Write version to file
+    - name: Write new version number to file
       run: |
         echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)
+
+    - name: Check if Docker image already exists
+      run: |
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
+          echo "Docker image already exists! Exiting."
+          exit 1
+        fi
 
     - name: Build and push Docker image
       run: |
