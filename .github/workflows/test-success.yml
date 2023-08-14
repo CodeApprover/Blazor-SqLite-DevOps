@@ -6,7 +6,6 @@ on:
 
 env:
   DOCKER_REPO: blazor-sqlite-devops
-  IS_LOCKED: false
 
 jobs:
   docker-job:
@@ -63,6 +62,7 @@ jobs:
         VERSION_FILE_PATH=$(find ./${{ env.ENV_NAME }} -name "version")
         VERSION=$(head -n 1 $VERSION_FILE_PATH)
         echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Version = v$VERSION"
     
     - name: Increment version
       run: |
