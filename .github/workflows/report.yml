@@ -67,7 +67,7 @@ jobs:
         CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
         
         #CMD+="-d '{\"event_type\": \"trigger-stylecop\", " # TODO REINSATATE
-        CMD+="-d '{\"event_type\": \"trigger-git-deploy\", " # TODO REMOVE
+        CMD+="-d '{\"event_type\": \"trigger-deploy-docker\", " # TODO REMOVE
         
         CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
         eval ${CMD}
