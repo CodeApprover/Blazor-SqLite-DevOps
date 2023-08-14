@@ -1,8 +1,8 @@
-name: Test Success
+name: Deploy Docker Image
 
 on:
   repository_dispatch:
-    types: trigger-test-success
+    types: trigger-deploy-docker
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
@@ -80,10 +80,13 @@ jobs:
         echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
        
     - name: Check if Docker image already exists
+      id: check_image
       run: |
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
-          echo "Docker image already exists! Exiting."
-          exit 1
+          echo "::set-output name=image_exists::true"
+          echo "Docker image already exists!"
+        else
+          echo "::set-output name=image_exists::false"
         fi
 
     - name: Set .csproj path
@@ -94,8 +97,14 @@ jobs:
           exit 1
         fi
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-    
+
+    - name: Write version to file
+      if: steps.check_image.outputs.image_exists == 'false'
+      run: |
+        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)    
+  
     - name: Build and push Docker image
+      if: steps.check_image.outputs.image_exists == 'false'
       run: |
         docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
         if [[ ! -f "$docker_file" ]]; then
@@ -106,62 +115,12 @@ jobs:
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
 
-    - name: Write version to file
+    - name: Trigger Git Deployment
+      if: success()
       run: |
-        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)    
-
-  deploy-to-environment:
-
-    needs: save-docker-image
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-
-      - uses: github/branch-deploy@v7.2.0
-        id: branch-deploy
-        with:
-          trigger: ".deploy"
-
-      - name: Checkout SHA repository
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.event.client_payload.sha }}
-          fetch-depth: 0
-
-      - name: Determine Deploy Branch and Directory
-        run: |
-          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
-          deploy_branch="Invalid"
-          deploy_dir="."
-          case "${branch}" in
-            "code-development")
-              deploy_branch="code-staging"
-              deploy_dir="./code-development-in"
-              ;;
-            "code-staging")
-              deploy_branch="code-production"
-              deploy_dir="./code-production-in"
-              ;;
-            "code-production")
-              deploy_branch="main"
-              deploy_dir="."
-              ;;
-          esac
-          [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
-          echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-          echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
-          echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
-
-      - name: Deploy
-        if: steps.branch-deploy.outputs.continue == 'true'
-        uses: nicholasgriffintn/github-branch-deployment-action@0.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.AUTH }}
-          BRANCH: ${{ env.DEPLOY_BRANCH }}
-          FOLDER: ${{ env.DEPLOY_DIR }}
-          MESSAGE: 'Deploy: ({sha}) {msg}'
-
-      - name: Notification
-        if: steps.branch-deploy.outputs.continue == 'true'
-        run: echo "Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
+        CMD+="-d '{\"event_type\": \"trigger-git-deploy\", "
+        CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
+        eval ${CMD}
