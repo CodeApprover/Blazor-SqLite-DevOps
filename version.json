@@ -1,6 +1,5 @@
 {
-	"value": "value",
-	"VERSION": [{
+	"ENVIRONMENT": [{
 		"DEVELOPMENT": "0",
 		"STAGING": "2",
 		"PRODUCTION": "1"
