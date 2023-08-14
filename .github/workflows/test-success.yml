@@ -6,7 +6,7 @@ on:
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
-  DOCKER_REPO: "Blazor-SqLite-DevOps"
+  DOCKER_REPO: "blazor-sqLite-devOps"
 
 jobs:
   docker-job:
