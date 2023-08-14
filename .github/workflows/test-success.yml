@@ -58,6 +58,8 @@ jobs:
     - name: Increment version
       run: |
         echo "VERSION=$(head -n 1 $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1))" >> $GITHUB_ENV
+        # Source the env variables to make sure we have access to VERSION
+        source $GITHUB_ENV
         PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
         STAGING=$(echo "$VERSION" | cut -d'.' -f2)
         DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
