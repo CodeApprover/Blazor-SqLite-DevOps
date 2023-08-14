@@ -90,6 +90,8 @@ jobs:
       run: |
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+        echo $CSPROJ
+        echo "/home/runner/work/Blazor-SqLite-DevOps/Blazor-SqLite-DevOps/development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj"
     
     - name: Build and push Docker image
       run: |
