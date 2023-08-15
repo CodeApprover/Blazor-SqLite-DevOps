@@ -76,6 +76,9 @@ jobs:
         SLEEP_DURATION=3600  # 60 minutes in seconds
     
         while true; do
+          # Fetch all updates
+          git fetch origin ${{ env.BRANCH_NAME }}
+          
           # Fetch the commits that are before the provided SHA and are on the SHA branch
           commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
           
