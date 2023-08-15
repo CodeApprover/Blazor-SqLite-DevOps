@@ -1,234 +1,183 @@
----
 name: Versioning Workflow
 
-# This workflow is triggered by a 'repository_dispatch' event with type 'trigger-versioning'
 on:
   repository_dispatch:
     types: trigger-versioning
 
-# Setting environment variables for the workflow
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
   version-and-tag:
-    # Specify the type of runner to use (here, Ubuntu)
     runs-on: ubuntu-latest
-    # Set a timeout for the job (15 minutes)
     timeout-minutes: 15
 
     steps:
-    # Checkout the current repository at the specific commit SHA provided in the payload
-    - name: Checkout SHA repository
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ github.event.client_payload.sha }}
-        fetch-depth: 0
+      - name: Checkout SHA repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.event.client_payload.sha }}
+          fetch-depth: 0
 
-    # Configure the git username and email to use for commits made by this workflow
-    - name: Configure git user
-      run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
+      - name: Configure git user
+        run: |
+          git config user.name "CodeApprover"
+          git config user.email "pucfada@pm.me"
 
-    # Determine which branch the incoming SHA belongs to and set the branch-specific lock file
-    - name: Set branch and lock file name
-      run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        echo "Detected branch: $branch"
-        
-        # Exit if no branch is detected for the given SHA
-        if [[ -z "${branch}" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
-          exit 1 
-        fi
+      - name: Set branch and lock file name
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+          echo "Detected branch: $branch"
+          
+          if [[ -z "${branch}" ]]; then
+            echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
+            exit 1 
+          fi
 
-        # Set branch name and corresponding lock file based on the detected branch
-        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-        case "${branch}" in
-            "code-production")
-                echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
-                ;;
-            "code-staging")
-                echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
-                ;;
-            "code-development")
-                echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
-                ;;
-            "main")
-                echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-                ;;
-            *)
-                # If the branch is not one of the expected branches, exit the workflow
-                echo "Unknown branch: $branch. Exiting."
-                exit 1
-                ;;
-        esac
+          echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+          case "${branch}" in
+              "code-production")
+                  echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+                  ;;
+              "code-staging")
+                  echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+                  ;;
+              "code-development")
+                  echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+                  ;;
+              "main")
+                  echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+                  ;;
+              *)
+                  echo "Unknown branch: $branch. Exiting."
+                  exit 1
+                  ;;
+          esac
 
-    # Try to acquire a branch-specific lock to ensure only one job can version the code at a time
-    - name: Check for lock and retry
-      run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+      - name: Check for lock and retry
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
 
-        RETRY_COUNT=0
-        MAX_RETRIES=3
-        #SLEEP_DURATION=3600  # 60 minutes in seconds
-        SLEEP_DURATION=5  # TODO remove
+          RETRY_COUNT=0
+          MAX_RETRIES=3
+          SLEEP_DURATION=5  # TODO remove
 
-        while true; do
-          # Fetch all updates
-          git fetch origin ${{ env.BRANCH_NAME }}
+          while true; do
+            git fetch origin ${{ env.BRANCH_NAME }}
 
-          # Validate SHA commit
-          if ! git show ${{ github.event.client_payload.sha }}; then
+            if ! git show ${{ github.event.client_payload.sha }}; then
               echo "Error: The commit ${{ github.event.client_payload.sha }} does not exist!"
               exit 1
-          fi
+            fi
           
-          # Check SHA commit in branch
-          branch_contains=$(git branch --contains ${{ github.event.client_payload.sha }})
-          if [ -z "$branch_contains" ]; then
+            branch_contains=$(git branch --contains ${{ github.event.client_payload.sha }})
+            if [ -z "$branch_contains" ]; then
               echo "Error: No branch contains the commit ${{ github.event.client_payload.sha }}!"
               exit 1
-          fi
+            fi
 
-          # Explicitly checkout the branch
-          git checkout ${{ env.BRANCH_NAME }}
-          echo "Current Branch:"
-          git branch --show-current
-          echo "Last 5 commits on this branch:"
-          git log -n 5 --oneline
-          echo "Trying to list commits between \" ${{ github.event.client_payload.sha }} \"~1 and \" ${{ env.BRANCH_NAME }}\""
+            git checkout ${{ env.BRANCH_NAME }}
+            echo "Current Branch:"
+            git branch --show-current
+            echo "Last 5 commits on this branch:"
+            git log -n 5 --oneline
+            echo "Trying to list commits between \" ${{ github.event.client_payload.sha }} \"~1 and \" ${{ env.BRANCH_NAME }}\""
 
-          # Fetch the commits that are before the provided SHA and are on the SHA branch
-          commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
+            commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
 
-          if ! git show ${{ github.event.client_payload.sha }}~1; then
-            echo "Error: The commit before ${{ github.event.client_payload.sha }} does not exist!"
-            exit 1
-          fi
+            if ! git show ${{ github.event.client_payload.sha }}~1; then
+              echo "Error: The commit before ${{ github.event.client_payload.sha }} does not exist!"
+              exit 1
+            fi
 
-          lock_found=0
-          for commit in $commits_before_sha; do
-            # Check if the lock file exists in the commit
-            if git ls-tree -r $commit | grep "${{ env.LOCK_FILE }}"; then
-                lock_found=1
-                break
+            lock_found=0
+            for commit in $commits_before_sha; do
+              if git ls-tree -r $commit | grep "${{ env.LOCK_FILE }}"; then
+                  lock_found=1
+                  break
+              fi
+            done
+
+            if [[ "$lock_found" -eq 1 ]]; then
+              if [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
+                echo "Exceeded maximum retries. Lock file still found. Exiting."
+                exit 1
+              fi
+
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              echo "Lock file found in a commit prior to the payload SHA. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+              sleep $SLEEP_DURATION
+            else
+              break
             fi
           done
 
-          if [[ "$lock_found" -eq 1 ]]; then
-            # Check if retry count exceeds max retries
-            if [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
-              echo "Exceeded maximum retries. Lock file still found. Exiting."
-              exit 1
-            fi
+          echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
+          git add "${{ env.LOCK_FILE }}"
+          git commit -m "Add lock for versioning"
 
-            # Increment retry count and sleep
-            RETRY_COUNT=$((RETRY_COUNT+1))
-            echo "Lock file found in a commit prior to the payload SHA. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
-            sleep $SLEEP_DURATION
-          else
-            # No lock file found, break the loop to proceed further
-            break
-          fi
-        done
-
-        # Create or update the lock file with the current timestamp
-        echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
-        git add "${{ env.LOCK_FILE }}"
-        git commit -m "Add lock for versioning"
-
-        # Push the updated lock file to the repository. If push fails, exit.
-        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
-          echo "Failed to push. Exiting."
-          exit 1
-        fi
-    
-        # Calculate the next version tag by checking existing tags and the branch name
-        - name: Determine next version tag
-          run: |
-            trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-            git fetch --tags
-            # If no existing tags are found, exit the workflow
-            if [ -z "$(git tag)" ]; then
-              echo "No tags found. Exiting."
-              exit 1
-            fi
-            # Extract details of the latest tag and calculate the next version number based on the branch
-            highest_version=$(git tag | sort -V | tail -n 1)
-            major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
-            minor_version=$(echo $highest_version | cut -d. -f2)
-            patch_version=$(echo $highest_version | cut -d. -f3)
-            filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
-            latest_tag=$(for tag in $filtered_tags; do
-                echo $(git log -1 --format=%ai $tag) $tag
-            done | sort | tail -n 1 | awk '{print $NF}')
-            major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
-            minor=$(echo "$latest_tag" | cut -d'.' -f2)
-            patch=$(echo "$latest_tag" | cut -d'.' -f3)
-
-            # Increment version based on the branch 
-            case "${{ env.BRANCH_NAME }}" in
-              "code-production")
-                major=$((major + 1))
-                minor=0
-                patch=0
-                ;;
-              "code-staging")
-                minor=$((minor + 1))
-                patch=0
-                ;;
-              "code-development")
-                patch=$((patch + 1))
-                ;;
-              "main")
-                ;;
-              *)
-                # If the branch is unknown, do not change the version
-                echo "Unknown branch: ${{ env.BRANCH_NAME }}. Retaining current version."
-                ;;
-            esac
-
-            # Formulate the new version and store it in the environment variable
-            new_version="v$major.$minor.$patch"
-            echo "Determined new version: $new_version"
-            echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
-
-        # Create a new tag in the repository with the calculated version
-        - name: Tag repository with new version
-          run: |
-            trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-            git tag "${{ env.NEW_VERSION }}"
-            git push origin "${{ env.NEW_VERSION }}"
-    
-        # Remove the branch-specific lock file since the versioning process has been completed
-        - name: Release lock
-          run: |
-            trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-            git pull origin "${{ env.BRANCH_NAME }}"
-            git rm "${{ env.LOCK_FILE }}"
-            git commit -m "Release lock for versioning"
-            # Push the commit with the removal of the lock file. If push fails, exit.
-            if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
-              echo "Failed to push. Exiting."
-              exit 1
-            fi
-  
-        # Deploy a docker image of the sha commit
-        - name: Trigger Docker deployment
-        run: |
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-                   -X POST \
-                   -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-                   -H "Accept: application/vnd.github.v3+json" \
-                   https://api.github.com/repos/${{ github.repository }}/dispatches \
-                   -d '{ "event_type": "trigger-docker-deploy", "client_payload": { "sha": "${{ github.sha }}" } }')
-
-          if [ "$response" -ne 200 ]; then
-            echo "Failed to trigger Docker deployment. HTTP response code: $response"
+          if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+            echo "Failed to push. Exiting."
             exit 1
           fi
-          echo "Successfully triggered Docker deployment."
+
+      - name: Determine next version tag
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          git fetch --tags
+
+          if [ -z "$(git tag)" ]; then
+            echo "No tags found. Exiting."
+            exit 1
+          fi
+
+          highest_version=$(git tag | sort -V | tail -n 1)
+          major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
+          minor_version=$(echo $highest_version | cut -d. -f2)
+          patch_version=$(echo $highest_version | cut -d. -f3)
+          filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
+          latest_tag=$(for tag in $filtered_tags; do
+              echo $(git log -1 --format=%ai $tag) $tag
+          done | sort | tail -n 1 | awk '{print $NF}')
+          major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
+          minor=$(echo "$latest_tag" | cut -d'.' -f2)
+          patch=$(echo "$latest_tag" | cut -d'.' -f3)
+
+          case "${{ env.BRANCH_NAME }}" in
+            "code-production")
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            "code-staging")
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            "code-development")
+              patch=$((patch + 1))
+              ;;
+            "main")
+              ;;
+            *)
+              echo "Unknown branch: ${{ env.BRANCH_NAME }}. Retaining current version."
+              ;;
+          esac
+
+          new_version="v$major.$minor.$patch"
+          echo "Determined new version: $new_version"
+          echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+
+      - name: Tag repository with new version
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          git tag "${{ env.NEW_VERSION }}"
+          git push origin "${{ env.NEW_VERSION }}"
+
+      - name: Release lock
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          git pull origin "${{ env.BRANCH_NAME }}"
+          git rm "${{ env.LOCK_FILE }}"
+          git commit -m "Remove lock after versioning"
+          git push origin "${{ env.BRANCH_NAME }}"
