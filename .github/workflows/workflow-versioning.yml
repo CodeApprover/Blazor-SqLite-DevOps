@@ -27,6 +27,7 @@ jobs:
 
     - name: Set Branch and Lock File
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
         echo "Detected branch: $branch"
         
@@ -58,6 +59,7 @@ jobs:
 
     - name: Attempt to acquire lock
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git pull origin ${{ env.BRANCH_NAME }}
         
         # Check for the presence of lock file in the latest commit excluding current SHA
@@ -79,6 +81,7 @@ jobs:
 
     - name: Determine next version tag
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         # Fetch all tags from the repository
         git fetch --tags
 
@@ -139,16 +142,19 @@ jobs:
 
     - name: Tag the repository with new version
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git tag "${{ env.NEW_VERSION }}"
         echo "Tagged the repo with: ${env.NEW_VERSION}"
 
     - name: Push new tag to repository
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git push origin "${{ env.NEW_VERSION }}"
         echo "Pushed the new tag to origin"
 
     - name: Release the lock
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git pull origin ${{ env.BRANCH_NAME }}
         rm "${{ env.LOCK_FILE }}"
         git commit -am "Remove lock after versioning"
@@ -157,6 +163,7 @@ jobs:
 
     - name: Trigger Docker Deployment
       run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         response=$(curl -s -o /dev/null -w "%{http_code}" \
                  -X POST \
                  -H "Authorization: Bearer ${{ secrets.AUTH }}" \
