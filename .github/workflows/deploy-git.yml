@@ -17,82 +17,75 @@ jobs:
 
     steps:
 
-      - uses: github/branch-deploy@v7.2.0
-        id: branch-deploy
-        with:
-          trigger: ".deploy"
+    - name: Extract SHA for Checkout
+      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
-      - name: Checkout SHA repository
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.event.client_payload.sha }}
-          fetch-depth: 0
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
 
-      - name: Determine Deploy Branch and Directory
-        run: |
-          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
-          deploy_branch="Invalid"
-          deploy_dir="."
-          case "${branch}" in
-            "code-development")
-              deploy_branch="code-staging"
-              deploy_dir="./code-development-in"
-              ;;
-            "code-staging")
-              deploy_branch="code-production"
-              deploy_dir="./code-production-in"
-              ;;
-            "code-production")
-              deploy_branch="main"
-              deploy_dir="."
-              ;;
-          esac
-          [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
-          echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-          echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
-          echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
+    - name: Extract Branch Name from SHA Commit
+      run: |
+        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "${branch}" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          exit 1 
+        fi
+        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
-      - name: Create GitHub Deployment
-        id: create_deployment
-        run: |
-          response=$(curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/deployments \
-            -d '{
-              "ref": "${{ github.ref }}",
-              "environment": "${{ env.ENV_NAME }}",
-              "description": "Deploying to ${{ env.ENV_NAME }}"
-            }')
-          deployment_id=$(echo "$response" | jq '.id')
-          echo "::set-output name=deployment_id::$deployment_id"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+    - name: Determine Deploy Branch and Directory
+      run: |
+        deploy_branch="Invalid"
+        deploy_dir="."
+        case "${{ env.BRANCH_NAME }}" in
+          "code-development")
+            deploy_branch="code-staging"
+            deploy_dir="./code-development-in"
+            ;;
+          "code-staging")
+            deploy_branch="code-production"
+            deploy_dir="./code-staging-in"
+            ;;
+          "code-production")
+            deploy_branch="main"
+            deploy_dir="."
+            ;;
+        esac
+        [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
+        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
+        echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
 
-      - name: Update Deployment Status
-        if: steps.create_deployment.outputs.deployment_id != ''
-        run: |
-          status="failure"
-          desc="Deployed ${{ github.event.client_payload.sha }} "
-          desc+="from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} "
-          desc+="failed"
+    - name: Create GitHub Deployment
+      id: create_deployment
+      run: |
+        response=$(curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/deployments \
+          -d '{
+            "ref": "${{ env.DEPLOY_BRANCH }}",
+            "environment": "${{ env.BRANCH_NAME }}",
+            "description": "Deploying to ${{ env.BRANCH_NAME }}"
+          }')
+        deployment_id=$(echo "$response" | jq '.id')
+        echo "::set-output name=deployment_id::$deployment_id"
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+      continue-on-error: true
 
-          if ${{ success() }}; then
-            status="success"
-            desc="${desc/failed/succeeded}"
-          fi
-
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.AUTH }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/deployments/${{ steps.create_deployment.outputs.deployment_id }}/statuses \
-            -d '{
-              "state": "'$status'",
-              "description": "'$desc'",
-              "environment": "${{ env.ENV_NAME }}"
-            }'
-
-      - name: Notification
-        if: steps.branch-deploy.outputs.continue == 'true'
-        run: echo "$desc"
+    - name: Update Deployment Status
+      run: |
+        desc="Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/deployments/${{ steps.create_deployment.outputs.deployment_id }}/statuses \
+          -d '{
+            "state": "success",
+            "description": "'"${desc}"'",
+            "environment": "${{ env.BRANCH_NAME }}"
+          }'
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
