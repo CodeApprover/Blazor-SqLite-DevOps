@@ -83,16 +83,16 @@ jobs:
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
 
         case "${{ env.BRANCH_NAME }}" in
-          "production")
+          "code-production")
             major=$((major + 1))
             minor=0
             patch=0
             ;;
-          "staging")
+          "code-staging")
             minor=$((minor + 1))
             patch=0
             ;;
-          "development")
+          "code-development")
             patch=$((patch + 1))
             ;;
           "main")
