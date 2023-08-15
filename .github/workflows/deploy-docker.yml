@@ -12,7 +12,7 @@ jobs:
   save-docker-image:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
 
     - name: Checkout SHA repository
@@ -53,8 +53,7 @@ jobs:
       run: |
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
-    
-    
+
     - name: Increment version
       run: |
         echo "VERSION=$(head -n 1 $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1))" >> $GITHUB_ENV
@@ -63,7 +62,7 @@ jobs:
         PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
         STAGING=$(echo "$VERSION" | cut -d'.' -f2)
         DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
-        
+
         case "$ENV_NAME" in
           "production")
             PRODUCTION=$((PRODUCTION + 1))
@@ -78,7 +77,7 @@ jobs:
         
         NEW_VERSION="$PRODUCTION.$STAGING.$DEVELOPMENT"
         echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-       
+
     - name: Check if Docker image already exists
       id: check_image
       run: |
@@ -102,7 +101,7 @@ jobs:
       if: steps.check_image.outputs.image_exists == 'false'
       run: |
         echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)    
-  
+
     - name: Build and push Docker image
       if: steps.check_image.outputs.image_exists == 'false'
       run: |
