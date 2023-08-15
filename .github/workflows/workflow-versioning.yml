@@ -1,3 +1,4 @@
+---
 name: Versioning Workflow
 
 on:
@@ -54,7 +55,7 @@ jobs:
 
     - name: Attempt to acquire lock
       run: |
-        git pull
+        git pull origin ${{ env.BRANCH_NAME }}
         if [[ -e "${{ env.LOCK_FILE }}" ]]; then
           lock_time=$(cat "${{ env.LOCK_FILE }}")
           current_time=$(date +%s)
@@ -69,7 +70,10 @@ jobs:
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
-        git push
+        if ! git push; then
+          echo "Failed to push. Exiting."
+          exit 1
+        fi
 
     - name: Determine next version tag
       run: |
@@ -77,7 +81,6 @@ jobs:
         major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
-
         case "${{ env.BRANCH_NAME }}" in
           "production")
             major=$((major + 1))
@@ -95,7 +98,6 @@ jobs:
             # Do nothing for main; retain the version as it is
             ;;
         esac
-
         new_version="v$major.$minor.$patch"
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
@@ -105,14 +107,20 @@ jobs:
 
     - name: Push new tag to repository
       run: |
-        git push origin "${{ env.NEW_VERSION }}"
+        if ! git push origin "${{ env.NEW_VERSION }}"; then
+          echo "Failed to push new tag. Exiting."
+          exit 1
+        fi
 
     - name: Release the lock
       run: |
-        git pull
+        git pull origin ${{ env.BRANCH_NAME }}
         rm "${{ env.LOCK_FILE }}"
         git commit -am "Remove lock after versioning"
-        git push
+        if ! git push; then
+          echo "Failed to release the lock. Exiting."
+          exit 1
+        fi
 
     - name: Trigger Docker Deployment
       run: |
