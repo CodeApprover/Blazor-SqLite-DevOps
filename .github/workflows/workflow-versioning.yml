@@ -19,7 +19,12 @@ jobs:
         ref: ${{ github.event.client_payload.sha }}
         fetch-depth: 0
 
-    - name: Extract Branch Name from SHA Commit and set lock file
+    - name: Configure Git User
+      run: |
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+
+    - name: Set Branch and Lock File
       run: |
         branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
         if [[ -z "${branch}" ]]; then
@@ -27,16 +32,15 @@ jobs:
           exit 1 
         fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-
         # Determine lock file based on the branch
         case "${branch}" in
-          "production")
+          "code-production")
             echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
             ;;
-          "staging")
+          "code-staging")
             echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
             ;;
-          "development")
+          "code-development")
             echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
             ;;
           "main")
@@ -63,20 +67,9 @@ jobs:
           fi
         fi
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
-        git config user.name "GitHub Action"
-        git config user.email "action@github.com"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
         git push
-
-    - name: Extract Branch Name from SHA Commit
-      run: |
-        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        if [[ -z "${branch}" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
-          exit 1 
-        fi
-        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
     - name: Determine next version tag
       run: |
@@ -85,20 +78,20 @@ jobs:
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
 
-        case "${{ env.ENV_NAME }}" in
+        case "${{ env.BRANCH_NAME }}" in
           "production")
             major=$((major + 1))
             minor=0
             patch=0
             ;;
-          "staging"):
+          "staging")
             minor=$((minor + 1))
             patch=0
             ;;
-          "development"):
+          "development")
             patch=$((patch + 1))
             ;;
-          "main"):
+          "main")
             # Do nothing for main; retain the version as it is
             ;;
         esac
@@ -108,8 +101,6 @@ jobs:
 
     - name: Tag the repository with new version
       run: |
-        git config --local user.email "pucfada@pm.me"
-        git config --local user.name "codeapprover"
         git tag "${{ env.NEW_VERSION }}"
 
     - name: Push new tag to repository
@@ -120,10 +111,7 @@ jobs:
       run: |
         git pull
         rm "${{ env.LOCK_FILE }}"
-        git config user.name "GitHub Action"
-        git config user.email "action@github.com"
-        git add "${{ env.LOCK_FILE }}"
-        git commit -m "Remove lock after versioning"
+        git commit -am "Remove lock after versioning"
         git push
 
     - name: Trigger Docker Deployment
