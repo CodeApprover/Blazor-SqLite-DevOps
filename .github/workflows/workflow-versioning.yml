@@ -1,46 +1,49 @@
 ---
 name: Versioning Workflow
 
+# This workflow is triggered by a 'repository_dispatch' event with type 'trigger-versioning'
 on:
   repository_dispatch:
     types: trigger-versioning
 
+# Setting environment variables for the workflow
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
   version-and-tag:
+    # Specify the type of runner to use (here, Ubuntu)
     runs-on: ubuntu-latest
+    # Set a timeout for the job (15 minutes)
     timeout-minutes: 15
 
     steps:
-    # Checking out the repository for the payload SHA
+    # Checkout the current repository at the specific commit SHA provided in the payload
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ github.event.client_payload.sha }}
         fetch-depth: 0
-
-    # Configure git user for commits in this workflow
+    # Configure the git username and email to use for commits made by this workflow
     - name: Configure Git User
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
-
-    # Set the branch name for the payload SHA
+    # Determine which branch the incoming SHA belongs to and set the branch-specific lock file
     - name: Set Branch and Lock File
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
         echo "Detected branch: $branch"
         
+        # Exit if no branch is detected for the given SHA
         if [[ -z "${branch}" ]]; then
           echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
           exit 1 
         fi
 
+        # Set branch name and corresponding lock file based on the detected branch
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-
         case "${branch}" in
           "code-production")
             echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
@@ -55,69 +58,66 @@ jobs:
             echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
             ;;
           *)
+            # If the branch is not one of the expected branches, exit the workflow
             echo "Unknown branch: $branch. Exiting."
             exit 1
             ;;
         esac
-
-    # Attempt to acquire branch-specific lock file
+    # Try to acquire a branch-specific lock to ensure only one job can version the code at a time
     - name: Attempt to acquire lock
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git pull origin ${{ env.BRANCH_NAME }}
         
-        # Check if lock file exists in the last commit before the payload SHA
+        # Check for the presence of the lock file in the commit prior to the current one
         lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
         
         if [[ ! -z "$lock_exists" ]]; then
-          # Get the timestamp of the lock file's last commit
+          # Retrieve the timestamps of the lock file's commit and the current SHA to compare them
           lock_commit_timestamp=$(git log -1 --format="%at" -- "${{ env.LOCK_FILE }}")
-          
-          # Get the timestamp of the payload SHA
           payload_sha_timestamp=$(git show -s --format="%at" ${{ github.event.client_payload.sha }})
           
-          # Compare the two timestamps
+          # If the lock file's timestamp is newer or equal, another job is in progress. Hence, exit.
           if [[ "$lock_commit_timestamp" -ge "$payload_sha_timestamp" ]]; then
             echo "Found active ${{ env.LOCK_FILE }} newer than payload SHA! Another job is in progress. Exiting."
             exit 1
           fi
         fi
     
+        # Create or update the lock file with the current timestamp
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
+        # Push the updated lock file to the repository. If push fails, exit.
         if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
           echo "Failed to push. Exiting."
           exit 1
         fi
 
-    # Determine the next version tag based on existing tags and the branch
+    # Calculate the next version tag by checking existing tags and the branch name
     - name: Determine next version tag
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-
         git fetch --tags
-
+        # If no existing tags are found, exit the workflow
         if [ -z "$(git tag)" ]; then
           echo "No tags found. Exiting."
           exit 1
         fi
-
+        # Extract details of the latest tag and calculate the next version number based on the branch
         highest_version=$(git tag | sort -V | tail -n 1)
-
         major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
         minor_version=$(echo $highest_version | cut -d. -f2)
         patch_version=$(echo $highest_version | cut -d. -f3)
-
         filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
         latest_tag=$(for tag in $filtered_tags; do
             echo $(git log -1 --format=%ai $tag) $tag
         done | sort | tail -n 1 | awk '{print $NF}')
-
         major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
 
+        # Increment version based on the branch 
         case "${{ env.BRANCH_NAME }}" in
           "code-production")
             major=$((major + 1))
@@ -134,40 +134,35 @@ jobs:
           "main")
             ;;
           *)
+            # If the branch is unknown, do not change the version
             echo "Unknown branch: ${{ env.BRANCH_NAME }}. Retaining current version."
             ;;
         esac
 
+        # Formulate the new version and store it in the environment variable
         new_version="v$major.$minor.$patch"
         echo "Determined new version: $new_version"
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
-    # Tag the repository with the newly determined version
+    # Create a new tag in the repository with the calculated version
     - name: Tag the repository with new version
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-        
         git tag "${{ env.NEW_VERSION }}"
-        echo "Tagged the repo with: ${env.NEW_VERSION}"
-
-    # Push the new tag to the main repository
-    - name: Push new tag to repository
-      run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-        
         git push origin "${{ env.NEW_VERSION }}"
-        echo "Pushed the new tag to origin"
 
-    # Remove the lock file once versioning is complete
-    - name: Release the lock
+    # Remove the branch-specific lock file since the versioning process has been completed
+    - name: Release lock
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-        
+        git pull origin "${{ env.BRANCH_NAME }}"
         git rm "${{ env.LOCK_FILE }}"
-        git commit -m "Remove lock after versioning"
-        
-        git push origin HEAD:${{ env.BRANCH_NAME }}
-        echo "Lock file released"
+        git commit -m "Release lock for versioning"
+        # Push the commit with the removal of the lock file. If push fails, exit.
+        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+          echo "Failed to push. Exiting."
+          exit 1
+        fi
 
     # Deploy a docker image of the sha commit
     - name: Trigger Docker Deployment
