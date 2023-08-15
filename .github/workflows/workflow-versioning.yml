@@ -136,7 +136,14 @@ jobs:
           major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
           minor_version=$(echo $highest_version | cut -d. -f2)
           patch_version=$(echo $highest_version | cut -d. -f3)
-          filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
+
+          echo "Major Version: $major_version"
+          echo "Minor Version: $minor_version"
+          echo "Patch Version: $patch_version"
+
+          filtered_tags=$(git tag | grep "^${major_version}\.${minor_version}\.${patch_version}")         
+          echo "Filtered Tags: $filtered_tags"
+
           latest_tag=$(for tag in $filtered_tags; do
               echo $(git log -1 --format=%ai $tag) $tag
           done | sort | tail -n 1 | awk '{print $NF}')
