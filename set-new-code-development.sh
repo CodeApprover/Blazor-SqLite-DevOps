@@ -3,8 +3,10 @@
 # Disable command echo
 set +x
 
-# Checkout the main branch
+# Checkout and update the main branch
 git checkout main
+git stash
+git pull
 
 # Delete local and remote code-development branch
 git branch -D code-development
