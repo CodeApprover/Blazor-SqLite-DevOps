@@ -47,23 +47,23 @@ jobs:
         # Set branch name and corresponding lock file based on the detected branch
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
         case "${branch}" in
-          "code-production")
-            echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
-            ;;
-          "code-staging"):
-            echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
-            ;;
-          "code-development"):
-            echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
-            ;;
-          "main"):
-            echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-            ;;
-          *)
-            # If the branch is not one of the expected branches, exit the workflow
-            echo "Unknown branch: $branch. Exiting."
-            exit 1
-            ;;
+            "code-production")
+                echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+                ;;
+            "code-staging")
+                echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+                ;;
+            "code-development")
+                echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+                ;;
+            "main")
+                echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+                ;;
+            *)
+                # If the branch is not one of the expected branches, exit the workflow
+                echo "Unknown branch: $branch. Exiting."
+                exit 1
+                ;;
         esac
 
     # Try to acquire a branch-specific lock to ensure only one job can version the code at a time
