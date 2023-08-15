@@ -66,17 +66,26 @@ jobs:
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git pull origin ${{ env.BRANCH_NAME }}
         
+        # Check if lock file exists in the last commit before the payload SHA
         lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
         
         if [[ ! -z "$lock_exists" ]]; then
-          echo "Found active ${{ env.LOCK_FILE }}! Another job is in progress. Exiting."
-          exit 1
+          # Get the timestamp of the lock file's last commit
+          lock_commit_timestamp=$(git log -1 --format="%at" -- "${{ env.LOCK_FILE }}")
+          
+          # Get the timestamp of the payload SHA
+          payload_sha_timestamp=$(git show -s --format="%at" ${{ github.event.client_payload.sha }})
+          
+          # Compare the two timestamps
+          if [[ "$lock_commit_timestamp" -ge "$payload_sha_timestamp" ]]; then
+            echo "Found active ${{ env.LOCK_FILE }} newer than payload SHA! Another job is in progress. Exiting."
+            exit 1
+          fi
         fi
-
+    
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
-
         if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
           echo "Failed to push. Exiting."
           exit 1
