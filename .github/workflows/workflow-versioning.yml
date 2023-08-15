@@ -28,12 +28,15 @@ jobs:
     - name: Set Branch and Lock File
       run: |
         branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        echo "Detected branch: $branch"
+        
         if [[ -z "${branch}" ]]; then
           echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
           exit 1 
         fi
+        
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-
+        
         case "${branch}" in
           "code-production")
             echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
@@ -48,7 +51,7 @@ jobs:
             echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
             ;;
           *)
-            echo "Unknown branch. Using default lock file."
+            echo "Unknown branch: $branch. Using default lock file."
             echo "LOCK_FILE=.lock" >> $GITHUB_ENV
             ;;
         esac
@@ -56,9 +59,11 @@ jobs:
     - name: Attempt to acquire lock
       run: |
         git pull origin ${{ env.BRANCH_NAME }}
+        
         if [[ -e "${{ env.LOCK_FILE }}" ]]; then
           lock_time=$(cat "${{ env.LOCK_FILE }}")
           current_time=$(date +%s)
+          
           if (( current_time - lock_time > 3600 )); then # 1 hour lock threshold
             echo "Lock is stale. Removing and continuing."
             rm "${{ env.LOCK_FILE }}"
@@ -67,24 +72,35 @@ jobs:
             exit 1
           fi
         fi
+        
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
+        
         if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
           echo "Failed to push. Exiting."
           exit 1
         fi
- 
+
     - name: Determine next version tag
       run: |
         # Fetch all tags from the repository
-        git fetch --tags
+        git fetch --tags || 
 
+        if [ -z "$(git tag)" ]; then
+          echo "No tags found. Exiting."
+          exit 1
+        fi
+        
         # Get all tags, sort them in version order, and then select the highest version
         highest_version=$(git tag | sort -V | tail -n 1)
+        
+        # Split version into major, minor, and patch
         major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
         minor_version=$(echo $highest_version | cut -d. -f2)
         patch_version=$(echo $highest_version | cut -d. -f3)
+
+        echo "Current version: $highest_version ($major_version.$minor_version.$patch_version)"
 
         # Filter tags with this highest version (major.minor.patch)
         filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
@@ -94,10 +110,14 @@ jobs:
             echo $(git log -1 --format=%ai $tag) $tag
         done | sort | tail -n 1 | awk '{print $NF}')
 
+        echo "Latest tag based on commit date: $latest_tag"
+
+        # Extract numbers for major, minor, and patch from latest tag
         major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
 
+        # Increment version based on branch
         case "${{ env.BRANCH_NAME }}" in
           "code-production")
             major=$((major + 1))
@@ -112,20 +132,25 @@ jobs:
             patch=$((patch + 1))
             ;;
           "main")
-            # Retain production version
+            ;;
+          *)
+            echo "Unknown branch: ${{ env.BRANCH_NAME }}. Retaining current version."
             ;;
         esac
 
         new_version="v$major.$minor.$patch"
+        echo "Determined new version: $new_version"
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
     - name: Tag the repository with new version
       run: |
         git tag "${{ env.NEW_VERSION }}"
+        echo "Tagged the repo with: ${env.NEW_VERSION}"
 
     - name: Push new tag to repository
       run: |
         git push origin "${{ env.NEW_VERSION }}"
+        echo "Pushed the new tag to origin"
 
     - name: Release the lock
       run: |
@@ -133,6 +158,7 @@ jobs:
         rm "${{ env.LOCK_FILE }}"
         git commit -am "Remove lock after versioning"
         git push
+        echo "Released the lock"
 
     - name: Trigger Docker Deployment
       run: |
@@ -147,3 +173,4 @@ jobs:
           echo "Failed to trigger Docker deployment. HTTP response code: $response"
           exit 1
         fi
+        echo "Successfully triggered Docker deployment."
