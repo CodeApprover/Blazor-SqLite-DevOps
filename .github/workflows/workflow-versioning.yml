@@ -63,7 +63,7 @@ jobs:
             echo "Lock is stale. Removing and continuing."
             rm "${{ env.LOCK_FILE }}"
           else
-            echo "Found active ${LOCK_FILE}! Another job is in progress. Exiting."
+            echo "Found active ${{ env.LOCK_FILE }}! Another job is in progress. Exiting."
             exit 1
           fi
         fi
@@ -120,8 +120,14 @@ jobs:
 
     - name: Trigger Docker Deployment
       run: |
-        curl -X POST \
-             -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-             -H "Accept: application/vnd.github.v3+json" \
-             https://api.github.com/repos/${{ github.repository }}/dispatches \
-             -d '{ "event_type": "trigger-docker-deploy", "client_payload": { "sha": "${{ github.sha }}" } }'
+        response=$(curl -s -o /dev/null -w "%{http_code}" \
+                 -X POST \
+                 -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/repos/${{ github.repository }}/dispatches \
+                 -d '{ "event_type": "trigger-docker-deploy", "client_payload": { "sha": "${{ github.sha }}" } }')
+    
+        if [ "$response" -ne 200 ]; then
+          echo "Failed to trigger Docker deployment. HTTP response code: $response"
+          exit 1
+        fi
