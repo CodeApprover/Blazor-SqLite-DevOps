@@ -92,8 +92,21 @@ jobs:
               exit 1
           fi
 
+          # Explicitly checkout the branch
+          git checkout ${{ env.BRANCH_NAME }}
+          echo "Current Branch:"
+          git branch --show-current
+          echo "Last 5 commits on this branch:"
+          git log -n 5 --oneline
+          echo "Trying to list commits between ${github.event.client_payload.sha}~1 and ${env.BRANCH_NAME}:"
+
           # Fetch the commits that are before the provided SHA and are on the SHA branch
           commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
+
+          if ! git show ${{ github.event.client_payload.sha }}~1; then
+            echo "Error: The commit before ${{ github.event.client_payload.sha }} does not exist!"
+            exit 1
+          fi
 
           lock_found=0
           for commit in $commits_before_sha; do
