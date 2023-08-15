@@ -15,3 +15,7 @@ development/Blazor-SqLite-Golf-Club/.vs/
 tests/StyleCop_CSharp_Linting/.vs/
 tests/Xunit_Game_Unit_Tests/.vs/
 tests/Nunit_Player_Unit_Tests/.vs/
+
+development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.DotSettings.user
+development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.sln.DotSettings.user
+development/Blazor-SqLite-Golf-Club/Dockerfile.original
