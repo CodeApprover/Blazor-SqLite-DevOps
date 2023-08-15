@@ -25,9 +25,6 @@ git commit -m "Reset code-development branch [skip ci]"
 # Push new code-development branch
 git push --set-upstream origin code-development
 
-# Checkout code-development branch
-git checkout code-development
-
 # list dirs and files
 ls -la
 
