@@ -64,7 +64,10 @@ jobs:
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "        
-        CMD+="-d '{\"event_type\": \"trigger-stylecop\", "        
+        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
+
+        #CMD+="-d '{\"event_type\": \"trigger-stylecop\", "
+        CMD+="-d '{\"event_type\": \"trigger-versioning\", " #TODO remove
+
         CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
         eval ${CMD}
