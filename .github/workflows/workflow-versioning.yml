@@ -74,10 +74,26 @@ jobs:
           echo "Failed to push. Exiting."
           exit 1
         fi
-
+ 
     - name: Determine next version tag
       run: |
-        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')
+        # Fetch all tags from the repository
+        git fetch --tags
+
+        # Get all tags, sort them in version order, and then select the highest version
+        highest_version=$(git tag | sort -V | tail -n 1)
+        major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
+        minor_version=$(echo $highest_version | cut -d. -f2)
+        patch_version=$(echo $highest_version | cut -d. -f3)
+
+        # Filter tags with this highest version (major.minor.patch)
+        filtered_tags=$(git tag | grep "^$major_version\.$minor_version\.$patch_version")
+
+        # From the filtered tags, select the one with the most recent commit date
+        latest_tag=$(for tag in $filtered_tags; do
+            echo $(git log -1 --format=%ai $tag) $tag
+        done | sort | tail -n 1 | awk '{print $NF}')
+
         major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
