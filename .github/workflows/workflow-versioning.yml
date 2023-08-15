@@ -60,17 +60,12 @@ jobs:
       run: |
         git pull origin ${{ env.BRANCH_NAME }}
         
-        if [[ -e "${{ env.LOCK_FILE }}" ]]; then
-          lock_time=$(cat "${{ env.LOCK_FILE }}")
-          current_time=$(date +%s)
-          
-          if (( current_time - lock_time > 3600 )); then # 1 hour lock threshold
-            echo "Lock is stale. Removing and continuing."
-            rm "${{ env.LOCK_FILE }}"
-          else
-            echo "Found active ${{ env.LOCK_FILE }}! Another job is in progress. Exiting."
-            exit 1
-          fi
+        # Check for the presence of lock file in the latest commit excluding current SHA
+        lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
+        
+        if [[ ! -z "$lock_exists" ]]; then
+          echo "Found active ${{ env.LOCK_FILE }}! Another job is in progress. Exiting."
+          exit 1
         fi
         
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
