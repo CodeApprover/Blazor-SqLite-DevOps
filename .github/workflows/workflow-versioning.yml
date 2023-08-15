@@ -1,0 +1,135 @@
+name: Versioning Workflow
+
+on:
+  repository_dispatch:
+    types: trigger-versioning
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+
+jobs:
+  version-and-tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
+        fetch-depth: 0
+
+    - name: Extract Branch Name from SHA Commit and set lock file
+      run: |
+        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "${branch}" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
+          exit 1 
+        fi
+        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+
+        # Determine lock file based on the branch
+        case "${branch}" in
+          "production")
+            echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+            ;;
+          "staging")
+            echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+            ;;
+          "development")
+            echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+            ;;
+          "main")
+            echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+            ;;
+          *)
+            echo "Unknown branch. Using default lock file."
+            echo "LOCK_FILE=.lock" >> $GITHUB_ENV
+            ;;
+        esac
+
+    - name: Attempt to acquire lock
+      run: |
+        git pull
+        if [[ -e "${{ env.LOCK_FILE }}" ]]; then
+          lock_time=$(cat "${{ env.LOCK_FILE }}")
+          current_time=$(date +%s)
+          if (( current_time - lock_time > 3600 )); then # 1 hour threshold
+            echo "Lock is stale. Removing and continuing."
+            rm "${{ env.LOCK_FILE }}"
+          else
+            echo "Found active ${LOCK_FILE}! Another job is in progress. Exiting."
+            exit 1
+          fi
+        fi
+        echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
+        git config user.name "GitHub Action"
+        git config user.email "action@github.com"
+        git add "${{ env.LOCK_FILE }}"
+        git commit -m "Add lock for versioning"
+        git push
+
+    - name: Extract Branch Name from SHA Commit
+      run: |
+        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+        if [[ -z "${branch}" ]]; then
+          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
+          exit 1 
+        fi
+        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+
+    - name: Determine next version tag
+      run: |
+        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')
+        major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
+        minor=$(echo "$latest_tag" | cut -d'.' -f2)
+        patch=$(echo "$latest_tag" | cut -d'.' -f3)
+
+        case "${{ env.ENV_NAME }}" in
+          "production")
+            major=$((major + 1))
+            minor=0
+            patch=0
+            ;;
+          "staging"):
+            minor=$((minor + 1))
+            patch=0
+            ;;
+          "development"):
+            patch=$((patch + 1))
+            ;;
+          "main"):
+            # Do nothing for main; retain the version as it is
+            ;;
+        esac
+
+        new_version="v$major.$minor.$patch"
+        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+
+    - name: Tag the repository with new version
+      run: |
+        git config --local user.email "pucfada@pm.me"
+        git config --local user.name "codeapprover"
+        git tag "${{ env.NEW_VERSION }}"
+
+    - name: Push new tag to repository
+      run: |
+        git push origin "${{ env.NEW_VERSION }}"
+
+    - name: Release the lock
+      run: |
+        git pull
+        rm "${{ env.LOCK_FILE }}"
+        git config user.name "GitHub Action"
+        git config user.email "action@github.com"
+        git add "${{ env.LOCK_FILE }}"
+        git commit -m "Remove lock after versioning"
+        git push
+
+    - name: Trigger Docker Deployment
+      run: |
+        curl -X POST \
+             -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/repos/${{ github.repository }}/dispatches \
+             -d '{ "event_type": "trigger-docker-deploy", "client_payload": { "sha": "${{ github.sha }}" } }'
