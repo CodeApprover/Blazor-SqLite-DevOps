@@ -85,7 +85,7 @@ jobs:
     - name: Determine next version tag
       run: |
         # Fetch all tags from the repository
-        git fetch --tags || 
+        git fetch --tags
 
         if [ -z "$(git tag)" ]; then
           echo "No tags found. Exiting."
