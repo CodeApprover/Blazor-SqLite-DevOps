@@ -73,7 +73,8 @@ jobs:
 
         RETRY_COUNT=0
         MAX_RETRIES=3
-        SLEEP_DURATION=3600  # 60 minutes in seconds
+        #SLEEP_DURATION=3600  # 60 minutes in seconds
+        SLEEP_DURATION=5  # TODO remove
 
         while true; do
           # Fetch all updates
