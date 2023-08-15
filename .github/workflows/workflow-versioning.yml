@@ -24,11 +24,13 @@ jobs:
       with:
         ref: ${{ github.event.client_payload.sha }}
         fetch-depth: 0
+
     # Configure the git username and email to use for commits made by this workflow
     - name: Configure Git User
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
+
     # Determine which branch the incoming SHA belongs to and set the branch-specific lock file
     - name: Set Branch and Lock File
       run: |
@@ -63,26 +65,39 @@ jobs:
             exit 1
             ;;
         esac
+
     # Try to acquire a branch-specific lock to ensure only one job can version the code at a time
     - name: Attempt to acquire lock
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git pull origin ${{ env.BRANCH_NAME }}
-        
-        # Check for the presence of the lock file in the commit prior to the current one
-        lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
-        
-        if [[ ! -z "$lock_exists" ]]; then
-          # Retrieve the timestamps of the lock file's commit and the current SHA to compare them
-          lock_commit_timestamp=$(git log -1 --format="%at" -- "${{ env.LOCK_FILE }}")
-          payload_sha_timestamp=$(git show -s --format="%at" ${{ github.event.client_payload.sha }})
-          
-          # If the lock file's timestamp is newer or equal, another job is in progress. Hence, exit.
-          if [[ "$lock_commit_timestamp" -ge "$payload_sha_timestamp" ]]; then
-            echo "Found active ${{ env.LOCK_FILE }} newer than payload SHA! Another job is in progress. Exiting."
-            exit 1
+
+        RETRY_COUNT=0
+        MAX_RETRIES=3
+        SLEEP_DURATION=3600  # 60 minutes in seconds
+
+        while true; do
+          # Check for the presence of the lock file in the commit prior to the current one
+          lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
+
+          if [[ -z "$lock_exists" ]]; then
+            break  # Lock file doesn't exist, so break out of the loop and proceed.
+          else
+            # Check if retry count exceeds max retries
+            if [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
+              echo "Exceeded maximum retries. Exiting."
+              exit 1
+            fi
+
+            # Increment retry count and sleep
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            echo "Lock file exists. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+            sleep $SLEEP_DURATION
+
+            # Pull the latest changes before retrying
+            git pull origin ${{ env.BRANCH_NAME }}
           fi
-        fi
+        done
     
         # Create or update the lock file with the current timestamp
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
