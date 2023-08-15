@@ -14,7 +14,6 @@ jobs:
     timeout-minutes: 15
 
     steps:
-
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
@@ -54,29 +53,33 @@ jobs:
         envirn=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
         echo "ENV_NAME=$envirn" >> $GITHUB_ENV
 
-    - name: Increment version
+    - name: Determine next version tag
       run: |
-        echo "VERSION=$(head -n 1 $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1))" >> $GITHUB_ENV
-        # Source the env variables to make sure we have access to VERSION
-        source $GITHUB_ENV
-        PRODUCTION=$(echo "$VERSION" | cut -d'.' -f1)
-        STAGING=$(echo "$VERSION" | cut -d'.' -f2)
-        DEVELOPMENT=$(echo "$VERSION" | cut -d'.' -f3)
+        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')
+        major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
+        minor=$(echo "$latest_tag" | cut -d'.' -f2)
+        patch=$(echo "$latest_tag" | cut -d'.' -f3)
 
-        case "$ENV_NAME" in
+        case "${{ env.ENV_NAME }}" in
           "production")
-            PRODUCTION=$((PRODUCTION + 1))
+            major=$((major + 1))
+            minor=0
+            patch=0
             ;;
-          "staging")
-            STAGING=$((STAGING + 1))
+          "staging"):
+            minor=$((minor + 1))
+            patch=0
             ;;
-          "development")
-            DEVELOPMENT=$((DEVELOPMENT + 1))
+          "development"):
+            patch=$((patch + 1))
+            ;;
+          "main"):
+            # Do nothing for main; retain the version as it is
             ;;
         esac
-        
-        NEW_VERSION="$PRODUCTION.$STAGING.$DEVELOPMENT"
-        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+        new_version="v$major.$minor.$patch"
+        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
     - name: Check if Docker image already exists
       id: check_image
@@ -113,6 +116,18 @@ jobs:
         echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
         docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
+
+    - name: Tag the repository with new version
+      if: steps.check_image.outputs.image_exists == 'false'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag "${{ env.NEW_VERSION }}"
+        
+    - name: Push new tag to repository
+      if: steps.check_image.outputs.image_exists == 'false'
+      run: |
+        git push origin "${{ env.NEW_VERSION }}"
 
     - name: Trigger Git Deployment
       if: success()
