@@ -67,35 +67,38 @@ jobs:
         esac
 
     # Try to acquire a branch-specific lock to ensure only one job can version the code at a time
-    - name: Attempt to acquire lock
+    - name: Check for lock and retry
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-        git pull origin ${{ env.BRANCH_NAME }}
-
+    
         RETRY_COUNT=0
         MAX_RETRIES=3
         SLEEP_DURATION=3600  # 60 minutes in seconds
-
+    
         while true; do
-          # Check for the presence of the lock file in the commit prior to the current one
-          lock_exists=$(git log --format="%H" -n 1 --skip 1 | xargs git show --name-only --oneline | grep "${{ env.LOCK_FILE }}")
-
-          if [[ -z "$lock_exists" ]]; then
-            break  # Lock file doesn't exist, so break out of the loop and proceed.
-          else
+          # Fetch the commits that are before the provided SHA and are on the SHA branch
+          commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}^..${{ env.BRANCH_NAME }})
+          
+          lock_found=0
+          for commit in $commits_before_sha; do
+            # Check if the lock file exists in the commit
+            if git ls-tree -r $commit | grep "${{ env.LOCK_FILE }}"; then
+                lock_found=1
+                break
+            fi
+          done
+    
+          if [[ "$lock_found" -eq 1 ]]; then
             # Check if retry count exceeds max retries
             if [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
-              echo "Exceeded maximum retries. Exiting."
+              echo "Exceeded maximum retries. Lock file still found. Exiting."
               exit 1
             fi
-
+    
             # Increment retry count and sleep
             RETRY_COUNT=$((RETRY_COUNT+1))
-            echo "Lock file exists. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+            echo "Lock file found in a commit prior to the payload SHA. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
             sleep $SLEEP_DURATION
-
-            # Pull the latest changes before retrying
-            git pull origin ${{ env.BRANCH_NAME }}
           fi
         done
     
@@ -103,6 +106,7 @@ jobs:
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
+    
         # Push the updated lock file to the repository. If push fails, exit.
         if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
           echo "Failed to push. Exiting."
