@@ -11,6 +11,8 @@ git push
 
 # Refresh local branch
 git pull
+ls -la
+sleep 30
 
 # Commit and push to test workflows
 echo "0" >> workflow.driver
