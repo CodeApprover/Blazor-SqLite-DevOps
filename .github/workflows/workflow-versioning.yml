@@ -77,7 +77,7 @@ jobs:
     
         while true; do
           # Fetch the commits that are before the provided SHA and are on the SHA branch
-          commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}^..${{ env.BRANCH_NAME }} --)
+          commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
           
           lock_found=0
           for commit in $commits_before_sha; do
