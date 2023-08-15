@@ -33,7 +33,7 @@ jobs:
           exit 1 
         fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-        # Determine lock file based on the branch
+
         case "${branch}" in
           "code-production")
             echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
@@ -59,7 +59,7 @@ jobs:
         if [[ -e "${{ env.LOCK_FILE }}" ]]; then
           lock_time=$(cat "${{ env.LOCK_FILE }}")
           current_time=$(date +%s)
-          if (( current_time - lock_time > 3600 )); then # 1 hour threshold
+          if (( current_time - lock_time > 3600 )); then # 1 hour lock threshold
             echo "Lock is stale. Removing and continuing."
             rm "${{ env.LOCK_FILE }}"
           else
@@ -70,7 +70,7 @@ jobs:
         echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Add lock for versioning"
-        if ! git push; then
+        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
           echo "Failed to push. Exiting."
           exit 1
         fi
@@ -81,6 +81,7 @@ jobs:
         major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
         minor=$(echo "$latest_tag" | cut -d'.' -f2)
         patch=$(echo "$latest_tag" | cut -d'.' -f3)
+
         case "${{ env.BRANCH_NAME }}" in
           "production")
             major=$((major + 1))
@@ -95,9 +96,10 @@ jobs:
             patch=$((patch + 1))
             ;;
           "main")
-            # Do nothing for main; retain the version as it is
+            # Retain production version
             ;;
         esac
+
         new_version="v$major.$minor.$patch"
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
@@ -107,20 +109,14 @@ jobs:
 
     - name: Push new tag to repository
       run: |
-        if ! git push origin "${{ env.NEW_VERSION }}"; then
-          echo "Failed to push new tag. Exiting."
-          exit 1
-        fi
+        git push origin "${{ env.NEW_VERSION }}"
 
     - name: Release the lock
       run: |
         git pull origin ${{ env.BRANCH_NAME }}
         rm "${{ env.LOCK_FILE }}"
         git commit -am "Remove lock after versioning"
-        if ! git push; then
-          echo "Failed to release the lock. Exiting."
-          exit 1
-        fi
+        git push
 
     - name: Trigger Docker Deployment
       run: |
