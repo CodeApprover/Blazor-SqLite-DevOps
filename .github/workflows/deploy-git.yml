@@ -14,10 +14,11 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: env.ENABLE_DEPLOYMENT == 'true'
+    
     steps:
         
     - name: Extract SHA for Checkout
-      if: env.ENABLE_DEPLOYMENT == 'true'
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
     - name: Checkout SHA repository
