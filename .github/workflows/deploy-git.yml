@@ -32,60 +32,33 @@ jobs:
         fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
-    - name: Determine Deploy Branch and Directory
+    - name: Determine Deploy Branch 
       run: |
         deploy_branch="Invalid"
-        deploy_dir="."
         case "${{ env.BRANCH_NAME }}" in
           "code-development")
             deploy_branch="code-staging"
-            deploy_dir="./code-development-in"
             ;;
           "code-staging")
             deploy_branch="code-production"
-            deploy_dir="./code-staging-in"
             ;;
           "code-production")
             deploy_branch="main"
-            deploy_dir="."
             ;;
         esac
         [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-        echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
 
-    - name: Create GitHub Deployment
-      id: create_deployment
-      run: |
-        response=$(curl -X POST \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/deployments \
-          -d '{
-            "ref": "${{ env.DEPLOY_BRANCH }}",
-            "environment": "${{ env.BRANCH_NAME }}",
-            "description": "Deploying to ${{ env.BRANCH_NAME }}"
-          }')
-        deployment_id=$(echo "$response" | jq '.id')
-        echo "DEPLOYMENT_ID=$deployment_id" >> $GITHUB_ENV
+    - name: Deploy to next environment
+      uses: QXIP/github-action-push-to-another-repository@v1.4.2
       env:
-        GITHUB_TOKEN: ${{ secrets.AUTH }}
-      continue-on-error: true
-
-    - name: Update Deployment Status
-      run: |
-        desc="Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
-        curl -X POST \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/deployments/${{ env.DEPLOYMENT_ID }}/statuses \
-          -d '{
-            "state": "success",
-            "description": "'"${desc}"'",
-            "environment": "${{ env.BRANCH_NAME }}"
-          }'
-      env:
-        GITHUB_TOKEN: ${{ secrets.AUTH }}
+        API_TOKEN_GITHUB: ${{ secrets.AUTH }}
+      with:
+        source-directory: ${{ env.DEPLOY_DIR }} 
+        destination-github-username: 'codeapprover'
+        destination-repository-name: ${{ github.repository }} 
+        user-email: pucfada@pm.me
+        target-branch: ${{ env.DEPLOY_BRANCH }}
 
     - name: Check for lock file
       run: |
