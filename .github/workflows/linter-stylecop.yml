@@ -67,7 +67,7 @@ jobs:
         CMD+=" /p:StyleCopForceFullAnalysis=false"
         eval "$CMD"
 
-    - name: Trigger Appropriate Workflow
+    - name: Trigger Appropriate Tests
       if: success()
       run: |
         ENV_NAME=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
