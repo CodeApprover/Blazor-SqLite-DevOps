@@ -49,26 +49,16 @@ jobs:
             exit 1
           fi
 
-          highest_version=$(git tag | sort -V | tail -n 1)
-          major_version=$(echo $highest_version | cut -d. -f1 | tr -dc '0-9')
-          minor_version=$(echo $highest_version | cut -d. -f2)
-          patch_version=$(echo $highest_version | cut -d. -f3)
+          # Find latest tag
+          all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
+          latest_tag=$(echo "$all_tags" | head -n 1)
 
           # SemVar 2.0.0
-          echo "Major Version: $major_version"
-          echo "Minor Version: $minor_version"
-          echo "Patch Version: $patch_version"
+          major_version=$(echo $latest_tag | cut -d. -f1 | tr -dc '0-9')
+          minor_version=$(echo $latest_tag | cut -d. -f2)
+          patch_version=$(echo $latest_tag | cut -d. -f3)
 
-          filtered_tags=$(git tag | grep "^${major_version}\.${minor_version}\.${patch_version}")         
-          echo "Filtered Tags: $filtered_tags"
-
-          latest_tag=$(for tag in $filtered_tags; do
-              echo $(git log -1 --format=%ai $tag) $tag
-          done | sort | tail -n 1 | awk '{print $NF}')
-          major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
-          minor=$(echo "$latest_tag" | cut -d'.' -f2)
-          patch=$(echo "$latest_tag" | cut -d'.' -f3)
-
+          # Imcrement required environment
           case "${{ env.BRANCH_NAME }}" in
             "code-production")
               major=$((major + 1))
@@ -94,6 +84,17 @@ jobs:
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
 
+      - name: Delete older tags
+        run: |
+          all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
+          while IFS= read -r line; do
+            tag_to_delete=$(echo "$line" | awk '{print $NF}')
+            if [ "$tag_to_delete" != "$highest_version" ]; then
+                git tag -d "$tag_to_delete"
+                git push origin --delete "$tag_to_delete"
+            fi
+          done <<< "$all_tags"
+
       - name: Release lock
         run: |
           trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
@@ -102,7 +103,7 @@ jobs:
           git commit -m "Remove lock after versioning"
           git push origin "${{ env.BRANCH_NAME }}"
 
-      - name: Trigger Deployment Workflow
+      - name: Trigger Docker Publish Workflow
         if: success()
         run: |
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
