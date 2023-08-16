@@ -48,6 +48,7 @@ jobs:
             echo "No tags found. Exiting."
             exit 1
           fi
+          echo "$(git tag)"
 
           # Get the latest tag based on SemVer -V
           tags=( $(git tag) )
@@ -90,6 +91,8 @@ jobs:
           patch=$(echo $version  | cut -d. -f3)
           echo "major, minor, patch = $major.$minor.$patch"
 
+      - name: Increment SemVer version number
+        run: |
           # Increment for required environment
           case "${{ env.BRANCH_NAME }}" in
             "code-production")
