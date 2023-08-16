@@ -51,7 +51,7 @@ jobs:
 
           # Find latest tag
           all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
-          latest_tag=$(echo "$all_tags_dates" | head -n 1 | sed 's/^v//')
+          latest_tag=$(echo "$all_tags" | head -n 1 | sed 's/^v//')
           echo "Detected Tag = $latest_tag"
 
           if [ -z "$latest_tag" ]; then
