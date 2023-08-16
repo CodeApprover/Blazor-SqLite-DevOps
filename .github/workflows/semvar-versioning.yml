@@ -49,21 +49,22 @@ jobs:
             exit 1
           fi
 
-          # Get latest tag name
-          latest_tag=$(git tag --sort=-creatordate | head -n 1)
+          # Get the latest tag based on SemVer -V
+          latest_tag=$(git tag | sort -V | tail -n 1)
           echo "Raw Tag = $latest_tag"
 
           # Strip 'v' prefix from tag
           version=$(echo "$latest_tag" | sed 's/^v//')
           echo "Detected Version = $version"
           echo "Detected Tag = $latest_tag"
-          
-          # SemVar 2.0.0
+
+          # SemVer split
           major=$(echo $version  | cut -d. -f1)
           minor=$(echo $version  | cut -d. -f2)
           patch=$(echo $version  | cut -d. -f3)
           echo "major, minor, patch = $major.$minor.$patch"
-          # Increment required environment
+
+          # Increment for required environment
           case "${{ env.BRANCH_NAME }}" in
             "code-production")
               major=$((major + 1))
