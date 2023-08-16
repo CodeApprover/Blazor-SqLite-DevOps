@@ -67,7 +67,7 @@ jobs:
         cd /tmp/target-repo
 
         # Explicitly check out the target branch
-        git checkout ${{ env.DEPLOY_BRANCH }}
+        git checkout ${{ env.BRANCH_NAME }}
 
         # Select directory to overwrite based on source branch
         target_dir=""
