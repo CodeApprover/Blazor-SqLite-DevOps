@@ -27,7 +27,7 @@ jobs:
       run: |
         branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
         if [[ -z $branch ]]; then
-          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
+          echo "Error: Failed to extract branch name for SHA: ${{ env.SHA }}"
           exit 1 
         fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
@@ -46,31 +46,26 @@ jobs:
             deploy_branch="main"
             ;;
         esac
-        [[ "$deploy_branch" == "Invalid" ]] && echo "Invalid deployment branch $deploy_branch." && exit 1
+        if [[ "$deploy_branch" == "Invalid" ]]; then
+          echo "Error: Invalid deployment branch determined."
+          exit 1
+        fi
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
 
     - name: Extract Repository Name
       run: echo "REPO_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
 
-    - name: Fix Repository Permissions
-      run: |
-        if ! git config --get-regexp '^safe\.directory' | grep -q '*'; then
-          git config --global --add safe.directory '*'
-        fi
-
-    - name: Deploy to next environment
+    - name: Clone, copy and push
       run: |
         git config user.name "codeapprover"
         git config user.email "pucfada@pm.me"
 
-    - name: Clone, copy and push
-      run: |
         # Clone the target repository to a temp directory
         git clone https://github.com/codeapprover/Blazor-SqLite-DevOps.git /tmp/target-repo
-    
+
         # Navigate to the cloned directory
         cd /tmp/target-repo
-    
+
         # Select directory to overwrite based on source branch
         target_dir=""
         source_dir=""
@@ -88,14 +83,14 @@ jobs:
             exit 0
             ;;
         esac
-    
+
         # Remove the target directory in the cloned repo if it exists
         rm -rf $target_dir
-    
+
         # Copy the source directory from original repo to target directory in cloned repo
         mkdir -p $target_dir
         cp -r $GITHUB_WORKSPACE/$source_dir/* $target_dir/
-    
+
         # Commit and push the changes
         git add .
         git commit -m "Update from source repository $source_dir to $target_dir"
