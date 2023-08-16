@@ -15,9 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    if: >
-      github.ref == 'refs/heads/code-production ||
-      github.ref == 'refs/heads/main'
+    environment:
+      production
 
     steps:
     - name: Log Timestamp
