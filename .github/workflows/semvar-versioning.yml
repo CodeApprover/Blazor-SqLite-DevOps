@@ -51,8 +51,8 @@ jobs:
 
           # Find latest tag
           all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
-          latest_tag=$(echo "$all_tags" | head -n 1)
-
+          latest_tag=$(echo "$all_tags_dates" | head -n 1 | sed 's/^v//')
+          
           # SemVar 2.0.0
           major_version=$(echo $latest_tag | cut -d. -f1 | tr -dc '0-9')
           minor_version=$(echo $latest_tag | cut -d. -f2)
