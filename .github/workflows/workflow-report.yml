@@ -62,7 +62,7 @@ jobs:
         CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
 
         #CMD+="-d '{\"event_type\": \"trigger-stylecop\", "
-        CMD+="-d '{\"event_type\": \"trigger-check-lock\", " #TODO remove
+        CMD+="-d '{\"event_type\": \"trigger-check-lock-file\", " #TODO remove
 
         CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
         eval ${CMD}
