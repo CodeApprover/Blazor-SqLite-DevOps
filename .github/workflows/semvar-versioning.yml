@@ -122,14 +122,6 @@ jobs:
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
 
-      - name: Release lock
-        run: |
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-          git pull origin "${{ env.BRANCH_NAME }}"
-          git rm "${{ env.LOCK_FILE }}"
-          git commit -m "Remove lock after versioning"
-          git push origin "${{ env.BRANCH_NAME }}"
-
       - name: Trigger Docker Publish Workflow
         if: success()
         run: |
