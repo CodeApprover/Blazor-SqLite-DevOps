@@ -17,8 +17,18 @@ jobs:
       run: |
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
+       
+    - name: Report GitHub Commit & Actor Details
+      run: |
+        echo "Branch Name: ${{ env.BRANCH_NAME }}"
+        echo "Commit Message: ${{ github.event.head_commit.message }}"
+        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
+        echo "Committer Email:(${{ github.event.head_commit.author.email }})"
+        echo "Pusher Name: ${{ github.event.pusher.name }}"
+        echo "Actor: ${{ github.actor }}"
+        echo "Commit SHA: ${{ github.sha }}"
 
-    - name: GitHub Environment Details
+    - name: Report GitHub Environment Details
       run: |
         echo "Actions Report"
         date
@@ -36,18 +46,8 @@ jobs:
         echo "Runner OS: ${{ runner.os }}"
         echo "Runner Tool Cache: ${{ runner.tool_cache }}"
         echo "Runner Temp Directory: ${{ runner.temp }}"
-        
-    - name: GitHub Commit & Actor Details
-      run: |
-        echo "Branch Name: ${{ env.BRANCH_NAME }}"
-        echo "Commit Message: ${{ github.event.head_commit.message }}"
-        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
-        echo "Committer Email:(${{ github.event.head_commit.author.email }})"
-        echo "Pusher Name: ${{ github.event.pusher.name }}"
-        echo "Actor: ${{ github.actor }}"
-        echo "Commit SHA: ${{ github.sha }}"
 
-    - name: Job & Run Details
+    - name: Report Job & Run Details
       run: |
         date
         echo "Job Name: ${{ github.job }}"
