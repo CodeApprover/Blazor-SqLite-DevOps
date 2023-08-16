@@ -20,8 +20,7 @@ jobs:
     if: |
       github.event.workflow_run.head_branch == 'code-development' ||
       github.event.workflow_run.head_branch == 'code-staging' ||
-      github.event.workflow_run.head_branch == 'code-production' ||
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.head_branch == 'code-production'
 
     steps:
 
