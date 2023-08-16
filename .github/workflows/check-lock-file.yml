@@ -115,7 +115,7 @@ jobs:
 
           echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
           git add "${{ env.LOCK_FILE }}"
-          git commit -m "Add lock for versioning"
+          git commit -m "Adding ${{ env.LOCK_FILE }} file for ${{ github.event.client_payload.sha }} [skip ci]"
 
           if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
             echo "Failed to push. Exiting."
