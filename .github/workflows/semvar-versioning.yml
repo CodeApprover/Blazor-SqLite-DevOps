@@ -49,20 +49,24 @@ jobs:
             exit 1
           fi
 
-          # Find latest tag
-          all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
-          latest_tag=$(echo "$all_tags" | head -n 1 | sed 's/^v//')
-          echo "Detected Tag = $latest_tag"
+          # Get latest tag name
+          latest_tag=$(git tag --sort=-creatordate | head -n 1)
+          echo "Raw Tag = $latest_tag"
 
+          # Strip 'v' prefix from tag
+          version=$(echo "$latest_tag" | sed 's/^v//')
+          echo "Detected Version = $version"
+          echo "Detected Tag = $latest_tag"
+          
           if [ -z "$latest_tag" ]; then
             echo "No tags found. Exiting."
             exit 1
           fi
           
           # SemVar 2.0.0
-          major_version=$(echo $latest_tag | cut -d. -f1 | tr -dc '0-9')
-          minor_version=$(echo $latest_tag | cut -d. -f2)
-          patch_version=$(echo $latest_tag | cut -d. -f3)
+          major_version=$(echo $version  | cut -d. -f1)
+          minor_version=$(echo $version  | cut -d. -f2)
+          patch_version=$(echo $version  | cut -d. -f3)
           echo "major_version = $major_version"
           echo "minor_version = $minor_version"
           echo "patch_version = $patch_version"
