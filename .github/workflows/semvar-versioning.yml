@@ -48,7 +48,9 @@ jobs:
             echo "No tags found. Exiting."
             exit 1
           fi
-          echo "$(git tag)"
+          
+          echo "Current Tags ="
+          git tag
 
           # Get the latest tag based on SemVer -V
           tags=( $(git tag) )
