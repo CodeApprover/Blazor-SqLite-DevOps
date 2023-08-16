@@ -84,15 +84,16 @@ jobs:
           latest_tag="v$latest_major.$latest_minor.$latest_patch"
           echo "Latest Tag = $latest_tag"
 
+      - name: Increment SemVer version number
+        run: |
           # Strip 'v' and SemVer split
           version=$(echo "$latest_tag" | sed 's/^v//')
           major=$(echo $version  | cut -d. -f1)
           minor=$(echo $version  | cut -d. -f2)
           patch=$(echo $version  | cut -d. -f3)
-          echo "major, minor, patch = $major.$minor.$patch"
-
-      - name: Increment SemVer version number
-        run: |
+          
+          echo "existing major, minor, patch = $major.$minor.$patch"
+          
           # Increment for required environment
           case "${{ env.BRANCH_NAME }}" in
             "code-production")
