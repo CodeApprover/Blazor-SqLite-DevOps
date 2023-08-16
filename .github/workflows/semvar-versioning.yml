@@ -52,11 +52,15 @@ jobs:
           # Find latest tag
           all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
           latest_tag=$(echo "$all_tags_dates" | head -n 1 | sed 's/^v//')
+          echo "Detected Tag = $latest_tag"
           
           # SemVar 2.0.0
           major_version=$(echo $latest_tag | cut -d. -f1 | tr -dc '0-9')
           minor_version=$(echo $latest_tag | cut -d. -f2)
           patch_version=$(echo $latest_tag | cut -d. -f3)
+          echo "major_version = $major_version"
+          echo "minor_version = $minor_version"
+          echo "patch_version = $patch_version"
 
           # Imcrement required environment
           case "${{ env.BRANCH_NAME }}" in
@@ -75,8 +79,8 @@ jobs:
           esac
 
           new_version="v$major.$minor.$patch"
-          echo "Determined new version: $new_version"
           echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+          echo "New version number = $new_version"
 
       - name: Tag repository with new version
         run: |
