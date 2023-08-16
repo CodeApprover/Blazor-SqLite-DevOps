@@ -92,9 +92,15 @@ jobs:
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
 
-        # Check branch for lock file
+        # Fetch the branch
         git fetch origin ${{ env.BRANCH_NAME }}
-            
+
+        # Checkout the branch
+        git checkout ${{ env.BRANCH_NAME }}
+
+        # Pull latest changes 
+        git pull origin ${{ env.BRANCH_NAME }}
+
         # Delete lock file
         if git ls-tree HEAD -- "$lock_file"; then
           echo "Lock file $lock_file found on branch ${{ env.BRANCH_NAME }}"
