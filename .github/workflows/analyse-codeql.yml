@@ -22,7 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     if: |
-      github.event.workflow_run.head_branch == 'code-development' ||
       github.event.workflow_run.head_branch == 'code-staging' ||
       github.event.workflow_run.head_branch == 'code-production'
 
@@ -30,11 +29,6 @@ jobs:
       actions: read
       contents: read
       security-events: write
-
-    if: >
-      github.ref == 'refs/heads/code-staging' ||
-      github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main'
 
     strategy:
       fail-fast: false
