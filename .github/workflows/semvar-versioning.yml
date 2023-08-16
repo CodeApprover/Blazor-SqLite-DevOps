@@ -39,7 +39,7 @@ jobs:
 
           echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
-      - name: Determine next version tag
+      - name: Determine latest version tag
         run: |
           trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
           git fetch --tags
