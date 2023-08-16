@@ -57,6 +57,64 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
 
+    - name: Update Deployment Status
+      run: |
+        desc="Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/deployments/${{ steps.create_deployment.outputs.deployment_id }}/statuses \
+          -d '{
+            "state": "success",
+            "description": "'"${desc}"'",
+            "environment": "${{ env.BRANCH_NAME }}"
+          }'
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+
+    - name: Check for lock file
+      run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+
+        # Set lock file name
+        case "${{ env.BRANCH_NAME }}" in
+            "code-production")
+                echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+                ;;
+            "code-staging")
+                echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+                ;;
+            "code-development")
+                echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+                ;;
+            "main")
+                echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+                ;;
+            *)
+                echo "Unknown branch: $branch. Exiting."
+                exit 1
+                ;;
+        esac
+
+        # Check branch for lock file
+        git fetch origin ${{ env.BRANCH_NAME }}
+        lock_found=0
+        
+        # Find a lock file
+        if git ls-tree -r HEAD --full-tree | grep "${{ env.LOCK_FILE }}"; then
+            lock_found=1
+            echo "Lock file ${{ env.LOCK_FILE }} found in branch ${{ env.BRANCH_NAME }}"
+        fi
+
+        # Delete lock file if it exists
+        if [[ "$lock_found" -eq 1 ]]; then
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          git pull origin "${{ env.BRANCH_NAME }}"
+          git rm "${{ env.LOCK_FILE }}"
+          git commit -m "Remove lock after versioning"
+          git push origin "${{ env.BRANCH_NAME }}"
+        fi
+
     - name: Create GitHub Deployment
       id: create_deployment
       run: |
@@ -74,18 +132,3 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.AUTH }}
       continue-on-error: true
-
-    - name: Update Deployment Status
-      run: |
-        desc="Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
-        curl -X POST \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/deployments/${{ steps.create_deployment.outputs.deployment_id }}/statuses \
-          -d '{
-            "state": "success",
-            "description": "'"${desc}"'",
-            "environment": "${{ env.BRANCH_NAME }}"
-          }'
-      env:
-        GITHUB_TOKEN: ${{ secrets.AUTH }}
