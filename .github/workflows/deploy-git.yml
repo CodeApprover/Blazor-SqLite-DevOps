@@ -77,21 +77,27 @@ jobs:
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
 
         # Set lock file name
+        set -e
+        echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
         case "${{ env.BRANCH_NAME }}" in
             "code-production")
                 echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+                echo "##[debug] LOCK_FILE set to .production.lock"
                 ;;
             "code-staging")
                 echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
                 ;;
             "code-development")
                 echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+                echo "##[debug] LOCK_FILE set to .development.lock"
                 ;;
             "main")
                 echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+                echo "##[debug] LOCK_FILE set to .main.lock"
                 ;;
             *)
                 echo "Unknown branch: $branch. Exiting."
+                echo "##[debug] Unknown branch"
                 exit 1
                 ;;
         esac
@@ -100,7 +106,8 @@ jobs:
           exit 1
         else
             echo "Lock file = ${{ env.LOCK_FILE }}"
-        fi        
+        fi       
+        set +e
 
         # Check branch for lock file
         git fetch origin ${{ env.BRANCH_NAME }}
