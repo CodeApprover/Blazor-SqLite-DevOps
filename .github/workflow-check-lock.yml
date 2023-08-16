@@ -1,0 +1,133 @@
+name: Lock File Check
+
+on:
+  repository_dispatch:
+    types: trigger-check-lock
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+
+jobs:
+  version-and-tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout SHA repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.event.client_payload.sha }}
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "CodeApprover"
+          git config user.email "pucfada@pm.me"
+
+      - name: Set branch and lock file name
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
+          echo "Detected branch: $branch"
+          
+          if [[ -z "${branch}" ]]; then
+            echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
+            exit 1 
+          fi
+
+          echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+          case "${branch}" in
+              "code-production")
+                  echo "LOCK_FILE=.production.lock" >> $GITHUB_ENV
+                  ;;
+              "code-staging")
+                  echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+                  ;;
+              "code-development")
+                  echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
+                  ;;
+              "main")
+                  echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+                  ;;
+              *)
+                  echo "Unknown branch: $branch. Exiting."
+                  exit 1
+                  ;;
+          esac
+
+      - name: Check for lock file with retry
+        run: |
+          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+
+          RETRY_COUNT=0
+          MAX_RETRIES=3
+          SLEEP_DURATION=5  # TODO remove
+
+          while true; do
+            git fetch origin ${{ env.BRANCH_NAME }}
+
+            if ! git show ${{ github.event.client_payload.sha }}; then
+              echo "Error: The commit ${{ github.event.client_payload.sha }} does not exist!"
+              exit 1
+            fi
+          
+            branch_contains=$(git branch --contains ${{ github.event.client_payload.sha }})
+            if [ -z "$branch_contains" ]; then
+              echo "Error: No branch contains the commit ${{ github.event.client_payload.sha }}!"
+              exit 1
+            fi
+
+            git checkout ${{ env.BRANCH_NAME }}
+            echo "Current Branch:"
+            git branch --show-current
+            echo "Last 5 commits on this branch:"
+            git log -n 5 --oneline
+            echo "Trying to list commits between \" ${{ github.event.client_payload.sha }} \"~1 and \" ${{ env.BRANCH_NAME }}\""
+
+            commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
+
+            if ! git show ${{ github.event.client_payload.sha }}~1; then
+              echo "Error: The commit before ${{ github.event.client_payload.sha }} does not exist!"
+              exit 1
+            fi
+
+            lock_found=0
+            for commit in $commits_before_sha; do
+              if git ls-tree -r $commit | grep "${{ env.LOCK_FILE }}"; then
+                  lock_found=1
+                  break
+              fi
+            done
+
+            if [[ "$lock_found" -eq 1 ]]; then
+              if [[ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]]; then
+                echo "Exceeded maximum retries. Lock file still found. Exiting."
+                exit 1
+              fi
+
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              echo "Lock file found in a commit prior to the payload SHA. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+              sleep $SLEEP_DURATION
+            else
+              break
+            fi
+          done
+
+          echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
+          git add "${{ env.LOCK_FILE }}"
+          git commit -m "Add lock for versioning"
+
+          if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+            echo "Failed to push. Exiting."
+            exit 1
+          fi
+
+        - name: Trigger Versioning Workflow
+          if: success()
+          run: |
+            CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+            CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+            CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+            CMD+="-d '{\"event_type\": \"trigger-versioning\", "
+            CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+            eval ${CMD}
