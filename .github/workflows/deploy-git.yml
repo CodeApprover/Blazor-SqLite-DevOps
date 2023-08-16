@@ -9,14 +9,11 @@ env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
-
   deploy-to-environment:
-
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
     steps:
-        
     - name: Extract SHA for Checkout
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
@@ -24,7 +21,7 @@ jobs:
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
+        fetch-depth: 0
 
     - name: Extract Branch Name from SHA Commit
       run: |
@@ -57,13 +54,31 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DEPLOY_DIR=$deploy_dir" >> $GITHUB_ENV
 
+    - name: Create GitHub Deployment
+      id: create_deployment
+      run: |
+        response=$(curl -X POST \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/deployments \
+          -d '{
+            "ref": "${{ env.DEPLOY_BRANCH }}",
+            "environment": "${{ env.BRANCH_NAME }}",
+            "description": "Deploying to ${{ env.BRANCH_NAME }}"
+          }')
+        deployment_id=$(echo "$response" | jq '.id')
+        echo "DEPLOYMENT_ID=$deployment_id" >> $GITHUB_ENV
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+      continue-on-error: true
+
     - name: Update Deployment Status
       run: |
         desc="Deployed ${{ github.event.client_payload.sha }} from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
         curl -X POST \
           -H "Authorization: token ${{ secrets.AUTH }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/deployments/${{ steps.create_deployment.outputs.deployment_id }}/statuses \
+          https://api.github.com/repos/${{ github.repository }}/deployments/${{ env.DEPLOYMENT_ID }}/statuses \
           -d '{
             "state": "success",
             "description": "'"${desc}"'",
@@ -76,60 +91,29 @@ jobs:
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
 
-        # Set all lock file names
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
 
-        # Set branch lock file name
         echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
         lock_file=${branch_lock_map[${{ env.BRANCH_NAME }}]}
         echo "##[debug] lock_file is $lock_file"
 
-        # Configure git user
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
 
-        # Fetch the branch
+        # Force branch refresh
         git fetch origin ${{ env.BRANCH_NAME }}
-
-        # Checkout the branch
         git checkout ${{ env.BRANCH_NAME }}
 
-        # Pull latest changes 
-        git pull origin ${{ env.BRANCH_NAME }}
-
-        # Delete lock file
         if git ls-tree HEAD -- "$lock_file"; then
           echo "Lock file $lock_file found on branch ${{ env.BRANCH_NAME }}"
-          # Delete lock file
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-          git pull origin "${{ env.BRANCH_NAME }}"
           git rm "$lock_file"
           git commit -m "Removed lock after versioning [skip ci]"
           git push origin "${{ env.BRANCH_NAME }}"
         else
-          # Fail if a lock file does not exist
-          echo "Required lock file for ${{ env.SAH }} on branch ${{ env.BRANCH_NAME }} was not found. Exiting."
+          echo "Required lock file for ${{ env.SHA }} on branch ${{ env.BRANCH_NAME }} was not found. Exiting."
           exit 1
         fi
-
-    - name: Create GitHub Deployment
-      id: create_deployment
-      run: |
-        response=$(curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/deployments \
-          -d '{
-            "ref": "${{ env.DEPLOY_BRANCH }}",
-            "environment": "${{ env.BRANCH_NAME }}",
-            "description": "Deploying to ${{ env.BRANCH_NAME }}"
-          }')
-        deployment_id=$(echo "$response" | jq '.id')
-        echo "::set-output name=deployment_id::$deployment_id"
-      env:
-        GITHUB_TOKEN: ${{ secrets.AUTH }}
-      continue-on-error: true
