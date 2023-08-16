@@ -22,10 +22,6 @@ jobs:
     name: Revert Failed Commit
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: |
-      github.event.workflow_run.head_branch == 'code-development' ||
-      github.event.workflow_run.head_branch == 'code-staging' ||
-      github.event.workflow_run.head_branch == 'code-production'
 
     steps:
 
