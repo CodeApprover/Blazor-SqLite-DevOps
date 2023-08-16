@@ -11,6 +11,10 @@ jobs:
   version-and-tag:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: |
+      github.event.workflow_run.head_branch == 'code-development' ||
+      github.event.workflow_run.head_branch == 'code-staging' ||
+      github.event.workflow_run.head_branch == 'code-production'
 
     steps:
 
@@ -80,11 +84,6 @@ jobs:
               ;;
             "code-development")
               patch=$((patch + 1))
-              ;;
-            "main")
-              ;;
-            *)
-              echo "Unknown branch: ${{ env.BRANCH_NAME }}. Retaining current version."
               ;;
           esac
 
