@@ -109,7 +109,7 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }} > /dev/null; then
           echo "Docker image already exists! Skipping Docker push."
         else
           docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
