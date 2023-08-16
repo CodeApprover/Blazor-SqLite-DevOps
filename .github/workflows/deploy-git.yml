@@ -54,7 +54,7 @@ jobs:
       env:
         API_TOKEN_GITHUB: ${{ secrets.AUTH }}
       with:
-        source-directory: ${{ env.DEPLOY_DIR }} 
+        source-directory: . 
         destination-github-username: 'codeapprover'
         destination-repository-name: ${{ github.repository }} 
         user-email: pucfada@pm.me
