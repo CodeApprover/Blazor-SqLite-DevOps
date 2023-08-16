@@ -14,14 +14,10 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: |
-      github.event.workflow_run.head_branch == 'code-development' ||
-      github.event.workflow_run.head_branch == 'code-staging' ||
-      github.event.workflow_run.head_branch == 'code-production'
-
     steps:
-
+        
     - name: Extract SHA for Checkout
+      if: env.ENABLE_DEPLOYMENT == 'true'
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
     - name: Checkout SHA repository
