@@ -15,11 +15,7 @@ jobs:
   super-linter:
     name: SuperLinter 
     runs-on: ubuntu-latest
-    timeout-minutes: 360
-
-    if: >
-      github.ref == 'refs/heads/code-production' ||
-      github.ref == 'refs/heads/main'
+    timeout-minutes: 15
     
     steps:
       - name: Log Timestamp
