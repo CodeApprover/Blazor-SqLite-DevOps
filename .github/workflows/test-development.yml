@@ -65,11 +65,11 @@ jobs:
 
     steps:
 
-    - name: Trigger Appropriate Workflow
+    - name: Trigger Lock File Check
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\": \"trigger-versioning\", "
+        CMD+="-d '{\"event_type\": \"trigger-check-lock\", "
         CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
         eval ${CMD}
