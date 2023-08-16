@@ -28,12 +28,12 @@ jobs:
 
       - name: Set branch name
         run: |
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
           branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-          echo "Detected branch: $branch"
+          echo "##[debug] Detected branch: $branch"
           
           if [[ -z "${branch}" ]]; then
-            echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
+            echo "##[debug] Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
             exit 1 
           fi
 
@@ -41,15 +41,15 @@ jobs:
 
       - name: Determine latest version tag
         run: |
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
           git fetch --tags
 
           if [ -z "$(git tag)" ]; then
-            echo "No tags found. Exiting."
+            echo "##[debug]] No tags found. Exiting."
             exit 1
           fi
           
-          echo "Current Tags ="
+          echo "##[debug] Current Tags ="
           git tag
 
           # Get the latest tag based on SemVer -V
@@ -83,19 +83,19 @@ jobs:
               fi
           done
 
-          latest_tag="v$latest_major.$latest_minor.$latest_patch"
-          echo "Latest Tag = $latest_tag"
-          echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
+          current_tag="v$latest_major.$latest_minor.$latest_patch"
+          echo "##[debug] Current Tag = $current_tag"
+          echo "CURRENT_TAG=${current_tag}" >> $GITHUB_ENV
 
       - name: Increment SemVer version number
         run: |
           # Strip 'v' and SemVer split
-          version=$(echo "${{ env.LATEST_TAG }}" | sed 's/^v//')
+          version=$(echo "${{ env.CURRENT_TAG }}" | sed 's/^v//')
           major=$(echo $version  | cut -d. -f1)
           minor=$(echo $version  | cut -d. -f2)
           patch=$(echo $version  | cut -d. -f3)
           
-          echo "existing major, minor, patch = $major.$minor.$patch"
+          echo "##[debug] Current tag has major.minor.patch == $major.$minor.$patch"
           
           # Increment for required environment
           case "${{ env.BRANCH_NAME }}" in
@@ -113,12 +113,12 @@ jobs:
               ;;
           esac
           new_version="v$major.$minor.$patch"
-          echo "New version number = $new_version"
+          echo "##[debug] New version number = $new_version"
           echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
       - name: Tag repository with new version
         run: |
-          trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
 
