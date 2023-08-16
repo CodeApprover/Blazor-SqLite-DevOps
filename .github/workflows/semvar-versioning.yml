@@ -58,20 +58,12 @@ jobs:
           echo "Detected Version = $version"
           echo "Detected Tag = $latest_tag"
           
-          if [ -z "$latest_tag" ]; then
-            echo "No tags found. Exiting."
-            exit 1
-          fi
-          
           # SemVar 2.0.0
-          major_version=$(echo $version  | cut -d. -f1)
-          minor_version=$(echo $version  | cut -d. -f2)
-          patch_version=$(echo $version  | cut -d. -f3)
-          echo "major_version = $major_version"
-          echo "minor_version = $minor_version"
-          echo "patch_version = $patch_version"
-
-          # Imcrement required environment
+          major=$(echo $version  | cut -d. -f1)
+          minor=$(echo $version  | cut -d. -f2)
+          patch=$(echo $version  | cut -d. -f3)
+          echo "major, minor, patch = $major.$minor.$patch"
+          # Increment required environment
           case "${{ env.BRANCH_NAME }}" in
             "code-production")
               major=$((major + 1))
@@ -86,7 +78,6 @@ jobs:
               patch=$((patch + 1))
               ;;
           esac
-
           new_version="v$major.$minor.$patch"
           echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
           echo "New version number = $new_version"
