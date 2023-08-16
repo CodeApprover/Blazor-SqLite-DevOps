@@ -117,3 +117,21 @@ jobs:
           echo "Required lock file for ${{ env.SHA }} on branch ${{ env.BRANCH_NAME }} was not found. Exiting."
           exit 1
         fi
+
+    - name: Trigger Appropriate Workflow
+      if: success()
+      run: |
+        env_name=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
+        case $env_name in
+          development) EVENT_TYPE="trigger-development-tests" ;;
+          staging) EVENT_TYPE="trigger-env-staging-tests" ;;
+          production) EVENT_TYPE="trigger-production-tests" ;;
+          *) echo "Error: Unexpected environment name"; exit 1 ;;
+        esac
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\": \"$EVENT_TYPE\", "
+        CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
+        eval ${CMD}
+    
