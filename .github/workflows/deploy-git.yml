@@ -95,6 +95,12 @@ jobs:
                 exit 1
                 ;;
         esac
+        if [ -z "${{ env.LOCK_FILE }}" ]; then
+          echo "Lock file is null or empty. Exiting."
+          exit 1
+        else
+            echo "Lock file = ${{ env.LOCK_FILE }}"
+        fi        
 
         # Check branch for lock file
         git fetch origin ${{ env.BRANCH_NAME }}
