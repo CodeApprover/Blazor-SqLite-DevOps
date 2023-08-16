@@ -3,7 +3,7 @@ name: Lock File Check
 
 on:
   repository_dispatch:
-    types: trigger-check-lock
+    types: trigger-check-lock-file
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
