@@ -1,3 +1,4 @@
+---
 name: Lock File Check
 
 on:
@@ -120,6 +121,16 @@ jobs:
           if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
             echo "Failed to push. Exiting."
             exit 1
+          fi
+
+          # Confirm the presence of the lock file in the latest commit
+          git fetch origin ${{ env.BRANCH_NAME }}
+          git checkout ${{ env.BRANCH_NAME }}
+          if ! git ls-tree HEAD -- "${{ env.LOCK_FILE }}"; then
+            echo "Error: Lock file was not successfully created or pushed."
+            exit 1
+          else
+            echo "Lock file successfully created and pushed."
           fi
 
       - name: Trigger Versioning Workflow
