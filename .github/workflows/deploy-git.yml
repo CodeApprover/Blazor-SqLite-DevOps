@@ -59,15 +59,50 @@ jobs:
         fi
 
     - name: Deploy to next environment
-      uses: QXIP/github-action-push-to-another-repository@v1.4.2
+      run: |
+        git config user.name "codeapprover"
+        git config user.email "pucfada@pm.me"
+
+    - name: Clone, copy and push
+      run: |
+        # Clone the target repository to a temp directory
+        git clone https://github.com/codeapprover/Blazor-SqLite-DevOps.git /tmp/target-repo
+    
+        # Navigate to the cloned directory
+        cd /tmp/target-repo
+    
+        # Select directory to overwrite based on source branch
+        target_dir=""
+        source_dir=""
+        case "${{ env.BRANCH_NAME }}" in
+          "code-development")
+            target_dir="development"
+            source_dir="development"
+            ;;
+          "code-staging")
+            target_dir="staging"
+            source_dir="staging"
+            ;;
+          "code-production")
+            # Do nothing for code-production to main
+            exit 0
+            ;;
+        esac
+    
+        # Remove the target directory in the cloned repo if it exists
+        rm -rf $target_dir
+    
+        # Copy the source directory from original repo to target directory in cloned repo
+        mkdir -p $target_dir
+        cp -r $GITHUB_WORKSPACE/$source_dir/* $target_dir/
+    
+        # Commit and push the changes
+        git add .
+        git commit -m "Update from source repository $source_dir to $target_dir"
+        git push origin ${{ env.DEPLOY_BRANCH }}
+    
       env:
-        API_TOKEN_GITHUB: ${{ secrets.AUTH }}
-      with:
-        source-directory: . 
-        destination-github-username: 'codeapprover'
-        destination-repository-name: ${{ env.REPO_NAME }} 
-        user-email: pucfada@pm.me
-        target-branch: ${{ env.DEPLOY_BRANCH }}
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
 
     - name: Check for lock file
       run: |
