@@ -98,16 +98,6 @@ jobs:
         echo "Latest Tag = $latest_tag"
         echo "NEW_VERSION=${latest_tag}" >> $GITHUB_ENV
 
-    - name: Check if Docker image already exists
-      id: check_image
-      run: |
-        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
-          echo "::set-output name=image_exists::true"
-          echo "Docker image already exists!"
-        else
-          echo "::set-output name=image_exists::false"
-        fi
-
     - name: Set .csproj path
       run: |
         CSPROJ=$(find "${{ github.workspace }}/${{ env.ENV_NAME }}" -name "${{ env.PROJ_NAME }}.csproj")
@@ -117,34 +107,20 @@ jobs:
         fi
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-    - name: Write version to file
-      if: steps.check_image.outputs.image_exists == 'false'
-      run: |
-        echo "${NEW_VERSION}" > $(find ./${{ env.ENV_NAME }} -name "version" | head -n 1)    
-
     - name: Build and push Docker image
-      if: steps.check_image.outputs.image_exists == 'false'
       run: |
-        docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
-        if [[ ! -f "$docker_file" ]]; then
-          echo "Dockerfile not found"
-          exit 1
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} > /dev/null; then
+          echo "Docker image already exists! Skipping Docker push."
+        else
+          docker_file=$(find ./${{ env.ENV_NAME }} -name "Dockerfile" | head -n 1)
+          if [[ ! -f "$docker_file" ]]; then
+            echo "Dockerfile not found for ${{ env.SAH }}"
+            exit 1
+          fi
+          echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
+          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
         fi
-        echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
-        docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
-
-    - name: Tag the repository with new version
-      if: steps.check_image.outputs.image_exists == 'false'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git tag "${{ env.NEW_VERSION }}"
-        
-    - name: Push new tag to repository
-      if: steps.check_image.outputs.image_exists == 'false'
-      run: |
-        git push origin "${{ env.NEW_VERSION }}"
 
     - name: Trigger Git Deployment
       if: success()
