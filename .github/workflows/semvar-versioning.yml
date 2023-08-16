@@ -50,15 +50,41 @@ jobs:
           fi
 
           # Get the latest tag based on SemVer -V
-          latest_tag=$(git tag | sort -V | tail -n 1)
-          echo "Raw Tag = $latest_tag"
+          tags=( $(git tag) )
 
-          # Strip 'v' prefix from tag
+          latest_major=0
+          latest_minor=0
+          latest_patch=0
+          
+          for tag in "${tags[@]}"; do
+              current_major=$(echo $tag | cut -d. -f1 | sed 's/^v//')
+              current_minor=$(echo $tag | cut -d. -f2)
+              current_patch=$(echo $tag | cut -d. -f3)
+          
+              # Check major
+              if (( current_major > latest_major )); then
+                  latest_major=$current_major
+                  latest_minor=$current_minor
+                  latest_patch=$current_patch
+              elif (( current_major == latest_major )); then
+                  # Check minor
+                  if (( current_minor > latest_minor )); then
+                      latest_minor=$current_minor
+                      latest_patch=$current_patch
+                  elif (( current_minor == latest_minor )); then
+                      # Check patch
+                      if (( current_patch > latest_patch )); then
+                          latest_patch=$current_patch
+                      fi
+                  fi
+              fi
+          done
+
+          latest_tag="v$latest_major.$latest_minor.$latest_patch"
+          echo "Latest Tag = $latest_tag"
+
+          # Strip 'v' and SemVer split
           version=$(echo "$latest_tag" | sed 's/^v//')
-          echo "Detected Version = $version"
-          echo "Detected Tag = $latest_tag"
-
-          # SemVer split
           major=$(echo $version  | cut -d. -f1)
           minor=$(echo $version  | cut -d. -f2)
           patch=$(echo $version  | cut -d. -f3)
@@ -88,17 +114,6 @@ jobs:
           trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
-
-      - name: Delete older tags
-        run: |
-          all_tags=$(git tag --sort=-creatordate)
-          latest_tag=${{ env.NEW_VERSION }}
-          for tag in $all_tags; do
-              if [ "$tag" != "$latest_tag" ]; then
-                  git tag -d "$tag"
-                  git push origin --delete "$tag"
-              fi
-          done
 
       - name: Release lock
         run: |
