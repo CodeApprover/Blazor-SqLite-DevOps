@@ -56,31 +56,47 @@ jobs:
 
     - name: Determine next version tag
       run: |
-        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0.0.0')
-        major=$(echo "$latest_tag" | cut -d'.' -f1 | tr -dc '0-9')
-        minor=$(echo "$latest_tag" | cut -d'.' -f2)
-        patch=$(echo "$latest_tag" | cut -d'.' -f3)
-
-        case "${{ env.ENV_NAME }}" in
-          "production")
-            major=$((major + 1))
-            minor=0
-            patch=0
-            ;;
-          "staging"):
-            minor=$((minor + 1))
-            patch=0
-            ;;
-          "development"):
-            patch=$((patch + 1))
-            ;;
-          "main"):
-            # Do nothing for main; retain the version as it is
-            ;;
-        esac
-
-        new_version="v$major.$minor.$patch"
-        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+        git fetch --tags
+        if [ -z "$(git tag)" ]; then
+          echo "No tags found. Exiting."
+          exit 1
+        fi
+        
+        echo "Current Tags ="
+        git tag
+        # Get the latest tag based on SemVer -V
+        tags=( $(git tag) )
+        latest_major=0
+        latest_minor=0
+        latest_patch=0
+        
+        for tag in "${tags[@]}"; do
+            current_major=$(echo $tag | cut -d. -f1 | sed 's/^v//')
+            current_minor=$(echo $tag | cut -d. -f2)
+            current_patch=$(echo $tag | cut -d. -f3)
+        
+            # Check major
+            if (( current_major > latest_major )); then
+                latest_major=$current_major
+                latest_minor=$current_minor
+                latest_patch=$current_patch
+            elif (( current_major == latest_major )); then
+                # Check minor
+                if (( current_minor > latest_minor )); then
+                    latest_minor=$current_minor
+                    latest_patch=$current_patch
+                elif (( current_minor == latest_minor )); then
+                    # Check patch
+                    if (( current_patch > latest_patch )); then
+                        latest_patch=$current_patch
+                    fi
+                fi
+            fi
+        done
+        latest_tag="v$latest_major.$latest_minor.$latest_patch"
+        echo "Latest Tag = $latest_tag"
+        echo "NEW_VERSION=${latest_tag}" >> $GITHUB_ENV
 
     - name: Check if Docker image already exists
       id: check_image
