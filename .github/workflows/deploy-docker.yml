@@ -117,7 +117,7 @@ jobs:
             echo "Dockerfile not found for ${{ env.SAH }}"
             exit 1
           fi
-          echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
+          echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:v${{ env.NEW_VERSION }}"
         fi
