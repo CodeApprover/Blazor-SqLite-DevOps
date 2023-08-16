@@ -76,32 +76,32 @@ jobs:
       run: |
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
 
-        # Set lock file name
+        # Set all lock file names
+        declare -A branch_lock_map
+        branch_lock_map["code-production"]=".production.lock"
+        branch_lock_map["code-staging"]=".staging.lock"
+        branch_lock_map["code-development"]=".development.lock"
+        branch_lock_map["main"]=".main.lock"
+        
+        # Set branch lock file name
         echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
-
-        case "${{ env.BRANCH_NAME }}" in
-            "code-production")
-                LOCK_FILE=.production.lock
-                ;;
-            "code-staging")
-                LOCK_FILE=.staging.lock
-                ;;
-            "code-development")
-                LOCK_FILE=.development.lock
-                ;;
-            "main")
-                echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-                echo "##[debug] LOCK_FILE set to .main.lock"
-                ;;
-        esac
+        LOCK_FILE=${branch_lock_map[${{ env.BRANCH_NAME }}]}
+        
+        if [ -z "$LOCK_FILE" ]; then
+          echo "Unknown branch: ${{ env.BRANCH_NAME }}. Exiting."
+          echo "##[debug] Unknown branch"
+          exit 1
+        fi
+        
         echo "LOCK_FILE=$LOCK_FILE" >> $GITHUB_ENV
         echo "##[debug] LOCK_FILE is ${{ env.LOCK_FILE }}"
-        if [ -z ${{ env.LOCK_FILE }} ]; then
+        
+        if [ -z "${{ env.LOCK_FILE }}" ]; then
           echo "Lock file is null or empty. Exiting."
           exit 1
         else
-            echo "Lock file confirmed as ${{ env.LOCK_FILE }}"
-        fi       
+          echo "Lock file confirmed as ${{ env.LOCK_FILE }}"
+        fi    
 
         # Check branch for lock file
         git fetch origin ${{ env.BRANCH_NAME }}
