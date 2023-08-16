@@ -86,6 +86,7 @@ jobs:
                 ;;
             "code-staging")
                 echo "LOCK_FILE=.staging.lock" >> $GITHUB_ENV
+                echo "##[debug] LOCK_FILE set to .staging.lock"
                 ;;
             "code-development")
                 echo "LOCK_FILE=.development.lock" >> $GITHUB_ENV
@@ -101,6 +102,8 @@ jobs:
                 exit 1
                 ;;
         esac
+        
+        echo "##[debug] LOCK_FILE is now "${{ env.LOCK_FILE }}""
         if [ -z "${{ env.LOCK_FILE }}" ]; then
           echo "Lock file is null or empty. Exiting."
           exit 1
