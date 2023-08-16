@@ -79,8 +79,8 @@ jobs:
               ;;
           esac
           new_version="v$major.$minor.$patch"
-          echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
           echo "New version number = $new_version"
+          echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
       - name: Tag repository with new version
         run: |
@@ -90,15 +90,14 @@ jobs:
 
       - name: Delete older tags
         run: |
-          all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
-          while IFS= read -r line; do
-            # Extract the last field, which should be the tag, but we need to ensure it doesn't capture timezone offset.
-            tag_to_delete=$(echo "$line" | awk '{print $(NF-1)}')
-            if [ "$tag_to_delete" != "${{ env.NEW_VERSION }}" ]; then
-                git tag -d "$tag_to_delete"
-                git push origin --delete "$tag_to_delete"
-            fi
-          done <<< "$all_tags"
+          all_tags=$(git tag --sort=-creatordate)
+          latest_tag=${{ env.NEW_VERSION }}
+          for tag in $all_tags; do
+              if [ "$tag" != "$latest_tag" ]; then
+                  git tag -d "$tag"
+                  git push origin --delete "$tag"
+              fi
+          done
 
       - name: Release lock
         run: |
