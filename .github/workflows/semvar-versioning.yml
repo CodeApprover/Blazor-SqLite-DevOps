@@ -92,8 +92,9 @@ jobs:
         run: |
           all_tags=$(git tag --sort=-creatordate | awk '{print "git show -s --format=%ci " $1}' | bash)
           while IFS= read -r line; do
-            tag_to_delete=$(echo "$line" | awk '{print $NF}')
-            if [ "$tag_to_delete" != "$highest_version" ]; then
+            # Extract the last field, which should be the tag, but we need to ensure it doesn't capture timezone offset.
+            tag_to_delete=$(echo "$line" | awk '{print $(NF-1)}')
+            if [ "$tag_to_delete" != "${{ env.NEW_VERSION }}" ]; then
                 git tag -d "$tag_to_delete"
                 git push origin --delete "$tag_to_delete"
             fi
