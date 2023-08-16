@@ -88,6 +88,10 @@ jobs:
         lock_file=${branch_lock_map[${{ env.BRANCH_NAME }}]}
         echo "##[debug] lock_file is $lock_file"
 
+        # Configure git user
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+
         # Check branch for lock file
         git fetch origin ${{ env.BRANCH_NAME }}
             
