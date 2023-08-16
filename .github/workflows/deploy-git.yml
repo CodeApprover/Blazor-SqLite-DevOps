@@ -66,6 +66,9 @@ jobs:
         # Navigate to the cloned directory
         cd /tmp/target-repo
 
+        # Explicitly check out the target branch
+        git checkout ${{ env.DEPLOY_BRANCH }}
+
         # Select directory to overwrite based on source branch
         target_dir=""
         source_dir=""
