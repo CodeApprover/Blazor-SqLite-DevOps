@@ -14,7 +14,6 @@ jobs:
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: env.ENABLE_DEPLOYMENT == 'true'
     
     steps:
         
