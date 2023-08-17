@@ -32,75 +32,63 @@ jobs:
         fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
-    - name: Determine Deploy Branch 
+    - name: Determine Deploy Branch and Directories
       run: |
         deploy_branch="Invalid"
+        directory="Invalid"
+        
         case "${{ env.BRANCH_NAME }}" in
           "code-development")
             deploy_branch="code-staging"
+            directory="development"
             ;;
           "code-staging")
             deploy_branch="code-production"
+            directory="staging"
             ;;
           "code-production")
-            deploy_branch="main"
+            echo "No deployment required for code-production."
+            exit 0
             ;;
         esac
+        
         if [[ "$deploy_branch" == "Invalid" ]]; then
           echo "Error: Invalid deployment branch determined."
           exit 1
         fi
+        
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-
-    - name: Extract Repository Name
-      run: echo "REPO_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
-
-    - name: Clone, copy and push
-      run: |
-        git config --global user.name "CodeApprover"
-        git config --global user.email "pucfada@pm.me"
-
-        # Clone the target repository to a temp directory
-        git clone https://github.com/codeapprover/Blazor-SqLite-DevOps.git /tmp/target-repo
-
-        # Navigate to the cloned directory
-        cd /tmp/target-repo
-
-        # Explicitly check out the target branch
-        git checkout ${{ env.BRANCH_NAME }}
-
-        # Select directory to overwrite based on source branch
-        target_dir=""
-        source_dir=""
-        case "${{ env.BRANCH_NAME }}" in
-          "code-development")
-            target_dir="development"
-            source_dir="development"
-            ;;
-          "code-staging")
-            target_dir="staging"
-            source_dir="staging"
-            ;;
-          "code-production")
-            # Do nothing for code-production to main
-            exit 0
-            ;;
-        esac
-
-        # Remove the target directory in the cloned repo if it exists
-        rm -rf $target_dir
-
-        # Copy the source directory from original repo to target directory in cloned repo
-        mkdir -p $target_dir
-        cp -r $GITHUB_WORKSPACE/$source_dir/* $target_dir/
-
-        # Commit and push the changes
-        git add .
-        git commit -m "Update from source repository $source_dir to $target_dir"
-        git push origin ${{ env.DEPLOY_BRANCH }}
+        echo "DIRECTORY=$directory" >> $GITHUB_ENV
     
-      env:
-        GITHUB_TOKEN: ${{ secrets.AUTH }}
+    - name: Create artifact from directory
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: my-artifact
+        path: $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+
+    - name: Checkout target branch
+      run: |
+        git fetch
+        git checkout ${{ env.TARGET_BRANCH }}
+
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: my-artifact
+        path: /tmp/temp-dir
+
+    - name: Replace directory in target branch with artifact directory
+      run: |
+        rm -rf $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/*
+        cp -r /tmp/temp-dir/* $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+
+    - name: Commit and push
+      run: |
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+        git add .
+        git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
+        git push origin ${{ env.DEPLOY_BRANCH }}
 
     - name: Check for lock file
       run: |
