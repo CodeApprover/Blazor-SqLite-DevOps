@@ -116,7 +116,7 @@ jobs:
         echo "Synchronizing target dir with source dir using rsync:"
         rsync -av --delete --checksum /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
 
-    - name: Commit and push
+    - name: Commit changes and push to target branch 
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
@@ -124,6 +124,12 @@ jobs:
         git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
         git push origin ${{ env.DEPLOY_BRANCH }}
 
-          echo "Required lock file for ${{ env.SHA }} on branch ${{ env.BRANCH_NAME }} was not found. Exiting."
-          exit 1
-        fi
+    - name: Trigger Success Workflow
+      if: success()
+      run: |
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\": \"trigger-success\", "
+        CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+        eval ${CMD}
