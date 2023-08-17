@@ -14,6 +14,10 @@ jobs:
     timeout-minutes: 15
     
     steps:
+
+    - name: Report SHA
+      run: echo "${{ github.event.client_payload.sha }}"
+    
     - name: Extract SHA for Checkout
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
