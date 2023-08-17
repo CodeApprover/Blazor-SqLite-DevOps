@@ -66,43 +66,46 @@ jobs:
       run: |
         echo "Listing contents of SOURCE_DIR before archiving:"
         ls -la ${{ env.SOURCE_DIR }}
-    
+
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
         name: development-archive
         path: ${{ env.SOURCE_DIR }}
-    
+
     - name: Checkout target branch
       run: |
         git fetch
         git checkout ${{ env.DEPLOY_BRANCH }}
-    
+
     - name: List contents of the target directory before downloading
       run: |
         echo "Listing contents of target DIRECTORY before downloading archive:"
         ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
-    
+
     - name: Download archived development directory
       uses: actions/download-artifact@v3
       with:
         name: development-archive
         path: /tmp/temp-dir
-    
+
     - name: List contents of the downloaded archive
       run: |
         echo "Listing contents of downloaded archive:"
         ls -la /tmp/temp-dir/
-    
-    - name: Replace directory in target branch
+
+    - name: Synchronize target dir with source dir using rsync
       run: |
-        echo "Removing contents of target DIRECTORY:"
-        rm -rf $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/*
-        echo "Copying from archive to target DIRECTORY:"
-        cp -r /tmp/temp-dir/* $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
-        echo "Git status after replacing directory:"
+        echo "Synchronizing directories using rsync:"
+        rsync -av --delete /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        RSYNC_EXIT_STATUS=$?
+        if [ $RSYNC_EXIT_STATUS -ne 0 ]; then
+          echo "Error: rsync failed with exit status $RSYNC_EXIT_STATUS"
+          exit $RSYNC_EXIT_STATUS
+        fi
+        echo "Git status after synchronization:"
         git status
-    
+
     - name: List contents of the target directory after replacing
       run: |
         echo "Listing contents of target DIRECTORY after replacing:"
