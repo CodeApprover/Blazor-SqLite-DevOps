@@ -67,7 +67,7 @@ jobs:
         echo "Listing contents of SOURCE_DIR before archiving:"
         ls -la ${{ env.SOURCE_DIR }}
         echo "COMMIT WORKFLOW DRIVER IS"
-        cat ${{ env.SOURCE_DIR }}/${{ env.PROJ_NAME }}/workflow.driver
+        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
@@ -85,7 +85,7 @@ jobs:
         echo "Listing contents of target DIRECTORY before downloading archive:"
         ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
         echo "DEFUNCT WORKFLOW DRIVER IS"
-        cat ${{ env.DIRECTORY }}/${{ env.PROJ_NAME }}/workflow.driver
+        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Download archived development directory
       uses: actions/download-artifact@v3
@@ -97,6 +97,8 @@ jobs:
       run: |
         echo "Listing contents of downloaded archive:"
         ls -la /tmp/temp-dir/
+        echo "ARCHIVE WORKFLOW DRIVER IS"
+        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Synchronize target dir with source dir using rsync
       run: |
@@ -123,6 +125,8 @@ jobs:
       run: |
         echo "Listing contents of target DIRECTORY after replacing:"
         ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
+        echo "CURRENT WORKFLOW DRIVER IS"
+        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Commit and push
       run: |
