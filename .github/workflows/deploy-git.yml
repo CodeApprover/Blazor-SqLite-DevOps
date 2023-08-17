@@ -67,7 +67,7 @@ jobs:
         echo "Listing contents of SOURCE_DIR before archiving:"
         ls -la ${{ env.SOURCE_DIR }}
         echo "COMMIT WORKFLOW DRIVER IS"
-        cat ${{ env.SOURCE_DIR }}/workflow.driver
+        cat ${{ env.SOURCE_DIR }}/${{ env.PROJ_NAME }}/workflow.driver
 
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
@@ -85,7 +85,7 @@ jobs:
         echo "Listing contents of target DIRECTORY before downloading archive:"
         ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
         echo "DEFUNCT WORKFLOW DRIVER IS"
-        cat ${{ env.DIRECTORY }}/workflow.driver
+        cat ${{ env.DIRECTORY }}/${{ env.PROJ_NAME }}/workflow.driver
 
     - name: Download archived development directory
       uses: actions/download-artifact@v3
