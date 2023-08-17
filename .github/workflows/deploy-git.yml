@@ -97,7 +97,7 @@ jobs:
     - name: Synchronize target dir with source dir using rsync
       run: |
         echo "Synchronizing directories using rsync:"
-        rsync -av --delete /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        rsync -av --delete --checksum /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
         RSYNC_EXIT_STATUS=$?
         if [ $RSYNC_EXIT_STATUS -ne 0 ]; then
           echo "Error: rsync failed with exit status $RSYNC_EXIT_STATUS"
@@ -105,6 +105,15 @@ jobs:
         fi
         echo "Git status after synchronization:"
         git status
+        echo "Checking for differences between source and target directories:"
+        DIFF=$(diff -rq /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }})
+        if [ "$DIFF" != "" ]; then
+          echo "Differences detected between source and target directories:"
+          echo "$DIFF"
+          exit 1
+        else
+          echo "No differences detected between source and target directories."
+        fi
 
     - name: List contents of the target directory after replacing
       run: |
