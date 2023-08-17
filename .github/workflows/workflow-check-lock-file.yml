@@ -60,8 +60,41 @@ jobs:
       - name: Check for lock file with retry
         run: |
           for (( i=1; i<=$MAX_RETRIES; i++ )); do
-            # ... [rest of the logic remains the same]
-            
+            git fetch origin ${{ env.BRANCH_NAME }}
+
+            if ! git show ${{ github.event.client_payload.sha }}; then
+              echo "::error::The commit ${{ github.event.client_payload.sha }} does not exist!"
+              exit 1
+            fi
+          
+            branch_contains=$(git branch --contains ${{ github.event.client_payload.sha }})
+            if [ -z "$branch_contains" ]; then
+              echo "::error::No branch contains the commit ${{ github.event.client_payload.sha }}!"
+              exit 1
+            fi
+
+            git checkout ${{ env.BRANCH_NAME }}
+            echo "Current Branch:"
+            git branch --show-current
+            echo "Last 5 commits on this branch:"
+            git log -n 5 --oneline
+            echo "Trying to list commits between \" ${{ github.event.client_payload.sha }} \"~1 and \" ${{ env.BRANCH_NAME }}\""
+
+            commits_before_sha=$(git rev-list ${{ github.event.client_payload.sha }}~1..${{ env.BRANCH_NAME }} --)
+
+            if ! git show ${{ github.event.client_payload.sha }}~1; then
+              echo "::error::The commit before ${{ github.event.client_payload.sha }} does not exist!"
+              exit 1
+            fi
+
+            lock_found=0
+            for commit in $commits_before_sha; do
+              if git ls-tree -r $commit | grep "${{ env.LOCK_FILE }}"; then
+                  lock_found=1
+                  break
+              fi
+            done
+
             if [[ "$lock_found" -eq 1 ]]; then
               echo "Lock file found in a commit prior to the payload SHA. Waiting 20 minutes before retrying. Attempt $i of $MAX_RETRIES."
               cat "${{ env.LOCK_FILE }}" | xargs echo "WAIT: The SHA blocking the processing is"
@@ -71,10 +104,32 @@ jobs:
             fi
           done
 
-          # ... [rest of the logic remains the same]
+          echo "${{ github.event.client_payload.sha }}" > "${{ env.LOCK_FILE }}"
+          git add "${{ env.LOCK_FILE }}"
+          git commit -m "Adding ${{ env.LOCK_FILE }} file for ${{ github.event.client_payload.sha }} [skip ci]"
+
+          if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+            echo "::error::Failed to push."
+            exit 1
+          fi
+
+          # Confirm the presence of the lock file in the latest commit
+          git fetch origin ${{ env.BRANCH_NAME }}
+          git checkout ${{ env.BRANCH_NAME }}
+          if ! git ls-tree HEAD -- "${{ env.LOCK_FILE }}"; then
+            echo "::error::Lock file was not successfully created or pushed."
+            exit 1
+          else
+            echo "Lock file successfully created and pushed."
+          fi
 
       # Trigger the next workflow if this one succeeds
       - name: Trigger Versioning Workflow
         if: success()
         run: |
-          # ... [rest of the logic remains the same]
+          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+          CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+          CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+          CMD+="-d '{\"event_type\": \"trigger-versioning\", "
+          CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+          eval ${CMD}
