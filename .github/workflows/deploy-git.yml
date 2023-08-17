@@ -73,43 +73,17 @@ jobs:
         git fetch
         git checkout ${{ env.DEPLOY_BRANCH }}
 
-
     - name: Download archived development directory
       uses: actions/download-artifact@v3
       with:
         name: development-archive
         path: /tmp/temp-dir
 
-    - name: List contents of the downloaded archive
-      run: |
-        echo "Listing contents of downloaded archive"
-        ls -la /tmp/temp-dir/
-        echo "ARCHIVED WORKFLOW DRIVER IS"
-        cat $(find /tmp/temp-dir/ -name "workflow.driver")
-
-    - name: List contents of the target dir
-      run: |
-        echo "Listing contents of target dir"
-        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
-        echo "DEFUNCT WORKFLOW DRIVER IS"
-        cat $(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
-
     - name: Synchronize target dir with source dir
       run: |
         echo "Synchronizing target dir with source dir using rsync:"
         rsync -av --delete --checksum /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
         RSYNC_EXIT_STATUS=$?
-        echo "Git status after synchronization is"
-        git status
-        echo "Checking for differences between source and target directories..."
-        DIFF=$(diff -rq /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }})
-        if [ -z "$DIFF" ]; then
-          echo "Error: No differences found between source and target directories after synchronization."
-          exit 1
-        else
-          echo "Expected differences found:"
-          echo "$DIFF"
-        fi
 
     - name: Commit and push
       run: |
