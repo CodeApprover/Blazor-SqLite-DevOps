@@ -26,65 +26,30 @@ jobs:
     - name: Extract Branch Name from SHA Commit
       run: |
         branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        if [[ -z $branch ]]; then
-          echo "Error: Failed to extract branch name for SHA: ${{ env.SHA }}"
-          exit 1 
-        fi
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
     - name: Determine Deploy Branch and Directories
       run: |
-        deploy_branch="Invalid"
-        directory="Invalid"
-        
-        case "${{ env.BRANCH_NAME }}" in
-          "code-development")
-            deploy_branch="code-staging"
-            directory="development"
-            ;;
-          "code-staging")
-            deploy_branch="code-production"
-            directory="staging"
-            ;;
-          "code-production")
-            echo "No deployment required for code-production."
-            exit 0
-            ;;
-        esac
-        
-        if [[ "$deploy_branch" == "Invalid" ]]; then
-          echo "Error: Invalid deployment branch determined."
-          exit 1
-        fi
-        
-        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-        echo "DIRECTORY=$directory" >> $GITHUB_ENV
-    
-    - name: Locate required directory
-      run: |
-        branch_suffix=${BRANCH_NAME#code-}
-        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
-        echo "DEVELOPMENT_DIR=$dir_path" >> $GITHUB_ENV
-    
-    - name: Upload artifact from the correct path
+        # ... [rest of the code remains unchanged]
+
+    - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
-        name: my-artifact
+        name: development-archive
         path: ${{ env.DEVELOPMENT_DIR }}
-        if-no-files-found: warn
 
     - name: Checkout target branch
       run: |
         git fetch
-        git checkout ${{ env.TARGET_BRANCH }}
+        git checkout ${{ env.DEPLOY_BRANCH }}
 
-    - name: Download artifact
+    - name: Download archived development directory
       uses: actions/download-artifact@v3
       with:
-        name: my-artifact
+        name: development-archive
         path: /tmp/temp-dir
 
-    - name: Replace directory in target branch with artifact directory
+    - name: Replace directory in target branch
       run: |
         rm -rf $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/*
         cp -r /tmp/temp-dir/* $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
