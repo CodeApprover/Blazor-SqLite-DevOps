@@ -56,34 +56,57 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    - name: Locate required directory
+    - name: Locate required source directory
       run: |
         branch_suffix=${BRANCH_NAME#code-}
         dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
+    - name: List contents of the source directory before archiving
+      run: |
+        echo "Listing contents of SOURCE_DIR before archiving:"
+        ls -la ${{ env.SOURCE_DIR }}
+    
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
         name: development-archive
         path: ${{ env.SOURCE_DIR }}
-
+    
     - name: Checkout target branch
       run: |
         git fetch
         git checkout ${{ env.DEPLOY_BRANCH }}
-
+    
+    - name: List contents of the target directory before downloading
+      run: |
+        echo "Listing contents of target DIRECTORY before downloading archive:"
+        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
+    
     - name: Download archived development directory
       uses: actions/download-artifact@v3
       with:
         name: development-archive
         path: /tmp/temp-dir
-
+    
+    - name: List contents of the downloaded archive
+      run: |
+        echo "Listing contents of downloaded archive:"
+        ls -la /tmp/temp-dir/
+    
     - name: Replace directory in target branch
       run: |
+        echo "Removing contents of target DIRECTORY:"
         rm -rf $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/*
+        echo "Copying from archive to target DIRECTORY:"
         cp -r /tmp/temp-dir/* $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        echo "Git status after replacing directory:"
         git status
+    
+    - name: List contents of the target directory after replacing
+      run: |
+        echo "Listing contents of target DIRECTORY after replacing:"
+        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
 
     - name: Commit and push
       run: |
