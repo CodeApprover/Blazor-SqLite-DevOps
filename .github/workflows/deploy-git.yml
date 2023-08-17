@@ -62,6 +62,11 @@ jobs:
         dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
+    - name: DEBUG 1
+      run: |
+        echo "WORKFLOW DRIVER TO BE ARCHIVED -->"
+        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
+
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
@@ -79,18 +84,14 @@ jobs:
         name: development-archive
         path: /tmp/temp-dir
 
-    - name: List contents of the downloaded archive
+    - name: DEBUG 2
       run: |
-        echo "Listing contents of downloaded archive"
-        ls -la /tmp/temp-dir/
-        echo "ARCHIVED WORKFLOW DRIVER IS"
+        echo "DOWNLOADED ARCHIVED WORKFLOW DRIVER -->"
         cat $(find /tmp/temp-dir/ -name "workflow.driver")
 
-    - name: List contents of the target dir
+    - name: DEBUG 3
       run: |
-        echo "Listing contents of target dir"
-        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
-        echo "DEFUNCT WORKFLOW DRIVER IS"
+        echo "DEFUNCT WORKFLOW DRIVER -->"
         cat $(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
 
     - name: Synchronize target dir with source dir
