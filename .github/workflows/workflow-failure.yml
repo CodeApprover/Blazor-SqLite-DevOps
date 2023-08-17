@@ -24,6 +24,9 @@ jobs:
     timeout-minutes: 15
 
     steps:
+    
+    - name: Report SHA
+      run: echo "${{ github.event.client_payload.sha }}"
 
     - name: Log Timestamp
       run: date
