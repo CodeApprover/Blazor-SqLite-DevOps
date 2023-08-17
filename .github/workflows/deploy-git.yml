@@ -56,11 +56,17 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
+    - name: Locate required directory
+      run: |
+        branch_suffix=${BRANCH_NAME#code-}
+        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
+        echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
+
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
         name: development-archive
-        path: ${{ env.DEVELOPMENT_DIR }}
+        path: ${{ env.SOURCE_DIR }}
 
     - name: Checkout target branch
       run: |
