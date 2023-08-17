@@ -3,7 +3,7 @@ name: Publish Docker Image
 
 on:
   repository_dispatch:
-    types: trigger-docker-publish
+    types: trigger-deploy-docker
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
