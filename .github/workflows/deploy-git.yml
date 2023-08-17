@@ -65,7 +65,9 @@ jobs:
     - name: DEBUG 1
       run: |
         echo "WORKFLOW DRIVER TO BE ARCHIVED -->"
-        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
+        driver=$(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
+        ls -la $driver
+        car $driver
 
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
@@ -87,12 +89,16 @@ jobs:
     - name: DEBUG 2
       run: |
         echo "DOWNLOADED ARCHIVED WORKFLOW DRIVER -->"
-        cat $(find /tmp/temp-dir/ -name "workflow.driver")
+        driver=$(find /tmp/temp-dir/ -name "workflow.driver")
+        ls -la $driver
+        cat $driver
 
     - name: DEBUG 3
       run: |
         echo "DEFUNCT WORKFLOW DRIVER -->"
-        cat $(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
+        driver=$(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
+        ls -la $driver
+        cat $driver
 
     - name: Synchronize target dir with source dir
       run: |
