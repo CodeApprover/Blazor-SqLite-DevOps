@@ -1,4 +1,3 @@
----
 name: Lock File Check
 
 on:
@@ -7,6 +6,8 @@ on:
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  MAX_RETRIES: 6
+  SLEEP_DURATION: 1200  # 20 minutes in seconds
 
 jobs:
   check-for-lock-file:
@@ -65,8 +66,6 @@ jobs:
           trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
 
           RETRY_COUNT=0
-          MAX_RETRIES=3
-          SLEEP_DURATION=5  # TODO remove
 
           while true; do
             git fetch origin ${{ env.BRANCH_NAME }}
@@ -111,14 +110,15 @@ jobs:
               fi
 
               RETRY_COUNT=$((RETRY_COUNT+1))
-              echo "Lock file found in a commit prior to the payload SHA. Waiting 60 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+              echo "Lock file found in a commit prior to the payload SHA. Waiting 20 minutes before retrying. Attempt $RETRY_COUNT of $MAX_RETRIES."
+              cat "${{ env.LOCK_FILE }}" | xargs echo "WAIT: The SHA blocking the processing is"
               sleep $SLEEP_DURATION
             else
               break
             fi
           done
 
-          echo "$(date +%s)" > "${{ env.LOCK_FILE }}"
+          echo "${{ github.event.client_payload.sha }}" > "${{ env.LOCK_FILE }}"
           git add "${{ env.LOCK_FILE }}"
           git commit -m "Adding ${{ env.LOCK_FILE }} file for ${{ github.event.client_payload.sha }} [skip ci]"
 
