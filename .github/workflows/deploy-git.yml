@@ -108,11 +108,11 @@ jobs:
         echo "Checking for differences between source and target directories:"
         DIFF=$(diff -rq /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }})
         if [ "$DIFF" != "" ]; then
-          echo "Differences detected between source and target directories:"
+          echo "Differences correctly detected between source and target directories ->"
           echo "$DIFF"
-          exit 1
         else
-          echo "No differences detected between source and target directories."
+          echo "Error - No differences detected between source and target directories."
+          exit 1
         fi
 
     - name: List contents of the target directory after replacing
