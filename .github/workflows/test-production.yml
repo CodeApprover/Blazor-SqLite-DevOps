@@ -19,14 +19,10 @@ jobs:
       production
 
     steps:
+    
+    - name: Report SHA
+      run: echo "${{ github.event.client_payload.sha }}"
+   
     - name: Log Timestamp
       run: date
-     
-    - name: Checkout code
-      uses: actions/checkout@v3.5.3
-
-    - name: Download build artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: staging-artifact
-        path: ./publish
+ 
