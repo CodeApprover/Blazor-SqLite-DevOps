@@ -1,26 +1,22 @@
 ---
 name: "Staging Tests"
 
-# Staging Environment: code-staging
+# Production Environment: code-production
 
 on:
   workflow_run:
-    workflows: 
+    workflows:
       - Development
     types:
       - success
 
 jobs:
-  deploy-to-staging:
+  deploy-to-production:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 15
 
     environment:
       staging
-
-    if: >
-      github.ref == 'refs/heads/code-staging ||
-      github.ref == 'refs/heads/main'
 
     steps:
     
@@ -29,12 +25,4 @@ jobs:
    
     - name: Log Timestamp
       run: date
-     
-    - name: Checkout code
-      uses: actions/checkout@v3.5.3
-
-    - name: Download build artifact
-      uses: actions/download-artifact@v2
-      with:
-        name: staging-artifact
-        path: ./publish
+ 
