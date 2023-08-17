@@ -30,7 +30,31 @@ jobs:
 
     - name: Determine Deploy Branch and Directories
       run: |
-        # ... [rest of the code remains unchanged]
+        deploy_branch="Invalid"
+        directory="Invalid"
+        
+        case "${{ env.BRANCH_NAME }}" in
+          "code-development")
+            deploy_branch="code-staging"
+            directory="development"
+            ;;
+          "code-staging")
+            deploy_branch="code-production"
+            directory="staging"
+            ;;
+          "code-production")
+            echo "No deployment required for code-production."
+            exit 0
+            ;;
+        esac
+        
+        if [[ "$deploy_branch" == "Invalid" ]]; then
+          echo "Error: Invalid deployment branch determined."
+          exit 1
+        fi
+        
+        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
+        echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
