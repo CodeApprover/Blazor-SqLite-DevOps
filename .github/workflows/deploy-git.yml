@@ -92,7 +92,7 @@ jobs:
         echo "Listing contents of target dir"
         ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
         echo "DEFUNCT WORKFLOW DRIVER IS"
-        cat $(find ${{ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ }} -name "workflow.driver")
+        cat $(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
 
     - name: Synchronize target dir with source dir
       run: |
