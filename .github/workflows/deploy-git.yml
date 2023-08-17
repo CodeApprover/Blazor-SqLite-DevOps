@@ -3,7 +3,7 @@ name: "Deploy SHA to Git Environment"
 
 on:
   repository_dispatch:
-    types: "trigger-git-deploy"
+    types: "trigger-deploy-git"
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
