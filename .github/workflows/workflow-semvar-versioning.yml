@@ -21,6 +21,9 @@ jobs:
           ref: ${{ github.event.client_payload.sha }}
           fetch-depth: 0
 
+      - name: Report SHA
+        run: echo "${{ github.event.client_payload.sha }}"
+
       - name: Configure git user
         run: |
           git config user.name "CodeApprover"
