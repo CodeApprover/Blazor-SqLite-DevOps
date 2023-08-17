@@ -15,7 +15,7 @@ jobs:
     steps:
     
     - name: Report SHA
-      run: echo "${{ github.event.client_payload.sha }}"
+      run: echo "${{ github.sha }}"
 
     - name: Determine Branch Name
       run: |
