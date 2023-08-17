@@ -32,6 +32,34 @@ jobs:
         branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
         echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
 
+    - name: Check and Remove Lock File with Specific SHA
+      run: |
+        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+        declare -A branch_lock_map
+        branch_lock_map["code-production"]=".production.lock"
+        branch_lock_map["code-staging"]=".staging.lock"
+        branch_lock_map["code-development"]=".development.lock"
+        branch_lock_map["main"]=".main.lock"
+        echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
+        lock_file=${branch_lock_map[${{ env.BRANCH_NAME }}]}
+        echo "##[debug] lock_file is $lock_file"
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+        # Force branch refresh
+        git fetch origin ${{ env.BRANCH_NAME }}
+        git checkout ${{ env.BRANCH_NAME }}
+        
+        # Check if the lock file contains the specific SHA
+        if [[ $(cat "$lock_file") == "${{ github.event.client_payload.sha }}" ]]; then
+          echo "Lock file with SHA ${{ github.event.client_payload.sha }} found on branch ${{ env.BRANCH_NAME }}"
+          git rm "$lock_file"
+          git commit -m "Removed lock after versioning [skip ci]"
+          git push origin "${{ env.BRANCH_NAME }}"
+        else
+          echo "Lock file with SHA ${{ github.event.client_payload.sha }} not found on branch ${{ env.BRANCH_NAME }}. Exiting."
+          exit 1
+        fi
+
     - name: Determine Deploy Branch and Directories
       run: |
         deploy_branch="Invalid"
@@ -66,14 +94,6 @@ jobs:
         dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
-    - name: DEBUG 1
-      run: |
-        echo "Current branch is: $(git rev-parse --abbrev-ref HEAD)"
-        echo "WORKFLOW DRIVER TO BE ARCHIVED -->"
-        driver=$(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
-        ls -la $driver
-        cat $driver
-
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
@@ -91,20 +111,6 @@ jobs:
         name: development-archive
         path: /tmp/temp-dir
 
-    - name: DEBUG 2
-      run: |
-        echo "DOWNLOADED ARCHIVED WORKFLOW DRIVER -->"
-        driver=$(find /tmp/temp-dir/ -name "workflow.driver")
-        ls -la $driver
-        cat $driver
-
-    - name: DEBUG 3
-      run: |
-        echo "DEFUNCT WORKFLOW DRIVER -->"
-        driver=$(find $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ -name "workflow.driver")
-        ls -la $driver
-        cat $driver
-
     - name: Synchronize target dir with source dir
       run: |
         echo "Synchronizing target dir with source dir using rsync:"
@@ -118,33 +124,6 @@ jobs:
         git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
         git push origin ${{ env.DEPLOY_BRANCH }}
 
-    - name: Check for lock file
-      run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-
-        declare -A branch_lock_map
-        branch_lock_map["code-production"]=".production.lock"
-        branch_lock_map["code-staging"]=".staging.lock"
-        branch_lock_map["code-development"]=".development.lock"
-        branch_lock_map["main"]=".main.lock"
-
-        echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
-        lock_file=${branch_lock_map[${{ env.BRANCH_NAME }}]}
-        echo "##[debug] lock_file is $lock_file"
-
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-
-        # Force branch refresh
-        git fetch origin ${{ env.BRANCH_NAME }}
-        git checkout ${{ env.BRANCH_NAME }}
-
-        if git ls-tree HEAD -- "$lock_file"; then
-          echo "Lock file $lock_file found on branch ${{ env.BRANCH_NAME }}"
-          git rm "$lock_file"
-          git commit -m "Removed lock after versioning [skip ci]"
-          git push origin "${{ env.BRANCH_NAME }}"
-        else
           echo "Required lock file for ${{ env.SHA }} on branch ${{ env.BRANCH_NAME }} was not found. Exiting."
           exit 1
         fi
