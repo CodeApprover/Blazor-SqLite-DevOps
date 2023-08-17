@@ -60,11 +60,17 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
     
-    - name: Create artifact from directory
+    - name: Locate required directory
+      run: |
+        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$(${{ env.BRANCH_NAME/code-/}" -print | head -n 1)
+        echo "DEVELOPMENT_DIR=$dir_path" >> $GITHUB_ENV
+    
+    - name: Upload artifact from the correct path
       uses: actions/upload-artifact@v3.1.2
       with:
         name: my-artifact
-        path: $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        path: ${{ env.DEVELOPMENT_DIR }}
+        if-no-files-found: warn
 
     - name: Checkout target branch
       run: |
