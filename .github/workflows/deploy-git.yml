@@ -62,13 +62,6 @@ jobs:
         dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
-    - name: List contents of the source directory before archiving
-      run: |
-        echo "Listing contents of SOURCE_DIR before archiving:"
-        ls -la ${{ env.SOURCE_DIR }}
-        echo "COMMIT WORKFLOW DRIVER IS"
-        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
-
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
       with:
@@ -80,12 +73,6 @@ jobs:
         git fetch
         git checkout ${{ env.DEPLOY_BRANCH }}
 
-    - name: List contents of the target directory before synchronisation
-      run: |
-        echo "Listing contents of target DIRECTORY before downloading archive:"
-        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
-        echo "DEFUNCT WORKFLOW DRIVER IS"
-        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Download archived development directory
       uses: actions/download-artifact@v3
@@ -95,38 +82,34 @@ jobs:
 
     - name: List contents of the downloaded archive
       run: |
-        echo "Listing contents of downloaded archive:"
+        echo "Listing contents of downloaded archive"
         ls -la /tmp/temp-dir/
-        echo "ARCHIVE WORKFLOW DRIVER IS"
-        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
+        echo "ARCHIVED WORKFLOW DRIVER IS"
+        cat $(find /tmp/temp-dir/ -name "workflow.driver")
 
-    - name: Synchronize target dir with source dir using rsync
+    - name: List contents of the target dir
       run: |
-        echo "Synchronizing directories using rsync:"
+        echo "Listing contents of target dir"
+        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        echo "DEFUNCT WORKFLOW DRIVER IS"
+        cat $(find ${{ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/ }} -name "workflow.driver")
+
+    - name: Synchronize target dir with source dir
+      run: |
+        echo "Synchronizing target dir with source dir using rsync:"
         rsync -av --delete --checksum /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
         RSYNC_EXIT_STATUS=$?
-        if [ $RSYNC_EXIT_STATUS -ne 0 ]; then
-          echo "Error: rsync failed with exit status $RSYNC_EXIT_STATUS"
-          exit $RSYNC_EXIT_STATUS
-        fi
-        echo "Git status after synchronization:"
+        echo "Git status after synchronization is"
         git status
-        echo "Checking for differences between source and target directories:"
+        echo "Checking for differences between source and target directories..."
         DIFF=$(diff -rq /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }})
-        if [ "$DIFF" != "" ]; then
-          echo "Differences correctly detected between source and target directories ->"
-          echo "$DIFF"
-        else
-          echo "Error - No differences detected between source and target directories."
+        if [ -z "$DIFF" ]; then
+          echo "Error: No differences found between source and target directories after synchronization."
           exit 1
+        else
+          echo "Expected differences found:"
+          echo "$DIFF"
         fi
-
-    - name: List contents of the target directory after replacing
-      run: |
-        echo "Listing contents of target DIRECTORY after replacing:"
-        ls -la $GITHUB_WORKSPACE/${{ env.DIRECTORY }}
-        echo "CURRENT WORKFLOW DRIVER IS"
-        cat $(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
 
     - name: Commit and push
       run: |
