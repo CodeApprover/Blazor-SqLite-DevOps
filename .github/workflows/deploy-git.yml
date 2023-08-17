@@ -83,13 +83,14 @@ jobs:
       run: |
         rm -rf $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/*
         cp -r /tmp/temp-dir/* $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        git status
 
     - name: Commit and push
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
-        git add .
-        git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }}"
+        git add -A
+        git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
         git push origin ${{ env.DEPLOY_BRANCH }}
 
     - name: Check for lock file
