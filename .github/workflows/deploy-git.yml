@@ -67,7 +67,7 @@ jobs:
         echo "WORKFLOW DRIVER TO BE ARCHIVED -->"
         driver=$(find ${{ env.SOURCE_DIR }} -name "workflow.driver")
         ls -la $driver
-        car $driver
+        cat $driver
 
     - name: Archive development directory
       uses: actions/upload-artifact@v3.1.2
