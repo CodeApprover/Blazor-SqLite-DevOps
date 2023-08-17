@@ -62,7 +62,8 @@ jobs:
     
     - name: Locate required directory
       run: |
-        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$(${{ env.BRANCH_NAME/code-/}" -print | head -n 1)
+        branch_suffix=${{ env.BRANCH_NAME#code- }}
+        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
         echo "DEVELOPMENT_DIR=$dir_path" >> $GITHUB_ENV
     
     - name: Upload artifact from the correct path
