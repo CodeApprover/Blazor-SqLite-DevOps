@@ -27,8 +27,10 @@ jobs:
 
     steps:
 
-    - name: Report SHA
-      run: echo "${{ github.event.client_payload.sha }}"
+    - name: Report SHA and timestamp
+      run: |
+        echo "${{ github.event.client_payload.sha }}"
+        date
 
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
