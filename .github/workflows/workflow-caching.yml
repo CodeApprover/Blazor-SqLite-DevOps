@@ -1,4 +1,4 @@
-name: .NET Prep
+name: Cache Dependencies
 
 on:
   repository_dispatch:
