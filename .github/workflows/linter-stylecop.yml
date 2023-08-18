@@ -9,6 +9,9 @@ on:
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  SHA: ${{ github.event.client_payload.sha }}
+  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
   stylecop-linting:
@@ -18,16 +21,6 @@ jobs:
     if: (github.actor != 'CodeApprover')
 
     steps:
-
-    - name: Set SHA from client payload
-      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
-
-    - name: Set Branch Name from client payload
-      run: echo "BRANCH_NAME=${{ github.event.client_payload.branch_name }}" >> $GITHUB_ENV
-
-    - name: Set .csproj from client payload
-      run: echo "CSPROJ=${{ github.event.client_payload.csproj }}" >> $GITHUB_ENV
-
     - name: Checkout SHA Repository
       uses: actions/checkout@v3.5.3
       with:
@@ -38,7 +31,7 @@ jobs:
       run: |
         date
         echo "SHA=${{ env.SHA }}"
-        echo "Environment=$(${{ env.BRANCH_NAME }} | sed '#code-##')"
+        echo "Environment=${{ env.BRANCH_NAME }}"
         echo "Branch=${{ env.BRANCH_NAME }}"
         echo "Committer=$(git log -1 --pretty=format:'%an')"
 
@@ -62,26 +55,23 @@ jobs:
 
     - name: Dotnet Build with StyleCop
       run: |
-        CMD="dotnet build --no-restore \"${{ env.CSPROJ }}\""
-        CMD+="  -v detailed"
-        CMD+=" /p:StyleCopEnabled=true"
-        CMD+=" /p:StyleCopTreatErrorsAsWarnings=false"
-        CMD+=" /p:StyleCopForceFullAnalysis=false"
-        eval "$CMD"
+        dotnet build --no-restore "${{ env.CSPROJ }}" \
+        -v detailed \
+        /p:StyleCopEnabled=true \
+        /p:StyleCopTreatErrorsAsWarnings=false \
+        /p:StyleCopForceFullAnalysis=false
 
     - name: Trigger Appropriate Tests
       if: success()
       run: |
-        ENV_NAME=$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')
-        case $ENV_NAME in
-          development) EVENT_TYPE="trigger-development-tests" ;;
-          staging) EVENT_TYPE="trigger-env-staging-tests" ;;
-          production) EVENT_TYPE="trigger-production-tests" ;;
+        case "${{ env.BRANCH_NAME }}" in
+          code-development) EVENT_TYPE="trigger-development-tests" ;;
+          code-staging) EVENT_TYPE="trigger-env-staging-tests" ;;
+          code-production) EVENT_TYPE="trigger-production-tests" ;;
           *) echo "Error: Unexpected environment name"; exit 1 ;;
         esac
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\": \"$EVENT_TYPE\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
-        eval ${CMD}
+        curl -X POST \
+             -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+             -H "Accept: application/vnd.github.v3+json" \
+             -d "{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}" \
+             https://api.github.com/repos/${{ github.repository }}/dispatches
