@@ -16,14 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-
-    strategy:
-      matrix:
-        test_framework: [Nunit, Xunit]
-
     steps:
 
-    - name: Report SHA
+    - name: Report SHA and workflow date
       run: |
         echo "${{ github.event.client_payload.sha }}"
         date
