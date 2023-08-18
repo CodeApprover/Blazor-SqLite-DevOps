@@ -1,7 +1,7 @@
 ---
 name: "StyleCop Linter"
 
-# All commits on all valid branches must pass StyleCop linting
+# Lints all commits on all valid branches
 
 on:
   repository_dispatch:
@@ -11,20 +11,13 @@ env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
-
   stylecop-linting:
-
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
 
     steps:
-
-    - name: Report SHA and Workflow Timestamp
-      run: |
-        echo "${{ github.event.client_payload.sha }}"
-        date
 
     - name: Extract SHA for Checkout
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
@@ -35,24 +28,18 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0 # Fetch all
 
-    - name: Extract Branch Name from SHA Commit
-      run: |
-        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        if [[ -z "${branch}" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ env.SHA }}"
-          exit 1 
-        fi
-        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+    - name: Set Branch Name from client payload
+      run: echo "BRANCH_NAME=${{ github.event.client_payload.branch_name }}" >> $GITHUB_ENV
 
-    - name: Determine .csproj
-      run: |
-        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
-        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+    - name: Set .csproj from client payload
+      run: echo "CSPROJ=${{ github.event.client_payload.csproj }}" >> $GITHUB_ENV
 
-    - name: Log SHA Details
+    - name: Report
       run: |
-        echo "Branch=${{ env.BRANCH_NAME }}"
+        date
         echo "SHA=${{ env.SHA }}"
+        echo "Environment=$(${{ env.BRANCH_NAME }} | sed '#code-##')"
+        echo "Branch=${{ env.BRANCH_NAME }}"
         echo "Committer=$(git log -1 --pretty=format:'%an')"
 
     - name: Setup .NET Environment
@@ -68,7 +55,7 @@ jobs:
         key: ${{ runner.os }}-dotnet-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dotnet-
-    
+
     - name: Restore Dependencies
       if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
       run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
