@@ -1,19 +1,21 @@
 ---
 name: "Staging Tests"
-
-# Production Environment: code-production
+# Staging Environment (code-staging) Test Suite
 
 on:
-  workflow_run:
-    workflows:
-      - Development
-    types:
-      - success
+  repository_dispatch:
+    types: "trigger-staging-tests"
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
-  deploy-to-production:
+
+  staging-tests:
+  
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: (github.actor != 'CodeApprover')
 
     environment:
       staging
