@@ -1,8 +1,6 @@
 ---
 name: "CodeQL"  # https://github.com/github/codeql
 
-# code-staging code-production main
-
 on:
   workflow_run:
     workflows:
