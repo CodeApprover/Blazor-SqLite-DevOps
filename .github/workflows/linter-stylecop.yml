@@ -49,9 +49,8 @@ jobs:
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-    - name: Log Details
+    - name: Log SHA Details
       run: |
-        date
         echo "Branch=${{ env.BRANCH_NAME }}"
         echo "SHA=${{ env.SHA }}"
         echo "Committer=$(git log -1 --pretty=format:'%an')"
@@ -66,10 +65,10 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-dotnet-${{ env.BRANCH_NAME }}
+        key: ${{ runner.os }}-dotnet-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dotnet-
-
+    
     - name: Restore Dependencies
       if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
       run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
