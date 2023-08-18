@@ -16,9 +16,12 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      # Report the SHA
-      - name: Report SHA
-        run: echo "${{ github.event.client_payload.sha }}"
+
+      # Report the SHA and workflow run time
+      - name: Report SHA and workflow timestamp
+        run: |
+          echo "${{ github.event.client_payload.sha }}"
+          date
     
       # Checkout the repository at the given SHA
       - name: Checkout SHA repository
