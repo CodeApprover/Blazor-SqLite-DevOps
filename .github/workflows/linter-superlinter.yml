@@ -1,8 +1,6 @@
 ---
 name: "Superlinter"  # https://github.com/super-linter/super-linter
 
-# code-production main
-
 on:
   workflow_run:
     workflows:
@@ -20,11 +18,10 @@ jobs:
     
     steps:
 
-      - name: Report SHA
-        run: echo "${{ github.event.client_payload.sha }}"
-    
-      - name: Log Timestamp
-        run: date
+      - name: Report SHA and workflow timestamp
+        run: |
+          echo "${{ github.event.client_payload.sha }}"
+          date
 
       - name: Checkout code
         uses: actions/checkout@v3
