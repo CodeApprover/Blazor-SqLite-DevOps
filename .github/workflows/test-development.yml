@@ -27,7 +27,7 @@ jobs:
 
     steps:
 
-    - name: Report SHA and timestamp
+    - name: Report SHA and workflow timestamp
       run: |
         echo "${{ github.event.client_payload.sha }}"
         date
