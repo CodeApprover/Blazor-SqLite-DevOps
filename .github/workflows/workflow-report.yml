@@ -139,14 +139,20 @@ jobs:
 
     - name: Trigger Dependency Caching Workflow # workflow-caching.yml
       run: |
-        RESPONSE=$(eval "curl -s -o /dev/null -w "%{http_code}" -X POST \
-        -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
-        -H \"Accept: application/vnd.github.v3+json\" \
-        https://api.github.com/repos/${{ github.repository }}/dispatches \
-        -d '{\"event_type\": \"trigger-cache-dependencies\", \
-        \"client_payload\": {\"sha\": \"${{ env.SHA }}\", \
-        \"csproj\": \"${{ env.CSPROJ }}\", \
-        \"branch_name\": \"${{ env.BRANCH_NAME }}\"}}'")
+        BASE="{\"event_type\": \"trigger-cache-dependencies\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
+        END="}}"
+        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
+
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
+        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="-d '$PAYLOAD' "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
+        RESPONSE=$(eval "$CMD")
+
         # Check for failure (non-200 status codes)
         if [[ "$RESPONSE" -ne 200 ]]; then
             echo "##[error] Failed to trigger Dependency Caching Workflow. HTTP Code: $RESPONSE"
@@ -154,3 +160,4 @@ jobs:
         else
             echo "##[debug] Successfully Triggered Dependency Caching Workflow for ${{ env.SHA }}."
         fi
+
