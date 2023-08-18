@@ -6,69 +6,104 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-  report:
-    name: Report
+  report-usage:
+    name: "Report Usage"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: "github.actor != 'CodeApprover'"
-
+    if: (github.actor != 'CodeApprover')
     steps:
     
-    - name: Report SHA and workflow timestamp
+    - name: Report SHA and Workflow Timestamp
       run: |
+        # Report the commit SHA and current timestamp
         echo "${{ github.sha }}"
         date
 
     - name: Determine Branch Name
       run: |
+        # Extract the branch name from the ref
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
-       
-    - name: Report GitHub Commit & Actor Details
+
+    - name: Report Commit Details
       run: |
+        # Display various details about the commit
+        echo "----- COMMIT DETAILS -----"
         echo "Branch Name: ${{ env.BRANCH_NAME }}"
+        echo "Commit SHA: ${{ github.sha }}"
         echo "Commit Message: ${{ github.event.head_commit.message }}"
         echo "Commit Author: ${{ github.event.head_commit.author.name }}"
-        echo "Committer Email:(${{ github.event.head_commit.author.email }})"
+        echo "Committer Email: ${{ github.event.head_commit.author.email }}"
         echo "Pusher Name: ${{ github.event.pusher.name }}"
         echo "Actor: ${{ github.actor }}"
-        echo "Commit SHA: ${{ github.sha }}"
+        echo "--------------------------"
 
-    - name: Report GitHub Environment Details
+    - name: Report GitHub Environment and Workflow Details
       run: |
-        echo "Actions Report"
-        date
-        echo "Ref: ${{ github.ref }}"
+        # Display various details about the GitHub environment and workflow
+        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
+        echo "Date: $(date)"
         echo "Event Name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
         echo "Repository: ${{ github.repository }}"
-        echo "Workflow: ${{ github.workflow }}"
-        echo "Action: ${{ github.action }}"
+        echo "Repository Owner: ${{ github.repository_owner }}"
+        echo "Workflow Name: ${{ github.workflow }}"
+        echo "GitHub Server URL: ${{ github.server_url }}"
+        echo "GitHub API URL: ${{ github.api_url }}"
+        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Workspace: ${{ github.workspace }}"
         [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
         [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
-        echo "Event Path: ${{ github.event_path }}"
-        echo "Workspace: ${{ github.workspace }}"
-        [ ! -z "${{ github.action_ref }}" ] && echo "Action Repository: ${{ github.action_ref }}"
-        [ ! -z "${{ github.action_sha }}" ] && echo "Action SHA: ${{ github.action_sha }}"
-        echo "Runner OS: ${{ runner.os }}"
-        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
-        echo "Runner Temp Directory: ${{ runner.temp }}"
+        echo "-----------------------------------------------"
 
-    - name: Report Job & Run Details
+    - name: Report Job, Run and Runner Details
       run: |
-        date
+        # Display various details about the job, run, and runner
+        echo "----- JOB, RUN AND RUNNER DETAILS -----"
         echo "Job Name: ${{ github.job }}"
         echo "Event ID: ${{ github.run_id }}"
         echo "Run Number: ${{ github.run_number }}"
+        echo "Runner Name: ${{ runner.name }}"
+        echo "Runner Label: ${{ runner.label }}"
+        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory: ${{ runner.temp }}"
+        echo "GitHub Event Before: ${{ github.event.before }}"
+        echo "GitHub Event After: ${{ github.event.after }}"
+        echo "---------------------------------------"
 
     - name: Trigger Stylecop Workflow
-      if: success()
       run: |
+        # Make a curl request to trigger another workflow
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
         
         CMD+="-d '{\"event_type\": \"trigger-stylecop\", "
-        #CMD+="-d '{\"event_type\": \"trigger-deploy-git\", "  # TODO REMOVE
-        
         CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
-        eval ${CMD}
+        
+        eval ${CMD} || exit 1
+
+    - name: Set default job status
+      run: |
+        # By default, assume the job is successful
+        echo "JOB_STATUS=success" >> $GITHUB_ENV
+
+    - name: Set failure status if any step failed
+      run: |
+        # If any previous step failed, override the job status
+        echo "JOB_STATUS=failure" >> $GITHUB_ENV
+      if: failure()
+
+    - name: Publish success or failure status
+      run: |
+        # Make a curl request to update the commit status
+        curl -X POST \
+        -H "Authorization: token ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+        -d '{
+          "state": "${{ env.JOB_STATUS }}", 
+          "description": "Result from Workflow ${{ github.workflow }}",
+          "context": "status/${{ github.workflow }}"
+        }' || exit 1
