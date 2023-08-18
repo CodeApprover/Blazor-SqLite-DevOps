@@ -1,5 +1,5 @@
 ---
-name: Versioning
+name: "Versioning"
 
 on:
   repository_dispatch:
