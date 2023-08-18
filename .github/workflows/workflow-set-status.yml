@@ -1,0 +1,33 @@
+---
+name: "Set Commit Status"
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA'
+        required: true
+      status:
+        description: 'Status to set (success or failure)'
+        required: true
+      workflowName:
+        description: 'Name of the calling Workflow'
+        required: true
+
+jobs:
+  set_status:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Update Commit Status
+      run: |
+        # Make a curl request to update the commit status
+        curl -X POST \
+        -H "Authorization: token ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.inputs.sha }} \
+        -d '{
+          "state": "${{ github.event.inputs.status }}", 
+          "description": "Result from Workflow ${{ github.event.inputs.workflowName }}",
+          "context": "status/${{ github.event.inputs.workflowName }}"
+        }' || exit 1
