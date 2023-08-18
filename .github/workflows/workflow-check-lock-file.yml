@@ -1,3 +1,4 @@
+---
 name: "Check Lock File"
 
 # Exit Code Commentary:
@@ -9,108 +10,106 @@ on:
   repository_dispatch:
     types: trigger-check-lock-file
 
+env:
+  SHA: ${{ github.event.client_payload.sha }}
+  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
+  MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
+  SLEEP_MINUTES: ${{ secrets.SLEEP_MINUTES }}
+
 jobs:
   check-for-lock-file:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
-
+    
     steps:
+      - name: Checkout SHA Repository
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
 
-    - name: Set SHA from client payload
-      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+      - name: Report
+        run: |
+          date
+          echo "SHA=${{ env.SHA }}"
+          branch_name=${{ env.BRANCH_NAME }}
+          echo "Environment=$(echo $branch_name | sed 's#code-##')"
+          echo "Branch=${{ env.BRANCH_NAME }}"
+          echo "Committer=$(git log -1 --pretty=format:'%an')"
 
-    - name: Set Branch Name from client payload
-      run: echo "BRANCH_NAME=${{ github.event.client_payload.branch_name }}" >> $GITHUB_ENV
+      - name: Configure Git User and Email
+        run: |
+          git config user.name "CodeApprover"
+          git config user.email "pucfada@pm.me"
 
-    - name: Set .csproj from client payload
-      run: echo "CSPROJ=${{ github.event.client_payload.csproj }}" >> $GITHUB_ENV
+      - name: Set Lock File Name Based on Branch
+        run: |
+          branch=${{ env.BRANCH_NAME }}
+          if [[ $branch == "code-"* ]]; then
+              lock_name=${branch#code-}
+              echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
+          elif [[ $branch == "main" ]]; then
+              echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+          fi
 
-    - name: Checkout SHA Repository
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
+      - name: Check Lock File with Retry
+        run: |
+          for (( i=1; i<=${{ env.MAX_RETRIES }}; i++ )); do
+            echo "::group::Attempt $i"
+            git fetch origin ${{ env.BRANCH_NAME }}
+            git checkout ${{ env.BRANCH_NAME }}
+            if [ $? -ne 0 ]; then
+              echo "::error::Failed to checkout ${{ env.BRANCH_NAME }}"
+              exit 5
+            fi
 
-    - name: Report
-      run: |
-        date
-        echo "SHA=${{ env.SHA }}"
-        echo "Environment=$(${{ env.BRANCH_NAME }} | sed '#code-##')"
-        echo "Branch=${{ env.BRANCH_NAME }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
+            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
 
-    - name: Configure Git User and Email
-      run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
+            if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
+              echo "Lock file found. Waiting ${{ env.SLEEP_MINUTES }} minutes before retrying."
+              sleep $((${{ env.SLEEP_MINUTES }} * 60))
+            else
+              break
+            fi
+            echo "::endgroup::"
+          done
 
-    - name: Set Lock File Name Based on Branch
-      run: |
-        branch=${{ env.BRANCH_NAME }}
-        if [[ $branch == "code-"* ]]; then
-            lock_name=${branch#code-}
-            echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
-        elif [[ $branch == "main" ]]; then
-            echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-        fi
+          echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
+          git add "${{ env.LOCK_FILE }}"
+          git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
 
-    - name: Check Lock File with Retry
-      env: 
-        MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
-        SLEEP_DURATION: ${{ secrets.SLEEP_DURATION }}
-      run: |
-        for (( i=1; i<=${MAX_RETRIES}; i++ )); do
-          echo "::group::Attempt $i of $MAX_RETRIES}"
+          if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+            echo "::error::Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}"
+            exit 2
+          fi
+
           git fetch origin ${{ env.BRANCH_NAME }}
-
-          if ! git show "${{ env.SHA }}~1"; then
-            echo "::error::The commit ${{ env.SHA }} does not exist!"
-            exit 1
+          if [ $? -ne 0 ]; then
+            echo "::error::Failed to fetch ${{ env.BRANCH_NAME }}"
+            exit 4
           fi
 
-          git checkout ${{ env.BRANCH_NAME }}
-          commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
-
-          if git ls-tree -r $commits_before_sha | grep "$LOCK_FILE"; then
-            echo "Lock file found. Waiting ${{ env.SLEEP_DURATION }} minutes before retrying."
-            sleep $SLEEP_DURATION
+          if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
+            echo "::error::Lock file ${{ env.LOCK_FILE }} was not successfully created or pushed."
+            exit 3
           else
-            break
+            echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
           fi
 
-          echo "::endgroup::"
-        done
-
-        echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
-        git add "${{ env.LOCK_FILE }}"
-        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
-
-        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
-          echo "::error::Failed to push ${{ env.LOC_FILE }} for ${{ env.SHA }}"
-          exit 2
-        fi
-
-        git fetch origin ${{ env.BRANCH_NAME }}
-        if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
-          echo "::error::Lock file ${{ env.LOCK_FILE }} was not successfully created or pushed."
-          exit 3
-        else
-          echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
-        fi
-
-    - name: Trigger Versioning Workflow
-      if: success()
-      uses: actions/github-script@v5
-      with:
-        script: |
-          const repo = context.repo;
-          const payload = {
-            event_type: "trigger-versioning",
-            client_payload: {
-              sha: "${{ env.SHA }}",
-              branch_name: "${{ env.BRANCH_NAME }}",
-              csproj: "${{ env.CSPROJ }}"
-            }
-          };
-          await github.request(`POST /repos/${repo.owner}/${repo.repo}/dispatches`, payload);
+      - name: Trigger Versioning Workflow
+        if: success()
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const repo = context.repo;
+            const payload = {
+              event_type: "trigger-versioning",
+              client_payload: {
+                sha: "${{ env.SHA }}",
+                branch_name: "${{ env.BRANCH_NAME }}",
+                csproj: "${{ env.CSPROJ }}"
+              }
+            };
+            await github.request(`POST /repos/${repo.owner}/${repo.repo}/dispatches`, payload);
