@@ -10,15 +10,35 @@ jobs:
 
     steps:
 
+    # Report incoming SHA and current timestamp
     - name: Report SHA and Workflow Timestamp
       run: |
-        echo "${{ github.event.client_payload.sha }}"
+        echo "----- DEBUG INFO -----"
+        echo "Received SHA: ${{ github.event.client_payload.sha }}"
         date
 
+    # Checkout the repo at the specified SHA
     - name: Checkout Repository
       uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.event.client_payload.sha }}
 
-    - name: Retrieve Cached dotnet Dependencies
+    # Check if the .csproj file exists
+    - name: Check csproj Existence
+      run: |
+        if [[ ! -f ${{ github.event.client_payload.csproj }} ]]; then
+          echo "Error: .csproj file not found at path: ${{ github.event.client_payload.csproj }}"
+          exit 1
+        fi
+
+    # Restore .NET dependencies
+    - name: Restore Dependencies
+      run: |
+        echo "Restoring .NET dependencies for ${{ github.event.client_payload.csproj }}"
+        dotnet restore ${{ github.event.client_payload.csproj }}
+
+    # Cache .NET dependencies for faster subsequent runs
+    - name: Cache dotnet Dependencies
       id: cache-dotnet-restore
       uses: actions/cache@v3
       with:
@@ -26,7 +46,3 @@ jobs:
         key: ${{ runner.os }}-dotnet-${{ github.event.client_payload.branch_name }}
         restore-keys: |
           ${{ runner.os }}-dotnet-
-
-    - name: Restore Dependencies
-      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
-      run: dotnet restore ${{ github.event.client_payload.csproj }}
