@@ -14,7 +14,7 @@ jobs:
 
     steps:
     
-    - name: Report SHA and timestamp
+    - name: Report SHA and workflow timestamp
       run: |
         echo "${{ github.sha }}"
         date
