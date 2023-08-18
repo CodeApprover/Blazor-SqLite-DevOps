@@ -1,5 +1,5 @@
 ---
-name: "Deploy to Git"
+name: "Deploy Git"
 
 on:
   repository_dispatch:
