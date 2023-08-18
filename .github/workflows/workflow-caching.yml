@@ -3,7 +3,7 @@ name: "Cache Dependencies"
 
 on:
   repository_dispatch:
-    types: trigger-dotnet-prep
+    types: trigger-cache-dependencies
 
 jobs:
   prepare-dotnet:
