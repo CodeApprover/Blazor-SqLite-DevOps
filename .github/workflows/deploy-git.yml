@@ -12,7 +12,8 @@ jobs:
   deploy-to-environment:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+    if: (github.actor != 'CodeApprover')
+
     steps:
 
     - name: Report SHA and Workflow Timestamp
