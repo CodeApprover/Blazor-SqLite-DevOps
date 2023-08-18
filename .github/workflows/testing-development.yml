@@ -12,7 +12,7 @@ env:
 
 jobs:
 
-  dev-unit-tests:
+  development-testing:
 
     name: Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
 
     name: Trigger Next Workflow
     runs-on: ubuntu-latest
-    needs: dev-unit-tests
+    needs: development-testing
     timeout-minutes: 15
 
     steps:
