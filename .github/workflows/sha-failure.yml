@@ -25,11 +25,10 @@ jobs:
 
     steps:
     
-    - name: Report SHA
-      run: echo "${{ github.event.client_payload.sha }}"
-
-    - name: Log Timestamp
-      run: date
+    - name: Report SHA and workflow timestamp
+      run: |
+        echo "${{ github.event.client_payload.sha }}"
+        date
 
     - name: Get SHA of Commit
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
