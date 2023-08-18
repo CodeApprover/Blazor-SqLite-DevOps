@@ -12,7 +12,7 @@ name: "StyleCop Linter"
 
 on:
   repository_dispatch:
-    types: "trigger-stylecop"
+    types: "trigger-stylecop-linting"
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
@@ -83,7 +83,7 @@ jobs:
       run: |
         case "${{ env.BRANCH_NAME }}" in
           code-development) EVENT_TYPE="trigger-development-tests" ;;
-          code-staging) EVENT_TYPE="trigger-env-staging-tests" ;;
+          code-staging) EVENT_TYPE="trigger-staging-tests" ;;
           code-production) EVENT_TYPE="trigger-production-tests" ;;
           *) echo "##[error] Unexpected environment name"; exit 4 ;;
         esac
