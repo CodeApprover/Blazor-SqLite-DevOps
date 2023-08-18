@@ -1,0 +1,32 @@
+name: .NET Prep
+
+on:
+  repository_dispatch:
+    types: trigger-dotnet-prep
+
+jobs:
+  prepare-dotnet:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Report SHA and Workflow Timestamp
+      run: |
+        echo "${{ github.event.client_payload.sha }}"
+        date
+
+    - name: Checkout Repository
+      uses: actions/checkout@v3.5.3
+
+    - name: Restore Dependencies
+      run: dotnet restore ${{ github.event.client_payload.csproj }}
+      
+    - name: Cache dotnet Dependencies
+      id: cache-dotnet-restore
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-dotnet-${{ github.event.client_payload.branch_name }}
+        restore-keys: |
+          ${{ runner.os }}-dotnet-
+  
