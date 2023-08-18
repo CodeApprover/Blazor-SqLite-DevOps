@@ -117,7 +117,7 @@ jobs:
           "context": "status/${{ github.workflow }}"
         }' || exit 2
  
-    - name: Trigger Dependency Caching
+    - name: Trigger Dependency Caching Workflow
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
