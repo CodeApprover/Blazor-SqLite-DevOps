@@ -11,32 +11,30 @@ env:
   SLEEP_DURATION: 300 # 5 MINS # TODO SET TO 1200 # 20 minutes in seconds
 
 jobs:
+
   check-for-lock-file:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: (github.actor != 'CodeApprover')
 
     steps:
 
-      # Report the SHA and workflow run time
       - name: Report SHA and workflow timestamp
         run: |
           echo "${{ github.event.client_payload.sha }}"
           date
     
-      # Checkout the repository at the given SHA
       - name: Checkout SHA repository
         uses: actions/checkout@v3.5.3
         with:
           ref: ${{ github.event.client_payload.sha }}
           fetch-depth: 0
 
-      # Configure git user details
       - name: Configure git user
         run: |
           git config user.name "CodeApprover"
           git config user.email "pucfada@pm.me"
 
-      # Determine the branch and corresponding lock file name
       - name: Set branch and lock file name
         run: |
           branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
@@ -59,8 +57,7 @@ jobs:
                   ;;
           esac
 
-      # Check for the presence of the lock file and retry if found
-      - name: Check for lock file with retry
+      - name: Check lock file with retry
         run: |
           for (( i=1; i<=$MAX_RETRIES; i++ )); do
             git fetch origin ${{ env.BRANCH_NAME }}
