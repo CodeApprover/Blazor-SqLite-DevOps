@@ -14,8 +14,10 @@ jobs:
 
     steps:
     
-    - name: Report SHA
-      run: echo "${{ github.sha }}"
+    - name: Report SHA and timestamp
+      run: |
+        echo "${{ github.sha }}"
+        date
 
     - name: Determine Branch Name
       run: |
