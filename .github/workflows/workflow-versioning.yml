@@ -1,68 +1,71 @@
 ---
 name: "Versioning"
 
+# Exit codes:
+# 1: Error checking out the repository
+# 2: Error fetching tags
+# 3: Error pushing new tag
+
 on:
   repository_dispatch:
     types: trigger-versioning
 
 env:
+  SHA: ${{ github.event.client_payload.sha }}
+  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  CURRENT_TAG: ""
+  NEW_VERSION: ""
 
 jobs:
   version-and-tag:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: (github.actor != 'CodeApprover')
 
     steps:
-
-      - name: Report SHA and workflow timestamp
-        run: |
-          echo "${{ github.event.client_payload.sha }}"
-          date
 
       - name: Checkout SHA repository
         uses: actions/checkout@v3.5.3
         with:
-          ref: ${{ github.event.client_payload.sha }}
+          ref: ${{ env.SHA }}
           fetch-depth: 0
-
-      - name: Report SHA
-        run: echo "${{ github.event.client_payload.sha }}"
-
-      - name: Configure git user
+        continue-on-error: true
+      
+      - name: Handle checkout error
+        if: steps.checkout.outcome == 'failure'
         run: |
+          echo "##[error] Error checking out the repository"
+          exit 1
+
+      - name: Report
+        run: |
+          date
+          echo "SHA=${{ env.SHA }}"
+          echo "Environment=$(echo ${{ env.BRANCH_NAME }} | sed 's#code-##')"
+          echo "Branch=${{ env.BRANCH_NAME }}"
+          echo "Committer=$(git log -1 --pretty=format:'%an')"
+
+      - name: Configure GitHub Actions account
+        run: |
+          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 4' ERR
           git config user.name "CodeApprover"
           git config user.email "pucfada@pm.me"
-
-      - name: Set branch name
-        run: |
-          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
-          branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-          echo "##[debug] Detected branch: $branch"
-          
-          if [[ -z "${branch}" ]]; then
-            echo "##[debug] Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
-            exit 1 
-          fi
-
-          echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
+          echo "##[debug] Git user configured."
 
       - name: Determine latest version tag
         run: |
-          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 2' ERR
           git fetch --tags
 
           if [ -z "$(git tag)" ]; then
-            echo "##[debug]] No tags found. Exiting."
-            exit 1
+            echo "##[debug] No tags found. Exiting."
+            exit 2            
           fi
-          
-          echo "##[debug] Current Tags ="
-          git tag
 
           # Get the latest tag based on SemVer -V
           tags=( $(git tag) )
-
           latest_major=0
           latest_minor=0
           latest_patch=0
@@ -126,7 +129,7 @@ jobs:
 
       - name: Tag repository with new version
         run: |
-          trap 'echo "##[debug] Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
+          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 3' ERR
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
 
@@ -137,5 +140,5 @@ jobs:
           CMD+="-H \"Accept: application/vnd.github.v3+json\" "
           CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
           CMD+="-d '{\"event_type\": \"trigger-deploy-docker\", "
-          CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+          CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
           eval ${CMD}
