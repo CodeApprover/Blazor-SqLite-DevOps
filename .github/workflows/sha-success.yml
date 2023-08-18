@@ -1,8 +1,6 @@
 ---
 name: "SHA Success"
 
-# Development Environment (code-development) Tests
-
 on:
   repository_dispatch:
     types: "trigger-success"
