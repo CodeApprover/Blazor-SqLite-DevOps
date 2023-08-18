@@ -11,20 +11,16 @@ jobs:
 
     steps:
 
-    # Report incoming SHA and current timestamp
     - name: Report SHA and Workflow Timestamp
       run: |
-        echo "----- DEBUG INFO -----"
         echo "Received SHA: ${{ github.event.client_payload.sha }}"
         date
 
-    # Checkout the repo at the specified SHA
     - name: Checkout Repository
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ github.event.client_payload.sha }}
 
-    # Check if the .csproj file exists
     - name: Check csproj Existence
       run: |
         if [[ ! -f ${{ github.event.client_payload.csproj }} ]]; then
@@ -32,13 +28,12 @@ jobs:
           exit 1
         fi
 
-    # Restore .NET dependencies
     - name: Restore Dependencies
       run: |
         echo "Restoring .NET dependencies for ${{ github.event.client_payload.csproj }}"
         dotnet restore ${{ github.event.client_payload.csproj }}
 
-    # Cache .NET dependencies for faster subsequent runs
+    # Cache .NET dependencies for faster subsequent workflow runs
     - name: Cache dotnet Dependencies
       id: cache-dotnet-restore
       uses: actions/cache@v3
@@ -48,3 +43,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dotnet-
 
+    - name: Trigger Stylecop Workflow # Applies to all commits
+      run: |
+        # Make curl request to trigger next workflow, sending payload
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="--data '{\"event_type\": \"trigger-dotnet-prep\", "
+        CMD+="\"client_payload\": {\"csproj\": \"${{ github.event.client_payload.csproj }}\", "
+        CMD+="\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+
+        eval ${CMD} || { echo "Failed to trigger .NET Prep workflow"; exit 1; }
