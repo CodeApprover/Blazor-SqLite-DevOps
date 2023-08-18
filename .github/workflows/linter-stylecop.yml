@@ -71,7 +71,11 @@ jobs:
           *) echo "Error: Unexpected environment name"; exit 1 ;;
         esac
         curl -X POST \
-             -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-             -H "Accept: application/vnd.github.v3+json" \
-             -d "{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}" \
-             https://api.github.com/repos/${{ github.repository }}/dispatches
+             CMD="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+             CMD+="-H \"Accept: application/vnd.github.v3+json \" "
+             CMD+=-"d \"{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {\" "
+             CMD+="\"sha\": \"${{ env.SHA }}\", "
+             CMD+="\"csproj\": \"${{ env.CSPROJ }}\", "
+             CMD+="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
+             CMD+="}}'"
+             eval ${CMD}
