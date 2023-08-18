@@ -43,7 +43,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dotnet-
 
-    - name: Trigger Stylecop Workflow # Applies to all commits
+    - name: Trigger Stylecop Workflow # linter-stylecop.yml
       run: |
         # Make curl request to trigger next workflow, sending payload
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
