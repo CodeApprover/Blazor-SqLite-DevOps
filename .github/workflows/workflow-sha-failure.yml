@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows:
       - Report
+      - Cache Dependencies
       - StyleCop Linter
       - Development Tests
       - Staging Tests
