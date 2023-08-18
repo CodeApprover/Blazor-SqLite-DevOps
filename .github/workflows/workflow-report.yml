@@ -5,6 +5,9 @@ on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+
 jobs:
   report-usage:
     name: "Report Usage"
@@ -84,6 +87,12 @@ jobs:
 
     - name: Delete SHA file
       run: rm $RUNNER_TEMP/payload.sha
+
+    - name: Determine .csproj
+      run: |
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
 
     - name: Trigger Stylecop Workflow
       run: |
