@@ -20,6 +20,7 @@ jobs:
     - name: Report SHA and Workflow Timestamp
       run: |
         # Report the commit SHA and current timestamp
+        echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
         echo "${{ github.sha }}"
         date
 
@@ -28,6 +29,11 @@ jobs:
         # Extract the branch name from the ref
         ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
         echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
+
+    - name: Determine .csproj File
+      run: |
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
+        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Report Commit Details
       run: |
@@ -88,13 +94,6 @@ jobs:
     - name: Delete SHA file
       run: rm $RUNNER_TEMP/payload.sha
 
-    - name: Determine .csproj
-      run: |
-        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
-        [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-
-    
-
     - name: Set default job status
       run: |
         # By default, assume the job is successful
@@ -106,9 +105,8 @@ jobs:
         echo "JOB_STATUS=failure" >> $GITHUB_ENV
       if: failure()
 
-    - name: Publish success or failure status
+    - name: Publish success or failure status for tracking
       run: |
-        # Make a curl request to update the commit status
         curl -X POST \
         -H "Authorization: token ${{ secrets.AUTH }}" \
         -H "Accept: application/vnd.github.v3+json" \
@@ -118,3 +116,17 @@ jobs:
           "description": "Result from Workflow ${{ github.workflow }}",
           "context": "status/${{ github.workflow }}"
         }' || exit 2
+ 
+    - name: Trigger Dependency Caching
+      run: |
+        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\": \"trigger-cache-dependencies\", "
+        CMD+="\"client_payload\": {"
+        CMD+="\"sha\": \"${{ env.SHA }}\", "
+        CMD+="\"csproj\": \"${{ env.CSPROJ }}\", "
+        CMD+="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
+        CMD+="}}'"
+        eval ${CMD}
+
