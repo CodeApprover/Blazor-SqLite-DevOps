@@ -1,7 +1,4 @@
----
 name: "Development Tests"
-
-# Development Environment (code-development) Test Suite
 
 on:
   repository_dispatch:
@@ -39,7 +36,18 @@ jobs:
         ref: ${{ github.event.client_payload.sha }}
         fetch-depth: 0 # Fetch all
 
+    # Added cache retrieval step
+    - name: Retrieve Cached dotnet Dependencies
+      id: cache-dotnet-restore
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-dotnet-${{ env.BRANCH_NAME }}
+        restore-keys: |
+          ${{ runner.os }}-dotnet-
+
     - name: Install dependencies
+      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true' # Only if cache was not hit
       run: |
         if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
           test_type="Nunit_Player_Unit_Tests"
