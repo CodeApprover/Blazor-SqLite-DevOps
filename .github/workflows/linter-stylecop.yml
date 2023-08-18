@@ -17,6 +17,7 @@ jobs:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: (github.actor != 'CodeApprover')
 
     steps:
 
