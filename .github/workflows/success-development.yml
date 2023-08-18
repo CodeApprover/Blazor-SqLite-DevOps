@@ -23,15 +23,27 @@ jobs:
     timeout-minutes: 15
 
     steps:
+
+    - name: Download archived SHA
+      uses: actions/download-artifact@v3
+      with:
+        name: sha-archive
+        path: $RUNNER_TEMP/
+
+    - name: Use the SHA (example)
+      run: |
+        SHA=$(cat /$RUNNER_TEMP/payload.sha)
+        echo "SHA=$SHA" >> $GITHUB_ENV
+    
     - name: Report SHA and workflow date
       run: |
-        echo "${{ github.event.client_payload.sha }}"
+        echo "${{ github.env.sha }}"
         date
 
     - name: Check Previous Workflow Statuses for Development
       run: |
         GITHUB_REPO=${{ github.repository }}
-        COMMIT_SHA=${{ github.event.client_payload.sha }}
+        COMMIT_SHA=${{ github.env.sha }}
         TOKEN=${{ secrets.AUTH }}
 
         function check_workflow_status() {
@@ -64,7 +76,7 @@ jobs:
         curl -X POST \
         -H "Authorization: token ${{ secrets.AUTH }}" \
         -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.client_payload.sha }} \
+        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.env.sha }} \
         -d '{
           "state": "success",
           "description": "All development workflows succeeded.",
