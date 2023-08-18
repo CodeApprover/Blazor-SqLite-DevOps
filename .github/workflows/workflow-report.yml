@@ -95,15 +95,15 @@ jobs:
 
     - name: Trigger Stylecop Workflow
       run: |
-        # Make a curl request to trigger another workflow
+        # Make curl request to trigger next workflow, sending payload
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
-        CMD+="https://api.github.com/repos/owner/repo/dispatches "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
         CMD+="--data '{\"event_type\": \"trigger-dotnet-prep\", "
         CMD+="\"client_payload\": {\"csproj\": \"${{ env.CSPROJ }}\", "
-        CMD+="\"sha\": \"${{ env.SHA }}\"}}'
+        CMD+="\"sha\": \"${{ github.sha }}\"}}'"
 
-        eval ${CMD} || exit 1
+        eval ${CMD} || { echo "Failed to trigger .NET Prep workflow"; exit 1; }
 
     - name: Set default job status
       run: |
@@ -112,7 +112,7 @@ jobs:
 
     - name: Set failure status if any step failed
       run: |
-        # If any previous step failed, override the job status
+        echo "Failed detected in previous steps"
         echo "JOB_STATUS=failure" >> $GITHUB_ENV
       if: failure()
 
