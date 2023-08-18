@@ -1,5 +1,5 @@
 ---
-name: "Deploy SHA to Git Environment"
+name: "Deploy to Git"
 
 on:
   repository_dispatch:
