@@ -93,18 +93,6 @@ jobs:
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-    - name: Trigger Stylecop Workflow
-      run: |
-        # Make curl request to trigger next workflow, sending payload
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="--data '{\"event_type\": \"trigger-dotnet-prep\", "
-        CMD+="\"client_payload\": {\"csproj\": \"${{ env.CSPROJ }}\", "
-        CMD+="\"sha\": \"${{ github.sha }}\"}}'"
-
-        eval ${CMD} || { echo "Failed to trigger .NET Prep workflow"; exit 1; }
-
     - name: Set default job status
       run: |
         # By default, assume the job is successful
