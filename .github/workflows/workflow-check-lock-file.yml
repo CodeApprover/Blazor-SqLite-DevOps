@@ -7,8 +7,8 @@ on:
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
-  MAX_RETRIES: 6
-  SLEEP_DURATION: 1200  # 20 minutes in seconds
+  MAX_RETRIES: 1 # TODO SET TO 6
+  SLEEP_DURATION: 300 # 5 MINS # TODO SET TO 1200 # 20 minutes in seconds
 
 jobs:
   check-for-lock-file:
