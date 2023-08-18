@@ -1,13 +1,9 @@
 name: "Check Lock File"
 
 # Exit Code Commentary:
-# 1 - Failed to extract branch name for SHA.
-# 2 - Unknown branch.
-# 3 - Commit does not exist.
-# 4 - No branch contains the commit.
-# 5 - Commit before payload SHA does not exist.
-# 6 - Failed to push.
-# 7 - Lock file was not successfully created or pushed.
+# 1 - The commit SHA does not exist
+# 2 - Failed to push the lock file
+# 3 - Lock file was not successfully created or pushed
 
 on:
   repository_dispatch:
@@ -20,75 +16,65 @@ jobs:
     if: (github.actor != 'CodeApprover')
 
     steps:
-    - name: Report SHA and Workflow Timestamp
-      run: |
-        echo "Payload SHA: ${{ github.event.client_payload.sha }}"
-        echo "::group::Workflow Timestamp"
-        date
-        echo "::endgroup::"
 
-    - name: Checkout SHA repository
+    - name: Set SHA from client payload
+      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
+
+    - name: Set Branch Name from client payload
+      run: echo "BRANCH_NAME=${{ github.event.client_payload.branch_name }}" >> $GITHUB_ENV
+
+    - name: Set .csproj from client payload
+      run: echo "CSPROJ=${{ github.event.client_payload.csproj }}" >> $GITHUB_ENV
+
+    - name: Checkout SHA Repository
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ github.event.client_payload.sha }}
-        fetch-depth: 0
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Report
+      run: |
+        date
+        echo "SHA=${{ env.SHA }}"
+        echo "Environment=$(${{ env.BRANCH_NAME }} | sed '#code-##')"
+        echo "Branch=${{ env.BRANCH_NAME }}"
+        echo "Committer=$(git log -1 --pretty=format:'%an')"
 
     - name: Configure Git User and Email
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
 
-    - name: Set Branch and Lock File Name
+    - name: Set Lock File Name Based on Branch
       run: |
-        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        echo "Detected branch: $branch"
-        if [[ -z "${branch}" ]]; then
-            echo "::error::Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
-            exit 1
+        branch=${{ env.BRANCH_NAME }}
+        if [[ $branch == "code-"* ]]; then
+            lock_name=${branch#code-}
+            echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
+        elif [[ $branch == "main" ]]; then
+            echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
         fi
-        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-        case "${branch}" in
-          code-*) echo "LOCK_FILE=.${branch}.lock" >> $GITHUB_ENV ;;
-          main) echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV ;;
-          *)
-            echo "::error::Unknown branch: $branch."
-            exit 2
-          ;;
-        esac
 
     - name: Check Lock File with Retry
       env: 
         MAX_RETRIES: ${{ secrets.MAX_RETRIES }}
+        SLEEP_DURATION: ${{ secrets.SLEEP_DURATION }}
       run: |
-        SHA=${{ github.event.client_payload.sha }}
-        BRANCH=${{ env.BRANCH_NAME }}
-        LOCK_FILE=${{ env.LOCK_FILE }}
-
         for (( i=1; i<=${MAX_RETRIES}; i++ )); do
-          echo "::group::Attempt $i of $MAX_RETRIES"
-          git fetch origin $BRANCH
+          echo "::group::Attempt $i of $MAX_RETRIES}"
+          git fetch origin ${{ env.BRANCH_NAME }}
 
-          if ! git show $SHA; then
-            echo "::error::The commit $SHA does not exist!"
-            exit 3
+          if ! git show "${{ env.SHA }}~1"; then
+            echo "::error::The commit ${{ env.SHA }} does not exist!"
+            exit 1
           fi
 
-          if [[ -z "$(git branch --contains $SHA)" ]]; then
-            echo "::error::No branch contains the commit $SHA!"
-            exit 4
-          fi
-
-          git checkout $BRANCH
-          commits_before_sha=$(git rev-list $SHA~1..$BRANCH --)
-
-          if ! git show $SHA~1; then
-            echo "::error::The commit before $SHA does not exist!"
-            exit 5
-          fi
+          git checkout ${{ env.BRANCH_NAME }}
+          commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
 
           if git ls-tree -r $commits_before_sha | grep "$LOCK_FILE"; then
             echo "Lock file found. Waiting ${{ env.SLEEP_DURATION }} minutes before retrying."
-            sleep ${{ env.SLEEP_DURATION }}
+            sleep $SLEEP_DURATION
           else
             break
           fi
@@ -96,21 +82,21 @@ jobs:
           echo "::endgroup::"
         done
 
-        echo "$SHA" > "$LOCK_FILE"
-        git add "$LOCK_FILE"
-        git commit -m "Adding $LOCK_FILE for $SHA [skip ci]"
+        echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
+        git add "${{ env.LOCK_FILE }}"
+        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
 
-        if ! git push origin HEAD:$BRANCH; then
-          echo "::error::Failed to push."
-          exit 6
+        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+          echo "::error::Failed to push ${{ env.LOC_FILE }} for ${{ env.SHA }}"
+          exit 2
         fi
 
-        git fetch origin $BRANCH
-        if ! git ls-tree HEAD -- "$LOCK_FILE"; then
-          echo "::error::Lock file was not successfully created or pushed."
-          exit 7
+        git fetch origin ${{ env.BRANCH_NAME }}
+        if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
+          echo "::error::Lock file ${{ env.LOCK_FILE }} was not successfully created or pushed."
+          exit 3
         else
-          echo "Lock file successfully created and pushed."
+          echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
         fi
 
     - name: Trigger Versioning Workflow
@@ -121,6 +107,10 @@ jobs:
           const repo = context.repo;
           const payload = {
             event_type: "trigger-versioning",
-            client_payload: { sha: "${{ github.event.client_payload.sha }}" }
+            client_payload: {
+              sha: "${{ env.SHA }}",
+              branch_name: "${{ env.BRANCH_NAME }}",
+              csproj: "${{ env.CSPROJ }}"
+            }
           };
           await github.request(`POST /repos/${repo.owner}/${repo.repo}/dispatches`, payload);
