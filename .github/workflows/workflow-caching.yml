@@ -45,12 +45,24 @@ jobs:
 
     - name: Trigger Stylecop Workflow # linter-stylecop.yml
       run: |
-        # Make curl request to trigger next workflow, sending payload
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="--data '{\"event_type\": \"trigger-stylecop-linting\", "
-        CMD+="\"client_payload\": {\"csproj\": \"${{ github.event.client_payload.csproj }}\", "
-        CMD+="\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
+        BASE="{\"event_type\": \"trigger-stylecop-linting\", \"client_payload\": {"
+        CSPROJ="\"csproj\": \"${{ github.event.client_payload.csproj }}\","
+        SHA="\"sha\": \"${{ github.event.client_payload.sha }}\""
+        END="}}"
+        PAYLOAD="$BASE$CSPROJ$SHA$END"
+    
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
+        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
+        CMD+="-d '$PAYLOAD' "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
+        RESPONSE=$(eval "$CMD")
+    
+        # Check for failure (non-200 status codes)
+        if [[ "$RESPONSE" -ne 200 ]]; then
+            echo "##[error] Failed to trigger Stylecop Workflow. HTTP Code: $RESPONSE"
+            exit 1
+        else
+            echo "##[debug] Successfully Triggered Stylecop Workflow for ${{ github.event.client_payload.sha }}."
+        fi
 
-        eval ${CMD} || { echo "Failed to trigger .NET Prep workflow"; exit 1; }
