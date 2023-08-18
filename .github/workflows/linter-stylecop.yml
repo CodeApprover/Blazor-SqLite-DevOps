@@ -88,20 +88,19 @@ jobs:
           code-production) EVENT_TYPE="trigger-production-tests" ;;
           *) echo "##[error] Unexpected environment name"; exit 4 ;;
         esac
-    
+
         BASE="{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-    
+
         CMD=("curl" "-X" "POST")
         CMD+=("-H" "Authorization: Bearer ${{ secrets.AUTH }}")
         CMD+=("-H" "Accept: application/vnd.github.v3+json")
         CMD+=("-d" "$PAYLOAD")
-        CMD+=("https://api.github.com/repos/${{ github.repository }}/dispatches")
-    
+        CMD+=("https://api.github.com/repos/${{ github.repository }}/dispatches")  
         RESPONSE=$("${CMD[@]}")
         if [ $? -ne 0 ]; then
             echo "##[error] Failed to trigger tests for $EVENT_TYPE."
