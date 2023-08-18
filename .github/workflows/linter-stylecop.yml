@@ -20,8 +20,10 @@ jobs:
 
     steps:
 
-    - name: Report SHA
-      run: echo "${{ github.event.client_payload.sha }}"
+    - name: Report SHA and workflow timestamp
+      run: |
+        echo "${{ github.event.client_payload.sha }}"
+        date
 
     - name: Extract SHA for Checkout
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
