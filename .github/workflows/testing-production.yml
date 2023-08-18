@@ -1,19 +1,21 @@
 ---
 name: "Production Tests"
-
-# Production Environment: code-production
+# Production Environment (code-production) Test Suite
 
 on:
-  workflow_run:
-    workflows:
-      - Staging
-    types:
-      - success
+  repository_dispatch:
+    types: "trigger-development-tests"
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
-  deploy-to-production:
+
+  production-testing:
+  
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: (github.actor != 'CodeApprover')
 
     environment:
       production
