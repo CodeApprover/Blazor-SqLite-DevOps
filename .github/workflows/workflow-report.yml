@@ -93,17 +93,16 @@ jobs:
         CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJ_NAME }}.csproj")
         [[ -z "$CSPROJ" ]] && echo "Error .csproj file not found." && exit 1 || echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-
     - name: Trigger Stylecop Workflow
       run: |
         # Make a curl request to trigger another workflow
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
-        
-        CMD+="-d '{\"event_type\": \"trigger-dotnet-prep\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ github.sha }}\"}}'"
-        
+        CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
+        CMD+="https://api.github.com/repos/owner/repo/dispatches "
+        CMD+="--data '{\"event_type\": \"trigger-dotnet-prep\", "
+        CMD+="\"client_payload\": {\"csproj\": \"${{ env.CSPROJ }}\", "
+        CMD+="\"sha\": \"${{ env.SHA }}\"}}'
+
         eval ${CMD} || exit 1
 
     - name: Set default job status
@@ -128,4 +127,4 @@ jobs:
           "state": "${{ env.JOB_STATUS }}", 
           "description": "Result from Workflow ${{ github.workflow }}",
           "context": "status/${{ github.workflow }}"
-        }' || exit 1
+        }' || exit 2
