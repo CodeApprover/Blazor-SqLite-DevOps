@@ -61,7 +61,17 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
+    - name: Retrieve Cached dotnet Dependencies
+      id: cache-dotnet-restore
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-dotnet-${{ env.BRANCH_NAME }}
+        restore-keys: |
+          ${{ runner.os }}-dotnet-
+
     - name: Restore Dependencies
+      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
       run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
 
     - name: Dotnet Build with StyleCop
