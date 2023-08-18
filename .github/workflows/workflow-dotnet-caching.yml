@@ -18,10 +18,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v3.5.3
 
-    - name: Restore Dependencies
-      run: dotnet restore ${{ github.event.client_payload.csproj }}
-      
-    - name: Cache dotnet Dependencies
+    - name: Retrieve Cached dotnet Dependencies
       id: cache-dotnet-restore
       uses: actions/cache@v3
       with:
@@ -29,4 +26,7 @@ jobs:
         key: ${{ runner.os }}-dotnet-${{ github.event.client_payload.branch_name }}
         restore-keys: |
           ${{ runner.os }}-dotnet-
-  
+
+    - name: Restore Dependencies
+      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
+      run: dotnet restore ${{ github.event.client_payload.csproj }}
