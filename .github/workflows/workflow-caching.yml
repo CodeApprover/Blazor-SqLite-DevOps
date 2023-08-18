@@ -44,6 +44,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ~/.nuget/packages
-        key: ${{ runner.os }}-dotnet-${{ github.event.client_payload.branch_name }}
+        key: ${{ runner.os }}-dotnet-${{ github.event.client_payload.sha }}
         restore-keys: |
           ${{ runner.os }}-dotnet-
+
