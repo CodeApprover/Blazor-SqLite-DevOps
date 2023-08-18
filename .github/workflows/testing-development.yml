@@ -1,7 +1,7 @@
 ---
 name: "Development Tests"
 
-# Development Environment (code-development) Tests
+# Development Environment (code-development) Test Suite
 
 on:
   repository_dispatch:
