@@ -3,6 +3,13 @@ name: "StyleCop Linter"
 
 # Lints all commits on all valid branches
 
+# Exit Codes:
+# 1: Checkout Error
+# 2: Dotnet restore error
+# 3: Dotnet build error
+# 4: Unexpected environment name
+# 5: Curl command to trigger tests failed
+
 on:
   repository_dispatch:
     types: "trigger-stylecop"
@@ -14,6 +21,7 @@ env:
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
+
   stylecop-linting:
     name: StyleCop Linting
     runs-on: ubuntu-latest
@@ -21,14 +29,23 @@ jobs:
     if: (github.actor != 'CodeApprover')
 
     steps:
+
     - name: Checkout SHA Repository
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0 # Fetch all
+      continue-on-error: true
+
+    - name: Handle checkout error
+      if: steps.checkout.outcome == 'failure'
+      run: |
+        echo "##[error] Error during checkout"
+        exit 1
 
     - name: Report
       run: |
+        echo "##[debug] Checking initial state"
         date
         echo "SHA=${{ env.SHA }}"
         echo "Environment=${{ env.BRANCH_NAME }}"
@@ -51,7 +68,7 @@ jobs:
 
     - name: Restore Dependencies
       if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
-      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
+      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 2)
 
     - name: Dotnet Build with StyleCop
       run: |
@@ -59,7 +76,7 @@ jobs:
         -v detailed \
         /p:StyleCopEnabled=true \
         /p:StyleCopTreatErrorsAsWarnings=false \
-        /p:StyleCopForceFullAnalysis=false
+        /p:StyleCopForceFullAnalysis=false || (echo "##[error] Dotnet build failed" && exit 3)
 
     - name: Trigger Appropriate Tests
       if: success()
@@ -68,14 +85,26 @@ jobs:
           code-development) EVENT_TYPE="trigger-development-tests" ;;
           code-staging) EVENT_TYPE="trigger-env-staging-tests" ;;
           code-production) EVENT_TYPE="trigger-production-tests" ;;
-          *) echo "Error: Unexpected environment name"; exit 1 ;;
+          *) echo "##[error] Unexpected environment name"; exit 4 ;;
         esac
-        curl -X POST \
-             CMD="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-             CMD+="-H \"Accept: application/vnd.github.v3+json \" "
-             CMD+=-"d \"{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {\" "
-             CMD+="\"sha\": \"${{ env.SHA }}\", "
-             CMD+="\"csproj\": \"${{ env.CSPROJ }}\", "
-             CMD+="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
-             CMD+="}}'"
-             eval ${CMD}
+
+        BASE="{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
+        END="}}"
+        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
+
+        CMD=("curl" "-X" "POST"
+             "-H" "Authorization: Bearer ${{ secrets.AUTH }}"
+             "-H" "Accept: application/vnd.github.v3+json"
+             "-d" "$PAYLOAD"
+             "https://api.github.com/repos/${{ github.repository }}/dispatches")
+
+        eval "${CMD[@]}"
+        if [ $? -ne 0 ]; then
+            echo "##[error] Failed to trigger tests for $EVENT_TYPE."
+            exit 5
+        else
+            echo "##[debug] Successfully triggered tests for $EVENT_TYPE."
+        fi
