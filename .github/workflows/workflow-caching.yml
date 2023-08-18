@@ -49,7 +49,7 @@ jobs:
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.everest-preview+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="--data '{\"event_type\": \"trigger-dotnet-prep\", "
+        CMD+="--data '{\"event_type\": \"trigger-stylecop-linting\", "
         CMD+="\"client_payload\": {\"csproj\": \"${{ github.event.client_payload.csproj }}\", "
         CMD+="\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
 
