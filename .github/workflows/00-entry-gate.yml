@@ -7,7 +7,7 @@ name: "SHA Commit Verification and Report"
 # 1: SHA checkout FAIL
 # 2: SHA_BRANCH does not exist in repository
 # 3: Failure locating .csproj file
-# 4: Failure reading ${{ env.SHA }}.txt logfile
+# 4: Failure reading report.txt logfile
 # 5: Failed retries to trigger next workflow using curl
 # 6: Failed to trigger next workflow. HTTP Code: not success
 
@@ -140,22 +140,22 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}" >> ${{ env.logger }}
         echo "---------------------------------------" >> ${{ env.logger }}
 
-    - name: Check and Display Report sha.txt
+    - name: Check and Display Report
       run: |
         if [[ ! -f "${{ env.logger }}" ]] || [[ ! -s "${{ env.logger }}" ]]; then
-          echo "## [ERROR] # ${{ env.SHA }}.txt does not exist. Exiting " >> ${{ env.logger }}
-          echo "## [ERROR] # Failure reading ${{ env.SHA }}.txt file --> Exit 4" >> ${{ env.logger }}
+          echo "## [ERROR] # report.txt does not exist. Exiting " >> ${{ env.logger }}
+          echo "## [ERROR] # Failure reading report.txt file --> Exit 4" >> ${{ env.logger }}
           exit 4
         else
-          echo "## [INFO] # Content of ${{ env.SHA }}.txt:" >> ${{ env.logger }}
-          cat "$GITHUB_WORKSPACE/${{ env.SHA }}.txt"
+          echo "## [INFO] # Content of report.txt:" >> ${{ env.logger }}
+          cat "$GITHUB_WORKSPACE/report.txt"
         fi
 
-    - name: Upload report as artifact
+    - name: Upload Report as Artifact
       uses: actions/upload-artifact@v3
       with:
         name: commit-report
-        path: ${{ github.workspace }}/${{ env.SHA }}.txt
+        path: ${{ env.logger }}
 
     - name: Trigger Next Workflow
       if: success()
@@ -184,6 +184,7 @@ jobs:
             -d "$PAYLOAD"
             "$REPO_ENDPOINT"
         )
+
         # Retry mechanism
         retries=0
         until [[ $retries -ge $MAX_RETRIES ]]
@@ -198,10 +199,9 @@ jobs:
             sleep 5
         done
         
-        # Error handling
         if [[ $retries -eq $MAX_RETRIES ]]; then 
             echo "## [DEBUG] # $CMD"
-            echo "## [ERROR] # Failed $MAX_RETRIES retries to trigger next workflow using curl --> Exit 5" >> ${{ env.logger }}
+            echo "## [ERROR] # Failed $MAX_RETRIES retries triggering next workflow using curl --> Exit 5" >> ${{ env.logger }}
             exit 5
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
             echo "## [ERROR] # Failed to trigger next workflow. HTTP Code: not success $RESPONSE" response to $trigger --> Exit 6" >> ${{ env.logger }}
