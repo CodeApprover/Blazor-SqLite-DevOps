@@ -5,9 +5,9 @@ name: "Report"
 
 # Exit Codes
 # 1: SHA checkout failure
-# 2: Error finding .csproj file
-# 3: Failed to publish status from workflow
-# 4: Curl command to trigger next workflow failed
+# 2: SHA_BRANCH does not exist in repository
+# 3: Error finding .csproj file
+# 4: Failed to publish status from workflow
 
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-        if git show-ref --verify --quiet "refs/remotes/origin/code-development"; then
+        if git show-ref --verify --quiet "refs/remotes/origin/$SHA_BRANCH"; then
           echo "##[debug] Branch $SHA_BRANCH detected in repository ${{ github.repository }}"
         else
           echo "##[error] Branch $SHA_BRANCH does not exist in repository ${{ github.repository }}"
@@ -62,7 +62,7 @@ jobs:
           echo "##[debug] SHA_BRANCH=$SHA_BRANCH"
           echo "##[debug] All branches:"
           git branch -a
-          exit 1
+          exit 2
         fi
 
     - name: Set .csproj File
@@ -74,7 +74,7 @@ jobs:
           echo "##[error] .csproj file $CSPROJ not found."
           echo "##[debug] ${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') ls -la -->"
           ls -la ${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}/
-          exit 2
+          exit 3
         fi
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
         echo "##[debug] CSPROJ=$CSPROJ"
@@ -123,33 +123,6 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-    - name: Set default job status
-      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
-
-    - name: Set failure status if any step failed
-      run: |
-        echo "##[error] Failed detected in previous steps"
-        echo "JOB_STATUS=failure" >> $GITHUB_ENV
-      if: failure()
-
-    - name: Publish success or failure status for tracking
-      run: |
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        -H "Authorization: token ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
-        -d '{
-          "state": "${{ env.JOB_STATUS }}", 
-          "description": "Result from Workflow ${{ github.workflow }}",
-          "context": "status/${{ github.workflow }}"
-        }')
-        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
-          echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
-          exit 3
-        else
-          echo "##[debug] Successfully published status for ${{ github.workflow }}."
-        fi
-
     - name: Trigger Dependency Caching Workflow # 01-cache-dependencies.yml
       if: success()      
       run: |
@@ -169,8 +142,9 @@ jobs:
         RESPONSE=$("${CMD[@]}")
 
         if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
-          echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
-          exit 3
+          echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
+          echo "##[error] $trigger"
+          exit 4
         else
-          echo "##[debug] Successfully published status for ${{ github.workflow }}"
+          echo "##[debug] Triggered next workflow=$trigger"
         fi
