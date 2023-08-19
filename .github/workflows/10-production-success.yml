@@ -7,6 +7,8 @@ on:
       - StyleCop Linter
       - Development Tests
       - Check Lock File
+      - CodeQL
+      - Supwelinter
       - Versioning
       - Deploy Docker
       - Deploy Git
