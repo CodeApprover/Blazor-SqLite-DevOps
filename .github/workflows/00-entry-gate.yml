@@ -60,7 +60,6 @@ jobs:
         echo "## [INFO] # Validating SHA branch name."
 
         # Extract branch name from github ref
-        fit fetch origin
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
         echo "Detected branch: $branch"
 
