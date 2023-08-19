@@ -16,7 +16,7 @@ namespace Blazor_SqLite_Golf_Club.Pages
     [IgnoreAntiforgeryToken]
     public class ErrorModel : PageModel
     {
-        private readonly ILogger<ErrorModel> logger;
+        readonly ILogger<ErrorModel> logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorModel"/> class.
@@ -32,11 +32,11 @@ namespace Blazor_SqLite_Golf_Club.Pages
         /// <summary>
         /// Gets a value indicating whether to show the request ID.
         /// </summary>
-        public bool ShowRequestId => !string.IsNullOrEmpty(this.RequestId);
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
         /// <summary>
         /// Called when the error page is requested.
         /// </summary>
-        public void OnGet() => this.RequestId = Activity.Current?.Id ?? this.HttpContext.TraceIdentifier;
+        public void OnGet() => RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
     }
 }

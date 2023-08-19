@@ -13,7 +13,7 @@ namespace Blazor_SqLite_Golf_Club.Data
     /// </summary>
     public class WeatherForecastService
     {
-        private static readonly string[] Summaries =
+        static readonly string[] Summaries =
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching",
         };

@@ -2,6 +2,7 @@ namespace Nunit_Player_Unit_Tests
 {
     using Blazor_SqLite_Golf_Club.Models;
     using System.ComponentModel.DataAnnotations;
+
     public class Nunit_Player_Unit_Tests
     {
         /// <summary>

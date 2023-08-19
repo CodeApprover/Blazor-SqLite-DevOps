@@ -7,23 +7,42 @@ on:
     types: "trigger-staging-tests"
 
 env:
-  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
 
-  staging-tests:
-  
+  staging-test-suite:
+
+    name: Staging Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
 
-    environment:
-      staging
-
     steps:
-    
-    - name: Report SHA and workflow timestamp
+
+    - name: Checkout SHA Repository
+      id: checkout-sha
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0 # Fetch all
+
+    - name: Handle checkout outcome
       run: |
-        echo "${{ github.event.client_payload.sha }}"
+        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
+          echo "##[error] Error during checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}"
+          exit 1
+        else
+          echo "Checkout was successful"
+        fi
+
+    - name: Report
+      run: |
+        echo "##[debug] Checking initial state"
         date
- 
+        echo "SHA=${{ env.SHA }}"
+        echo "Environment=${{ env.SHA_BRANCH }}"
+        echo "Branch=${{ env.SHA_BRANCH }}"
+        echo "Committer=$(git log -1 --pretty=format:'%an')"

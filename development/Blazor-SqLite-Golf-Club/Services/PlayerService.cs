@@ -15,8 +15,8 @@ namespace Blazor_SqLite_Golf_Club.Services
     public class PlayerService
     {
         // private Fields
-        private readonly DatabaseContext databaseContext;
-        private bool boolAscending;
+        readonly DatabaseContext databaseContext;
+        bool boolAscending;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlayerService"/> class.
@@ -32,7 +32,7 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A message indicating whether the player was successfully added or not.</returns>
         internal async Task<string> Create(Player player)
         {
-            await this.databaseContext.Players.ToListAsync();
+            await databaseContext.Players.ToListAsync();
 
             if (!IsValidString(player.Firstname) || !IsValidString(player.Surname))
             {
@@ -44,7 +44,7 @@ namespace Blazor_SqLite_Golf_Club.Services
                 return "Invalid email address - max length 30.";
             }
 
-            if (await this.databaseContext.Players.AnyAsync(p => p.Email == player.Email))
+            if (await databaseContext.Players.AnyAsync(p => p.Email == player.Email))
             {
                 return "A player with this email already exists.";
             }
@@ -59,17 +59,17 @@ namespace Blazor_SqLite_Golf_Club.Services
                 return "Select handicap";
             }
 
-            if (await this.databaseContext.Players.AnyAsync())
+            if (await databaseContext.Players.AnyAsync())
             {
-                player.PlayerId = await this.databaseContext.Players.MaxAsync(p => p.PlayerId) + 1;
+                player.PlayerId = await databaseContext.Players.MaxAsync(p => p.PlayerId) + 1;
             }
             else
             {
                 player.PlayerId = 1;
             }
 
-            await this.databaseContext.Players.AddAsync(player);
-            await this.databaseContext.SaveChangesAsync();
+            await databaseContext.Players.AddAsync(player);
+            await databaseContext.SaveChangesAsync();
 
             return $"{player.Firstname} {player.Surname} added.";
         }
@@ -82,8 +82,8 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         internal async Task Edit(Player player, GameService gameService)
         {
-            var allGames = await this.databaseContext.Games.ToListAsync();
-            var allPlayers = await this.databaseContext.Players.ToListAsync();
+            var allGames = await databaseContext.Games.ToListAsync();
+            var allPlayers = await databaseContext.Players.ToListAsync();
 
             var playersGames = (from game in allGames
                                 where player.PlayerId == game.Captain
@@ -92,7 +92,7 @@ namespace Blazor_SqLite_Golf_Club.Services
                                       || player.PlayerId == game.Player4
                                 select game).ToList();
 
-            this.databaseContext.Players.Update(player);
+            databaseContext.Players.Update(player);
 
             for (var i = 0; i < allPlayers.Count; i++)
             {
@@ -108,10 +108,10 @@ namespace Blazor_SqLite_Golf_Club.Services
             foreach (var game in playersGames)
             {
                 game.GameCard = await gameService.GameCard(game);
-                this.databaseContext.Games.Update(game);
+                databaseContext.Games.Update(game);
             }
 
-            await this.databaseContext.SaveChangesAsync();
+            await databaseContext.SaveChangesAsync();
         }
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         internal async Task Delete(Player player)
         {
-            var allGames = await this.databaseContext.Games.ToListAsync();
+            var allGames = await databaseContext.Games.ToListAsync();
 
             var playersGames = (from game in allGames
                                 where player.PlayerId == game.Captain
@@ -131,20 +131,19 @@ namespace Blazor_SqLite_Golf_Club.Services
                                 select game).ToList();
 
             foreach (var game in playersGames)
-            {
-                this.databaseContext.Games.Remove(game);
-            }
+                databaseContext.Games.Remove(game);
+            
 
-            this.databaseContext.Players.Remove(player);
+            databaseContext.Players.Remove(player);
 
-            await this.databaseContext.SaveChangesAsync();
+            await databaseContext.SaveChangesAsync();
         }
 
         /// <summary>
         ///     Retrieves all players from the database.
         /// </summary>
         /// <returns>A list of all players in the database, or null if the operation fails.</returns>
-        internal Task<List<Player>> GetAll() => this.databaseContext.Players.ToListAsync();
+        internal Task<List<Player>> GetAll() => databaseContext.Players.ToListAsync();
 
         /// <summary>
         ///     Sorts the list of players in the database by the specified column.
@@ -156,27 +155,27 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// </returns>
         internal async Task<List<Player>?> SortTables(string column)
         {
-            var allPlayers = await this.databaseContext.Players.ToListAsync();
-            this.boolAscending = !this.boolAscending;
+            var allPlayers = await databaseContext.Players.ToListAsync();
+            boolAscending = !boolAscending;
 
             return column switch
             {
-                "Id" => this.boolAscending
+                "Id" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.PlayerId))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.PlayerId)),
-                "Firstname" => this.boolAscending
+                "Firstname" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.Firstname))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.Firstname)),
-                "Surname" => this.boolAscending
+                "Surname" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.Surname))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.Surname)),
-                "Email" => this.boolAscending
+                "Email" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.Email))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.Email)),
-                "Gender" => this.boolAscending
+                "Gender" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.Gender))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.Gender)),
-                "Handicap" => this.boolAscending
+                "Handicap" => boolAscending
                     ? new List<Player>(allPlayers.OrderBy(p => p.Handicap))
                     : new List<Player>(allPlayers.OrderByDescending(p => p.Handicap)),
                 _ => allPlayers
@@ -188,7 +187,7 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// </summary>
         /// <param name="name">The name to validate.</param>
         /// <returns>True if the first name or surname is valid, false otherwise.</returns>
-        private static bool IsValidString(string name)
+        static bool IsValidString(string name)
         {
             if (string.IsNullOrEmpty(name) || name.Length is > 10 or < 1)
             {
@@ -204,7 +203,7 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// </summary>
         /// <param name="email">The email address to validate.</param>
         /// <returns>True if the email address is valid, false otherwise.</returns>
-        private static bool IsValidEmail(string email)
+        static bool IsValidEmail(string email)
         {
             if (string.IsNullOrEmpty(email) || email.Length is > 31 or < 5)
             {

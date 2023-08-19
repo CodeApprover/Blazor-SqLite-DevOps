@@ -12,7 +12,7 @@ namespace Blazor_SqLite_Golf_Club.DbContext
     /// </summary>
     public class DatabaseContext : DbContext // not internal for Blazor-Tests
     {
-        private readonly bool useInMemoryDatabase = false;
+        readonly bool useInMemoryDatabase;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseContext"/> class.
@@ -41,7 +41,7 @@ namespace Blazor_SqLite_Golf_Club.DbContext
         /// <param name="optionsBuilder">The options builder used to configure the context.</param>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!this.useInMemoryDatabase)
+            if (!useInMemoryDatabase)
             {
                 optionsBuilder.UseSqlite(@"Data Source=Database//database.db");
             }

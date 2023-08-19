@@ -3,18 +3,15 @@ name: "Report"
 
 # Reports on the initial SHA push
 
-# Exit Codes:
-# 1 - Error finding .csproj file
-# 2 - Failed to publish status from workflow
-# 3 - Error after successful status publication (this seems redundant, you might want to rethink this part)
-# 4 - Failed to trigger Dependency Caching Workflow
+# Exit Codes
+# 1: SHA checkout failure
+# 2: Error finding .csproj file
+# 3: Failed to publish status from workflow
+# 4: Curl command to trigger next workflow failed
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
-
-env:
-  PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
 
 jobs:
   report-usage:
@@ -25,34 +22,53 @@ jobs:
 
     steps:
     
-    - name: Report SHA and Workflow Timestamp
+    - name: Checkout SHA Repository
+      id: checkout-sha
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.sha }}
+        fetch-depth: 0
+
+    - name: Handle checkout Outcome
       run: |
-        # Report the commit SHA and current timestamp
+        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
+          echo "##[error] Failure during checkout of SHA $${{ github.sha }}."
+          exit 1
+        else
+          echo "##[debug] Successful checkout of SHA $${{ github.sha }}."
+        fi
+
+    - name: Set Commit SHA
+      run: |
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
-        echo "${{ github.sha }}"
-        date
-
-    - name: Determine Branch Name
+        echo "##[debug] SHA=$SHA"
+ 
+    - name: Set Branch Name
       run: |
-        # Extract the branch name from the ref
-        ref=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
-        echo "BRANCH_NAME=$ref" >> $GITHUB_ENV
+        branch=$(echo "${{ github.ref }}" | sed 's#refs/heads/##')
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+        echo "##[debug] SHA_BRANCH=$branch"
+        if git show-ref --verify --quiet refs/heads/${{ env.SHA_BRANCH }}; then
+          echo "##[debug] Branch ${{ env.SHA_BRANCH }} detected in repository ${{ github.repository }}"
+        else
+          echo "##[error] Branch ${{ env.SHA_BRANCH }} does not exist in repository ${{ github.repository }}"
+          exit 1
+        fi
 
-    - name: Determine .csproj File
+    - name: Set .csproj File
       run: |
-        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.BRANCH_NAME }}" | sed 's/^code-//')" -name "${{ env.PROJECT_NAME }}.csproj")
+        CSPROJ=$(find "${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')" -name "${{ secrets.PROJECT_NAME }}.csproj")
         if [[ -z "$CSPROJ" ]]; then 
-            echo "##[error] .csproj file not found."
-            exit 1
+          echo "##[error] .csproj file not found."
+          exit 2
         fi
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
         echo "##[debug] CSPROJ=$CSPROJ"
 
     - name: Report Commit Details
       run: |
-        # Display various details about the commit
         echo "----- COMMIT DETAILS -----"
-        echo "Branch Name: ${{ env.BRANCH_NAME }}"
+        echo "Branch Name: ${{ env.SHA_BRANCH }}"
         echo "Commit SHA: ${{ github.sha }}"
         echo "Commit Message: ${{ github.event.head_commit.message }}"
         echo "Commit Author: ${{ github.event.head_commit.author.name }}"
@@ -63,7 +79,6 @@ jobs:
 
     - name: Report GitHub Environment and Workflow Details
       run: |
-        # Display various details about the GitHub environment and workflow
         echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
         echo "Date: $(date)"
         echo "Event Name: ${{ github.event_name }}"
@@ -82,7 +97,6 @@ jobs:
 
     - name: Report Job, Run and Runner Details
       run: |
-        # Display various details about the job, run, and runner
         echo "----- JOB, RUN AND RUNNER DETAILS -----"
         echo "Job Name: ${{ github.job }}"
         echo "Event ID: ${{ github.run_id }}"
@@ -108,9 +122,7 @@ jobs:
       run: rm $RUNNER_TEMP/payload.sha
 
     - name: Set default job status
-      run: |
-        # By default, assume the job is successful
-        echo "JOB_STATUS=success" >> $GITHUB_ENV
+      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
 
     - name: Set failure status if any step failed
       run: |
@@ -129,35 +141,34 @@ jobs:
           "description": "Result from Workflow ${{ github.workflow }}",
           "context": "status/${{ github.workflow }}"
         }')
-        # Check for failure (non-200 status codes)
         if [[ "$RESPONSE" -ne 200 ]]; then
-            echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
-            exit 2
+          echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
+          exit 3
         else
-            echo "##[debug] Successfully published status for ${{ github.workflow }}."
+          echo "##[debug] Successfully published status for ${{ github.workflow }}."
         fi
 
-    - name: Trigger Dependency Caching Workflow # workflow-caching.yml
+    - name: Trigger Dependency Caching Workflow # 01-cache-dependencies.yml
+      if: success()      
       run: |
-        BASE="{\"event_type\": \"trigger-cache-dependencies\", \"client_payload\": {"
+        trigger="trigger-cache-dependencies"
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"branch_name\": \"${{ env.BRANCH_NAME }}\""
+        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-
+    
         CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
         CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
         CMD+="-d '$PAYLOAD' "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
-        RESPONSE=$(eval "$CMD")
+        RESPONSE=$("${CMD[@]}")
 
-        # Check for failure (non-200 status codes)
         if [[ "$RESPONSE" -ne 200 ]]; then
-            echo "##[error] Failed to trigger Dependency Caching Workflow. HTTP Code: $RESPONSE"
-            exit 4
+          echo "##[error] ${{ github.workflow }} failed to ${trigger} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+          exit 4
         else
-            echo "##[debug] Successfully Triggered Dependency Caching Workflow for ${{ env.SHA }}."
-        fi
-
+          echo "##[debug] ${{ github.workflow }}  ${trigger} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+        fi    

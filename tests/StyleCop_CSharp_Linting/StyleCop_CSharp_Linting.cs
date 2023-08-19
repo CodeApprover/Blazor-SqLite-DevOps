@@ -21,10 +21,10 @@ namespace StyleCop_CSharp_Linting
         [TestMethod]
         public void TestLintingSuccess()
         {
-
             // Display where the cmd will navigate to
             var mainProjectFilePath = "..\\..\\..\\..\\..\\" +
                 "development\\Blazor-SqLite-Golf-Club\\Blazor-SqLite-Golf-Club.csproj";
+
             Console.WriteLine($"Navigating to: {mainProjectFilePath}");
 
             // Execute build command on the main project

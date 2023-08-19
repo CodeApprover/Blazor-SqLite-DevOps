@@ -24,7 +24,7 @@ namespace Blazor_SqLite_Golf_Club.Data
         /// <summary>
         /// Gets the temperature in Fahrenheit for the weather forecast.
         /// </summary>
-        public int TemperatureF => 32 + (int)(this.TemperatureC / 0.5556);
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 
         /// <summary>
         /// Gets or sets the summary of the weather forecast.

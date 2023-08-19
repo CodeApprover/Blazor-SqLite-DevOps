@@ -11,7 +11,7 @@ on:
       - Deploy Docker
       - Deploy Git
     types:
-      - success
+      - completed
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"

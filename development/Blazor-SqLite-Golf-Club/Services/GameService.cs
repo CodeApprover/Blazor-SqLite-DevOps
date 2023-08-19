@@ -15,8 +15,8 @@ namespace Blazor_SqLite_Golf_Club.Services
     public class GameService
     {
         // private Fields
-        private readonly DatabaseContext? databaseContext;
-        private bool boolAscending;
+        readonly DatabaseContext? databaseContext;
+        bool boolAscending;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GameService"/> class.
@@ -44,7 +44,7 @@ namespace Blazor_SqLite_Golf_Club.Services
                 return "Select a valid time.";
             }
 
-            var gameExists = await this.databaseContext!.Games.AnyAsync(g => g.GameTime == game.GameTime);
+            var gameExists = await databaseContext!.Games.AnyAsync(g => g.GameTime == game.GameTime);
 
             if (gameExists)
             {
@@ -52,7 +52,7 @@ namespace Blazor_SqLite_Golf_Club.Services
                        $"on {game.GameTime.Date.ToShortDateString()} is unavailable.";
             }
 
-            var captainsGames = await this.databaseContext.Games
+            var captainsGames = await databaseContext.Games
                 .Where(g => g.Captain == game.Captain && g.GameTime.Date == game.GameTime.Date)
                 .ToListAsync();
 
@@ -62,18 +62,18 @@ namespace Blazor_SqLite_Golf_Club.Services
                        $"(Game Id: {captainsGames.First().GameId})";
             }
 
-            if (await this.databaseContext.Games.CountAsync() > 0)
+            if (await databaseContext.Games.CountAsync() > 0)
             {
-                game.GameId = await this.databaseContext.Games.MaxAsync(g => g.GameId) + 1;
+                game.GameId = await databaseContext.Games.MaxAsync(g => g.GameId) + 1;
             }
             else
             {
                 game.GameId = 1;
             }
 
-            game.GameCard = await this.GameCard(game);
-            await this.databaseContext.Games.AddAsync(game);
-            await this.databaseContext.SaveChangesAsync();
+            game.GameCard = await GameCard(game);
+            await databaseContext.Games.AddAsync(game);
+            await databaseContext.SaveChangesAsync();
             return game.GameCard;
         }
 
@@ -84,8 +84,8 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task Edit(Game game) // not internal for Blazor-Tests
         {
-            await this.databaseContext!.Players.ToListAsync();
-            var allGames = await this.databaseContext.Games.ToListAsync();
+            await databaseContext!.Players.ToListAsync();
+            var allGames = await databaseContext.Games.ToListAsync();
 
             var playersGames = (from g in allGames
                                 where game.Captain == g.Captain
@@ -96,11 +96,11 @@ namespace Blazor_SqLite_Golf_Club.Services
 
             foreach (var pGame in playersGames)
             {
-                pGame.GameCard = await this.GameCard(pGame);
-                this.databaseContext.Games.Update(pGame);
+                pGame.GameCard = await GameCard(pGame);
+                databaseContext.Games.Update(pGame);
             }
 
-            await this.databaseContext.SaveChangesAsync();
+            await databaseContext.SaveChangesAsync();
         }
 
         /// <summary>
@@ -110,15 +110,15 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task Delete(Game game) // not internal for Blazor-Tests
         {
-            this.databaseContext!.Games.Remove(game);
-            await this.databaseContext.SaveChangesAsync();
+            databaseContext!.Games.Remove(game);
+            await databaseContext.SaveChangesAsync();
         }
 
         /// <summary>
         ///     Returns a list of all games from the database.
         /// </summary>
         /// <returns>A Task List of Game objects.</returns>
-        internal Task<List<Game>> GetAll() => this.databaseContext!.Games.ToListAsync();
+        internal Task<List<Game>> GetAll() => databaseContext!.Games.ToListAsync();
 
         /// <summary>
         ///     Generates a game card with details of the specified game.
@@ -127,7 +127,7 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// <returns>A Task string containing the game card.</returns>
         internal async Task<string> GameCard(Game game)
         {
-            var allPlayers = await this.databaseContext!.Players.ToListAsync();
+            var allPlayers = await databaseContext!.Players.ToListAsync();
 
             var gameCard = $"{"Game Id ",-10}{game.GameId}\n"
                            + $"{"Game Time ",-10}{game.GameTime:dddd dd/MM/yyyy 'at' HH:mm}"
@@ -156,27 +156,27 @@ namespace Blazor_SqLite_Golf_Club.Services
         /// </returns>
         internal async Task<List<Game>> SortTables(string column)
         {
-            var allGames = await this.databaseContext!.Games.ToListAsync();
-            this.boolAscending = !this.boolAscending;
+            var allGames = await databaseContext!.Games.ToListAsync();
+            boolAscending = !boolAscending;
 
             return column switch
             {
-                "Id" => this.boolAscending
+                "Id" => boolAscending
                     ? new List<Game>(allGames.OrderBy(g => g.GameId))
                     : new List<Game>(allGames.OrderByDescending(p => p.GameId)),
-                "Game Time" => this.boolAscending
+                "Game Time" => boolAscending
                     ? new List<Game>(allGames.OrderBy(p => p.GameTime))
                     : new List<Game>(allGames.OrderByDescending(p => p.GameTime)),
-                "Captain" => this.boolAscending
+                "Captain" => boolAscending
                     ? new List<Game>(allGames.OrderBy(p => p.Captain))
                     : new List<Game>(allGames.OrderByDescending(p => p.Captain)),
-                "Player2" => this.boolAscending
+                "Player2" => boolAscending
                     ? new List<Game>(allGames.OrderBy(p => p.Player2))
                     : new List<Game>(allGames.OrderByDescending(p => p.Player2)),
-                "Player3" => this.boolAscending
+                "Player3" => boolAscending
                     ? new List<Game>(allGames.OrderBy(p => p.Player3))
                     : new List<Game>(allGames.OrderByDescending(p => p.Player3)),
-                "Player4" => this.boolAscending
+                "Player4" => boolAscending
                     ? new List<Game>(allGames.OrderBy(p => p.Player4))
                     : new List<Game>(allGames.OrderByDescending(p => p.Player4)),
                 _ => allGames

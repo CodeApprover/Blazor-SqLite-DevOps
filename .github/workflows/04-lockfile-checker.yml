@@ -1,16 +1,22 @@
 ---
 name: "Check Lock File"
 
-# Exit Code Commentary:
-# 1 - The commit SHA does not exist
-# 2 - Failed to push the lock file
-# 3 - Lock file was not successfully created or pushed
+# Workflow to manage lock files for sequential task execution within a branch.
+
+# Exit Codes
+# 1: Failed to checkout SHA branch on retry
+# 2: Failed to push lock file
+# 3: Failed to fetch branch
+# 4: Failed to detect pushed lock file
+# 5: Failed to publish status from workflow
+# 6: Curl command to trigger next workflow failed
 
 on:
   repository_dispatch:
-    types: trigger-check-lock-file
+    types: trigger-lockfile-checker
 
 env:
+  # Pre-validated values / repository variables
   SHA: ${{ github.event.client_payload.sha }}
   BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -18,98 +24,144 @@ env:
   SLEEP_MINUTES: ${{ secrets.SLEEP_MINUTES }}
 
 jobs:
+
   check-for-lock-file:
+
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
     
     steps:
-      - name: Checkout SHA Repository
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
 
-      - name: Report
-        run: |
-          date
-          echo "SHA=${{ env.SHA }}"
-          branch_name=${{ env.BRANCH_NAME }}
-          echo "Environment=$(echo $branch_name | sed 's#code-##')"
-          echo "Branch=${{ env.BRANCH_NAME }}"
-          echo "Committer=$(git log -1 --pretty=format:'%an')"
+    - name: Checkout SHA Repository
+      id: checkout
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
 
-      - name: Configure Git User and Email
-        run: |
-          git config user.name "CodeApprover"
-          git config user.email "pucfada@pm.me"
+    - name: Report
+      run: |
+        date
+        echo "SHA=${{ env.SHA }}"
+        branch_name=${{ env.SHA_BRANCH }}
+        echo "Environment=$(echo $branch_name | sed 's#code-##')"
+        echo "Branch=${{ env.SHA_BRANCH }}"
+        echo "Committer=$(git log -1 --pretty=format:'%an')"
 
-      - name: Set Lock File Name Based on Branch
-        run: |
-          branch=${{ env.BRANCH_NAME }}
-          if [[ $branch == "code-"* ]]; then
-              lock_name=${branch#code-}
-              echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
-          elif [[ $branch == "main" ]]; then
-              echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-          fi
+    - name: Configure Git User and Email
+      run: |
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
 
-      - name: Check Lock File with Retry
-        run: |
-          for (( i=1; i<=${{ env.MAX_RETRIES }}; i++ )); do
-            echo "::group::Attempt $i"
-            git fetch origin ${{ env.BRANCH_NAME }}
-            git checkout ${{ env.BRANCH_NAME }}
-            if [ $? -ne 0 ]; then
-              echo "::error::Failed to checkout ${{ env.BRANCH_NAME }}"
-              exit 5
-            fi
+    - name: Set Lock File Name Based on Branch
+      run: |
+        branch=${{ env.BRANCH_NAME }}
+        if [[ $branch == "code-"* ]]; then
+            lock_name=${branch#code-}
+            echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
+        elif [[ $branch == "main" ]]; then
+            echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
+        fi
 
-            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
+    - name: Check Lock File with Retry
+      run: |
+        for (( i=1; i<=${{ env.MAX_RETRIES }}; i++ )); do
+        echo "::group::Attempt $i"
+        git fetch origin ${{ env.BRANCH_NAME }}
+        git checkout ${{ env.BRANCH_NAME }}
+        if [ $? -ne 0 ]; then
+            echo "::error::Failed to checkout ${{ env.BRANCH_NAME }}"
+            exit 1
+        fi
 
-            if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
-              echo "Lock file found. Waiting ${{ env.SLEEP_MINUTES }} minutes before retrying."
-              sleep $((${{ env.SLEEP_MINUTES }} * 60))
-            else
-              break
-            fi
-            echo "::endgroup::"
-          done
+        commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
 
-          echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
-          git add "${{ env.LOCK_FILE }}"
-          git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
+        if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
+            echo "Lock file found. Waiting ${{ env.SLEEP_MINUTES }} minutes before retrying."
+            sleep $((${{ env.SLEEP_MINUTES }} * 60))
+        else
+            break
+        fi
+        echo "::endgroup::"
+        done
 
-          if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
-            echo "::error::Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}"
-            exit 2
-          fi
+        echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
+        git add "${{ env.LOCK_FILE }}"
+        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
 
-          git fetch origin ${{ env.BRANCH_NAME }}
-          if [ $? -ne 0 ]; then
-            echo "::error::Failed to fetch ${{ env.BRANCH_NAME }}"
-            exit 4
-          fi
+        if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
+        echo "::error::Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}"
+        exit 2
+        fi
 
-          if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
-            echo "::error::Lock file ${{ env.LOCK_FILE }} was not successfully created or pushed."
-            exit 3
-          else
-            echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
-          fi
+        git fetch origin ${{ env.BRANCH_NAME }}
+        if [ $? -ne 0 ]; then
+        echo "::error::Failed to fetch ${{ env.BRANCH_NAME }}"
+        exit 3
+        fi
 
-      - name: Trigger Versioning Workflow
-        if: success()
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const repo = context.repo;
-            const payload = {
-              event_type: "trigger-versioning",
-              client_payload: {
-                sha: "${{ env.SHA }}",
-                branch_name: "${{ env.BRANCH_NAME }}",
-                csproj: "${{ env.CSPROJ }}"
-              }
-            };
-            await github.request(`POST /repos/${repo.owner}/${repo.repo}/dispatches`, payload);
+        if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
+        echo "::error::Lock file ${{ env.LOCK_FILE }} was not detected remotely."
+        exit 4
+        else
+        echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
+        fi
+
+    - name: Set default job status
+      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
+
+    - name: Set failure status if any step failed
+      run: |
+        echo "##[error] Failed detected in previous steps"
+        echo "JOB_STATUS=failure" >> $GITHUB_ENV
+      if: failure()
+
+    - name: Publish success or failure status for tracking
+      run: |
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        -H "Authorization: token ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.sha }} \
+        -d '{
+          "state": "${{ env.JOB_STATUS }}", 
+          "description": "Result from Workflow ${{ github.workflow }}",
+          "context": "status/${{ github.workflow }}"
+        }')
+        # Check for failure (non-200 status codes)
+        if [[ "$RESPONSE" -ne 200 ]]; then
+          echo "##[error] Failed to publish status for ${{ env.SHA }} HTTP Code: $RESPONSE"
+          exit 5
+        else
+          echo "##[debug] Successfully published status for ${{ env.SHA }} HTTP Code: $RESPONSE"
+        fi
+
+    - name: Trigger Staging and Production Code Analysis and Linting
+      if: success()
+      run: |
+        case "${{ env.SHA_BRANCH }}" in
+          code-development) TEST_SUITE="trigger-development-tests" ;;
+          code-staging) TEST_SUITE="trigger-staging-tests" ;;
+          code-production) TEST_SUITE="trigger-production-tests" ;;
+        esac
+
+        BASE="{\"event_type\": \"${TEST_SUITE}\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        END="}}"
+        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
+
+        CMD=("curl" "-X" "POST")
+        CMD+=("-H" "Authorization: Bearer ${{ secrets.AUTH }}")
+        CMD+=("-H" "Accept: application/vnd.github.v3+json")
+        CMD+=("-d" "$PAYLOAD")
+        CMD+=("https://api.github.com/repos/${{ github.repository }}/dispatches")
+        RESPONSE=$("${CMD[@]}")
+
+        if [[ "$RESPONSE" -ne 200 ]]; then
+          echo "##[error] ${{ github.workflow }} failed to ${TEST_SUITE} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+          exit 6
+        else
+          echo "##[debug] ${{ github.workflow }}  ${TEST_SUITE} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+        fi
