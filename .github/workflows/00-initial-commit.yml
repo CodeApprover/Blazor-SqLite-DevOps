@@ -136,7 +136,7 @@ jobs:
         "https://api.github.com/repos/${{ github.repository }}/dispatches")
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
+        if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then  # HTTP 'success'
           echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
           echo "##[error] $trigger"
           exit 4
