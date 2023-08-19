@@ -11,6 +11,7 @@ on:
     types: trigger-cache-dependencies
 
 env:
+  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
