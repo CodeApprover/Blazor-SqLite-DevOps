@@ -47,14 +47,14 @@ jobs:
       run: |
         echo "##[debug] Current Branch and Commit:"
         echo "##[debug] $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
-        
+
         echo "##[debug] All references:"
         echo "##[debug] $(git show-ref)"
-        
+
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
-    
-        if git show-ref --verify --quiet "${{ github.ref }}"; then
+
+        if git show-ref --verify --quiet "refs/remotes/origin/code-development"; then
           echo "##[debug] Branch $SHA_BRANCH detected in repository ${{ github.repository }}"
         else
           echo "##[error] Branch $SHA_BRANCH does not exist in repository ${{ github.repository }}"
