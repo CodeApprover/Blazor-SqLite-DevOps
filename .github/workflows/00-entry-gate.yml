@@ -4,12 +4,12 @@ name: "SHA Commit Verification and Report"
 # Reports on the initial SHA push
 
 # Exit Codes
-# 1: SHA checkout FAIL
-# 2: SHA_BRANCH does not exist in repository
-# 3: Failure locating .csproj file
-# 4: Failure reading report.txt logfile
-# 5: Failed retries to trigger next workflow using curl
-# 6: Failed to trigger next workflow. HTTP Code: not success
+# 30: SHA checkout FAIL
+# 31: SHA_BRANCH does not exist in repository
+# 32: Failure locating .csproj file
+# 33: Failure reading report.txt logfile
+# 34: Failed retries to trigger next workflow using curl
+# 35: Failed to trigger next workflow. HTTP Code: not success
 
 concurrency:
     group: report-${{ github.sha }}
@@ -47,8 +47,8 @@ jobs:
       run: |
         echo "## [INFO] # Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "## [ERROR] # SHA checkout FAIL for ${{ github.sha }} --> Exit 1"
-          exit 1
+          echo "## [ERROR] # SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
+          exit 30
         else:
           echo "## [INFO] # SHA checkout success for ${{ github.sha }}."
           echo "## [INFO] # Setting GITHUB_ENV for SHA to ${{ github.sha }}."
@@ -70,8 +70,8 @@ jobs:
           git show-ref
           echo "## [DEBUG] # List of All Branches (Local and Remote):"
           git branch -a
-          echo "## [ERROR] # SHA_BRANCH does not exist in ${{ github.repository }} --> Exit 2"
-          exit 2
+          echo "## [ERROR] # SHA_BRANCH does not exist in ${{ github.repository }} --> Exit 31"
+          exit 31
         fi
 
     - name: Validate .csproj
@@ -84,8 +84,8 @@ jobs:
         if [[ ! -f "$CSPROJ" ]]; then
           echo "## [DEBUG] # Directory contents of $DIR_PATH:"
           ls -la "$DIR_PATH"
-          echo "## [ERROR] # Failure locating .csproj file within the directory $DIR_PATH --> Exit 3"
-          exit 3
+          echo "## [ERROR] # Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
+          exit 32
         else
           echo "## [INFO] # Setting GITHUB_ENV for .csproj file to $CSPROJ"
           echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
@@ -142,8 +142,8 @@ jobs:
         echo "Checking the existence of the report.txt and displaying its content."
         if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
           echo "## [ERROR] # report.txt does not exist. Exiting "
-          echo "## [ERROR] # Failure reading report.txt file --> Exit 4"
-          exit 4
+          echo "## [ERROR] # Failure reading report.txt file --> Exit 33"
+          exit 33
         else
           echo "## [INFO] # Content of report.txt:"
           cat "$GITHUB_WORKSPACE/report.txt"
@@ -211,9 +211,9 @@ jobs:
         
         if [[ $retries -eq $max ]]; then 
             echo "## [DEBUG] # $CMD"
-            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 5"
-            exit 5
+            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 34"
+            exit 34
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 6"
-            exit 6
+            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
+            exit 35
         fi
