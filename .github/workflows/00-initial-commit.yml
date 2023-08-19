@@ -166,9 +166,9 @@ jobs:
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -eq 200 || "$RESPONSE" -eq 201 || "$RESPONSE" -eq 202 ]]; then
-          echo "##[debug] ${{ github.workflow }}  ${trigger} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE -ne 202 ]]; then
+          echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
+          exit 3
         else
-          echo "##[error] ${{ github.workflow }} failed to ${trigger} workflow for ${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-          exit 4
+          echo "##[debug] Successfully published status for ${{ github.workflow }}"
         fi
