@@ -34,7 +34,7 @@ jobs:
 
     - name: Setup and Description
       run: |
-        echo "logger=\report.txt\" >> $GITHUB_ENV
+        echo "logger=${{ github.workspace }}/report.txt" >> $GITHUB_ENV
         desc="## [INFO] # This workflow is triggered on branches: code-development, code-production, and code-staging. "
         desc+="Its main functions are to validate the commit SHA, branch name, and the .csproj file path. "
         desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
