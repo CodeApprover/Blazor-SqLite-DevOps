@@ -30,10 +30,12 @@ jobs:
 
     - name: Setup and Description
       run: |
-        desc="## [INFO] # This workflow is triggered on branches: code-development, code-production, and code-staging. "
+        desc="This workflow is triggered on branches: code-development, code-production, and code-staging. "
         desc+="Its main functions are to validate the commit SHA, branch name, and the .csproj file path. "
         desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
         desc+="Note: This workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
+        echo "***** $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} *****"
+        echo $desc
 
     - name: Checkout SHA Repository
       # Checking out the repository using the commit SHA.
@@ -45,62 +47,62 @@ jobs:
 
     - name: Validate SHA
       run: |
-        echo "## [INFO] # Validating SHA checkout."
+        echo "***** [INFO] ***** Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "## [ERROR] # SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
+          echo "***** [ERROR] ***** SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
           exit 30
         else:
-          echo "## [INFO] # SHA checkout success for ${{ github.sha }}."
-          echo "## [INFO] # Setting GITHUB_ENV for SHA to ${{ github.sha }}."
+          echo "***** [INFO] ***** SHA checkout success for ${{ github.sha }}."
+          echo "***** [INFO] ***** Setting GITHUB_ENV for SHA to ${{ github.sha }}."
           echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
         fi
 
     - name: Validate SHA Branch
       run: |
-        echo "## [INFO] # Validating SHA branch name."
+        echo "***** [INFO] ***** Validating SHA branch name."
 
         # Extract branch name from github ref
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
-        echo "Detected branch: $branch"
+        echo "***** [INFO] ***** Detected branch: $branch"
 
         # Store branch name in GitHub environment for future steps
-        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+        echo "***** [INFO] ***** SHA_BRANCH=$branch" >> $GITHUB_ENV
 
         # Check if branch exists in the remote repository
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-          echo "## [DEBUG] # Branch $branch detected in ${{ github.repository }}"
+          echo "***** [DEBUG] ***** Branch $branch detected in ${{ github.repository }}"
         else
           # Debug information for troubleshooting
-          echo "## [DEBUG] # Branch: $branch not found in remote."
-          echo "## [DEBUG] # Current Branch and HEAD Commit: $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
-          echo "## [DEBUG] # List of All References:"
+          echo "***** [DEBUG] ***** Branch: $branch not found in remote."
+          echo "***** [DEBUG] ***** Current Branch and HEAD Commit: $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
+          echo "***** [DEBUG] ***** List of All References:"
           git show-ref
-          echo "## [DEBUG] # List of All Branches (Local and Remote):"
+          echo "***** [DEBUG] ***** List of All Branches (Local and Remote):"
           git branch -a
-          echo "## [ERROR] # Branch $branch does not exist in ${{ github.repository }}. Exiting..."
+          echo "***** [ERROR] ***** Branch $branch does not exist in ${{ github.repository }}. Exiting..."
           exit 31
         fi
 
     - name: Validate .csproj
       run: |
-        echo "## [INFO] # Validating .csproj file."
+        echo "***** [INFO] ***** Validating .csproj file."
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
         CSPROJ=$(find "$DIR_PATH" -name "*.csproj" -type f)
-        echo "## [DEBUG] # Searching for .csproj in directory: $DIR_PATH"
-        echo "## [DEBUG] # Located .csproj file at: $CSPROJ"
+        echo "***** [DEBUG] ***** Searching for .csproj in directory: $DIR_PATH"
+        echo "***** [DEBUG] ***** Located .csproj file at: $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
-          echo "## [DEBUG] # Directory contents of $DIR_PATH:"
+          echo "***** [DEBUG] ***** Directory contents of $DIR_PATH:"
           ls -la "$DIR_PATH"
-          echo "## [ERROR] # Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
+          echo "***** [ERROR] ***** Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
           exit 32
         else
-          echo "## [INFO] # Setting GITHUB_ENV for .csproj file to $CSPROJ"
+          echo "***** [INFO] ***** Setting GITHUB_ENV for .csproj file to $CSPROJ"
           echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
         fi
 
     - name: Log Commit Details
       run: |
-        echo "Logging details of the commit, GitHub environment and runner specifics."
+        echo "***** [INFO] ***** Logging details of the commit, GitHub environment and runner specifics."
 
         echo "-------------------------------------------------"
         echo "----- COMMIT DETAILS ----------------------------"
@@ -146,13 +148,13 @@ jobs:
 
     - name: Check and Display Report
       run: |
-        echo "Checking the existence of the report.txt and displaying its content."
+        echo "***** [INFO] ***** Checking the existence of the report.txt and displaying its content."
         if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
-          echo "## [ERROR] # report.txt does not exist. Exiting "
-          echo "## [ERROR] # Failure reading report.txt file --> Exit 33"
+          echo "***** [ERROR] ***** report.txt does not exist. Exiting "
+          echo "***** [ERROR] ***** Failure reading report.txt file --> Exit 33"
           exit 33
         else
-          echo "## [INFO] # Content of report.txt:"
+          echo "***** [INFO] ***** Content of report.txt:"
           cat "$GITHUB_WORKSPACE/report.txt"
         fi
 
@@ -164,8 +166,8 @@ jobs:
 
     - name: Cleanup Redundant Tags and Files
       run: |
-        echo "## [INFO] # Created report.txt artifact commit-report"
-        echo "## [INFO] # Cleaning up older tags."
+        echo "***** [INFO] ***** Created report.txt artifact commit-report"
+        echo "***** [INFO] ***** Cleaning up older tags."
         # Delete old tags skipping 12 most recent
         DELETE_TAGS=$(git tag -l | head -n -12)
         for TAG in $DELETE_TAGS; do
@@ -177,7 +179,7 @@ jobs:
       if: success()
       run: |
         trigger="trigger-cache-dependencies"
-        echo "Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger."
+        echo "***** [INFO] ***** Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger."
         
         # Constants
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
@@ -208,19 +210,19 @@ jobs:
         do
             RESPONSE=$("${CMD[@]}") 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
-                echo "## [INFO] # Successfully triggered workflow $trigger on attempt $((retries+1))"
+                echo "***** [INFO] ***** Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
             fi
-            echo "## [WARN] # Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..."
+            echo "***** [WARN] ***** Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..."
             retries=$((retries+1))
             sleep 5
         done
         
         if [[ $retries -eq $max ]]; then 
-            echo "## [DEBUG] # $CMD"
-            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 34"
+            echo "***** [DEBUG] ***** $CMD"
+            echo "***** [ERROR] ***** Failed $max retries triggering next workflow using curl --> Exit 34"
             exit 34
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
+            echo "***** [ERROR] ***** Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
             exit 35
         fi
