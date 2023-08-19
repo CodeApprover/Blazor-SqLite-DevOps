@@ -157,6 +157,49 @@ jobs:
         name: commit-report
         path: ${{ env.logger }}
 
+    - name: Cleanup Redundant Tags, Files, and Artifacts
+      run: |
+        # Delete old tags skipping 12 most recent
+        DELETE_TAGS=$(git tag -l | head -n -12)
+        for TAG in $DELETE_TAGS; do
+            git tag -d $TAG
+            git push origin --delete $TAG
+        done
+
+        rm -f "${{ env.logger }}"
+
+        DAYS_TO_KEEP=30
+        CUTOFF_DATE=$(date -u -d "$DAYS_TO_KEEP days ago" +"%Y-%m-%dT%H:%M:%SZ")
+        echo "TOKEN=${{ secrets.AUTH }}" >> $GITHUB_ENV
+        function deleteArtifacts() {
+            # Other than commit-report and older than the cutoff date
+            curl -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/repos/${{ github.repository }}/actions/artifacts | \
+                 jq --arg CUTOFF "$CUTOFF_DATE" '.artifacts[] | select(.name != "commit-report" and .created_at < $CUTOFF) | .id' | \
+                 while read ID; do
+                   curl -X DELETE -H "Authorization: token $TOKEN" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$ID
+                 done
+        }
+
+        # Retry mechanism for deleteArtifacts function
+        retries=0
+        max=${{ secrets.MAX_RETRIES }}
+        until [[ $retries -ge $max ]]
+        do
+            deleteArtifacts && break
+            echo "## [WARN] # Attempt $((retries+1))/$max to delete artifacts failed. Retrying in 5 seconds..."
+            retries=$((retries+1))
+            sleep 5
+        done
+
+        if [[ $retries -eq $max ]]; then 
+            echo "## [ERROR] # Failed $max retries to delete artifacts --> Exit 5"
+            exit 5
+        fi
+
     - name: Trigger Next Workflow
       if: success()
       run: |
@@ -187,23 +230,24 @@ jobs:
 
         # Retry mechanism
         retries=0
-        until [[ $retries -ge $MAX_RETRIES ]]
+        max=${{ secrets.MAX_RETRIES }}
+        until [[ $retries -ge $max ]]
         do
             RESPONSE=$("${CMD[@]}") 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
                 echo "## [INFO] # Successfully triggered workflow $trigger on attempt $((retries+1))" >> ${{ env.logger }}
                 break
             fi
-            echo "## [WARN] # Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in 5 seconds..." >> ${{ env.logger }}
+            echo "## [WARN] # Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..." >> ${{ env.logger }}
             retries=$((retries+1))
             sleep 5
         done
         
-        if [[ $retries -eq $MAX_RETRIES ]]; then 
+        if [[ $retries -eq $max ]]; then 
             echo "## [DEBUG] # $CMD"
-            echo "## [ERROR] # Failed $MAX_RETRIES retries triggering next workflow using curl --> Exit 5" >> ${{ env.logger }}
+            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 5" >> ${{ env.logger }}
             exit 5
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code: not success $RESPONSE" response to $trigger --> Exit 6" >> ${{ env.logger }}
+            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 6" >> ${{ env.logger }}
             exit 6
         fi
