@@ -118,7 +118,7 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-    - name: Trigger Dependency Caching Workflow # 01-cache-dependencies.yml
+    - name: Trigger Next Workflow # 01-cache-dependencies.yml
       if: success()      
       run: |
         trigger="trigger-cache-dependencies"
