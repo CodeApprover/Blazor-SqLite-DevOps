@@ -1,18 +1,16 @@
 ---
 name: "Cache Dependencies"
 
-# Caches reusable dependencies such as nuget packages
+# Caches reusables e.g. nuget packages
 
 # Exit Codes
-# 1: Failed to publish status from workflow
-# 2: Curl command to trigger next workflow failed
- 
+# 1: Curl command to trigger next workflow failed
+
 on:
   repository_dispatch:
     types: trigger-cache-dependencies
 
 env:
-  # Environmental values pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -20,7 +18,6 @@ env:
 jobs:
 
   prepare-dotnet:
-
     name: Cache Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -29,7 +26,6 @@ jobs:
     steps:
 
     - name: Checkout SHA Repository
-      id: checkout-sha
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
@@ -49,9 +45,7 @@ jobs:
         echo "Restoring .NET dependencies for ${{ env.CSPROJ }}"
         dotnet restore ${{ env.CSPROJ }}
 
-    # Cache .NET dependencies for faster subsequent workflow runs
     - name: Cache dotnet Dependencies
-      id: cache-dotnet-restore
       uses: actions/cache@v3
       with:
         path: ~/.nuget/packages
@@ -68,27 +62,7 @@ jobs:
         echo "JOB_STATUS=failure" >> $GITHUB_ENV
       if: failure()
 
-    - name: Publish success or failure status for tracking
-      run: |
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        -H "Authorization: token ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.sha }} \
-        -d '{
-          "state": "${{ env.JOB_STATUS }}", 
-          "description": "Result from Workflow ${{ github.workflow }}",
-          "context": "status/${{ github.workflow }}"
-        }')
-        # Check for failure (non-200 status codes)
-        if [[ "$RESPONSE" -ne 200 ]]; then
-            echo "##[error] Failed to publish status for ${{ env.SHA }} HTTP Code: $RESPONSE"
-            exit 1
-        else
-            echo "##[debug] Successfully published status for ${{ env.SHA }} HTTP Code: $RESPONSE"
-        f
-
-    - name: Trigger Stylecop Workflow # 02-stylecop-linter.yml
-      if: success()  
+    - name: Trigger Next Workflow # 02-stylecop-linter.yml
       run: |
         trigger="trigger-stylecop-linter"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
@@ -97,17 +71,18 @@ jobs:
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-    
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
-        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="-d '$PAYLOAD' "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
+
+        CMD=(curl -s -o /dev/null -w "%{http_code}" -X POST 
+        -H "Authorization: Bearer ${{ secrets.AUTH }}"
+        -H "Accept: application/vnd.github.v3+json"
+        -d "$PAYLOAD"
+        "https://api.github.com/repos/${{ github.repository }}/dispatches")
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] ${{ github.workflow }} failed to ${trigger} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-          exit 2
+        if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then  # HTTP 'success'
+          echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
+          echo "##[error] $trigger"
+          exit 1
         else
-          echo "##[debug] ${{ github.workflow }}  ${trigger} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+          echo "##[debug] Triggered next workflow=$trigger"
         fi
