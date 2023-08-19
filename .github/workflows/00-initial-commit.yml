@@ -141,7 +141,7 @@ jobs:
           "description": "Result from Workflow ${{ github.workflow }}",
           "context": "status/${{ github.workflow }}"
         }')
-        if [[ "$RESPONSE" -ne 200 ]]; then
+        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
           echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
           exit 3
         else
