@@ -67,12 +67,13 @@ jobs:
 
     - name: Set .csproj File
       run: |
-        CSPROJ="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}/${{ secrets.PROJECT_NAME }}.csproj"
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
+        CSPROJ=$(find "$DIR_PATH" -name "*.csproj" -type f)
         echo "##[debug] CSPROJ=$CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
           echo "##[error] .csproj file $CSPROJ not found."
           echo "##[debug] ${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') ls -la -->"
-          ls -la ${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/
+          ls -la ${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}/
           exit 2
         fi
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
