@@ -64,7 +64,7 @@ jobs:
           echo "## [DEBUG] # Branch $branch detected in ${{ github.repository }}"
         else
           echo "## [DEBUG] # Checked branch: $branch"
-          echo "## [DEBUG] # Expected SHA_BRANCH from environment: $SHA_BRANCH"
+          echo "## [DEBUG] # Expected SHA_BRANCH from environment: $branch"
           echo "## [DEBUG] # Current Branch and HEAD Commit: $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
           echo "## [DEBUG] # List of All References:"
           git show-ref
