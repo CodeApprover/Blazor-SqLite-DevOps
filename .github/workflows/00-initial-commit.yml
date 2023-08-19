@@ -161,14 +161,14 @@ jobs:
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
 
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
-        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="-d '$PAYLOAD' "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
+        CMD=(curl -s -o /dev/null -w "%{http_code}" -X POST 
+        -H "Authorization: Bearer ${{ secrets.AUTH }}"
+        -H "Accept: application/vnd.github.v3+json"
+        -d "$PAYLOAD"
+        "https://api.github.com/repos/${{ github.repository }}/dispatches")
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE -ne 202 ]]; then
+        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
           echo "##[error] Failed to publish status. HTTP Code: $RESPONSE"
           exit 3
         else
