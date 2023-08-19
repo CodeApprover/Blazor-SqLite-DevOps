@@ -48,10 +48,10 @@ jobs:
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
         echo "##[debug] SHA_BRANCH=$branch"
-        if git show-ref --verify --quiet refs/heads/${{ env.SHA_BRANCH }}; then
-          echo "##[debug] Branch ${{ env.SHA_BRANCH }} detected in repository ${{ github.repository }}"
+        if git show-ref --verify --quiet refs/heads/$SHA_BRANCH; then
+          echo "##[debug] Branch $SHA_BRANCH detected in repository ${{ github.repository }}"
         else
-          echo "##[error] Branch ${{ env.SHA_BRANCH }} does not exist in repository ${{ github.repository }}"
+          echo "##[error] Branch $SHA_BRANCH does not exist in repository ${{ github.repository }}"
           exit 1
         fi
 
