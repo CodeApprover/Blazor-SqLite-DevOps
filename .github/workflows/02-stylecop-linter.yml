@@ -7,15 +7,14 @@ name: "StyleCop Linter"
 # 1: SHA checkout failure
 # 2: Dotnet restore error
 # 3: Dotnet stylecop build error
-# 4: Failed to publish status from workflow
-# 5: Curl command to trigger next workflow failed
+# 4: Curl command to trigger next workflow failed
 
 on:
   repository_dispatch:
     types: "trigger-stylecop-linter"
 
 env:
-  # Pre-validated values
+  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -83,36 +82,7 @@ jobs:
         CMD+="/p:StyleCopForceFullAnalysis=false"
         eval "$CMD" || (echo "##[error] Dotnet build failed" && exit 3)
 
-    - name: Set default job status
-      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
-
-    - name: Set failure status if any step failed
-      run: |
-        echo "##[error] Failed detected in previous steps"
-        echo "JOB_STATUS=failure" >> $GITHUB_ENV
-      if: failure()
-
-    - name: Publish success or failure status for tracking
-      run: |
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        -H "Authorization: token ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.sha }} \
-        -d '{
-          "state": "${{ env.JOB_STATUS }}", 
-          "description": "Result from Workflow ${{ github.workflow }}",
-          "context": "status/${{ github.workflow }}"
-        }')
-        # Check for failure (non-200 status codes)
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] Failed to publish status for ${{ env.SHA }} HTTP Code: $RESPONSE"
-          exit 4
-        else
-            echo "##[debug] Successfully published status for ${{ env.SHA }} HTTP Code: $RESPONSE"
-        fi
-
-    - name: Trigger Environment Based Test Suites
-      # 03-development-tests.yml | 03-staging-tests.yml | 03-production-tests.yml
+    - name: Trigger Required Workflow # 03-development-tests.yml | 03-staging-tests.yml | 03-production-tests.yml
       if: success()
       run: |
         case "${{ env.SHA_BRANCH }}" in
@@ -121,23 +91,25 @@ jobs:
           code-production) TEST_SUITE="trigger-production-tests" ;;
         esac
 
-        BASE="{\"event_type\": \"${TEST_SUITE}\", \"client_payload\": {"
+        trigger="trigger-stylecop-linter"
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
 
-        CMD=("curl" "-X" "POST")
-        CMD+=("-H" "Authorization: Bearer ${{ secrets.AUTH }}")
-        CMD+=("-H" "Accept: application/vnd.github.v3+json")
-        CMD+=("-d" "$PAYLOAD")
-        CMD+=("https://api.github.com/repos/${{ github.repository }}/dispatches")
+        CMD=(curl -s -o /dev/null -w "%{http_code}" -X POST 
+        -H "Authorization: Bearer ${{ secrets.AUTH }}"
+        -H "Accept: application/vnd.github.v3+json"
+        -d "$PAYLOAD"
+        "https://api.github.com/repos/${{ github.repository }}/dispatches")
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] ${{ github.workflow }} failed to ${TEST_SUITE} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-          exit 5
+        if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then  # HTTP 'success'
+          echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
+          echo "##[error] $trigger"
+          exit 1
         else
-           echo "##[debug] ${{ github.workflow }}  ${TEST_SUITE} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
+          echo "##[debug] Triggered next workflow=$trigger"
         fi
