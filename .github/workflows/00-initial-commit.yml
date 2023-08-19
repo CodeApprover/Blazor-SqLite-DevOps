@@ -42,16 +42,26 @@ jobs:
       run: |
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
         echo "##[debug] SHA=$SHA"
- 
+
     - name: Set Branch Name
       run: |
+        echo "##[debug] Current Branch and Commit:"
+        echo "##[debug] $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
+        
+        echo "##[debug] All references:"
+        echo "##[debug] $(git show-ref)"
+        
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
-        echo "##[debug] SHA_BRANCH=$branch"
+    
         if git show-ref --verify --quiet "${{ github.ref }}"; then
           echo "##[debug] Branch $SHA_BRANCH detected in repository ${{ github.repository }}"
         else
           echo "##[error] Branch $SHA_BRANCH does not exist in repository ${{ github.repository }}"
+          echo "##[debug] branch=$branch"
+          echo "##[debug] SHA_BRANCH=$SHA_BRANCH"
+          echo "##[debug] All branches:"
+          echo "##[debug] $(git branch -a)"
           exit 1
         fi
 
