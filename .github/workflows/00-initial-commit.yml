@@ -158,7 +158,7 @@ jobs:
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-    
+
         CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
         CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"Accept: application/vnd.github.v3+json\" "
@@ -166,9 +166,9 @@ jobs:
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
         RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 ]]; then
+        if [[ "$RESPONSE" -ne 200 && "$RESPONSE" -ne 201 && "$RESPONSE" -ne 202 ]]; then
           echo "##[error] ${{ github.workflow }} failed to ${trigger} workflow for ${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
           exit 4
         else
           echo "##[debug] ${{ github.workflow }}  ${trigger} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-        fi    
+        fi
