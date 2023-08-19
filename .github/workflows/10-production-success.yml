@@ -15,9 +15,6 @@ on:
     types:
       - completed
 
-env:
-  PROJ_NAME: "Blazor-SqLite-Golf-Club"
-
 jobs:
   succeed:
     name: Development Success Confirmation
