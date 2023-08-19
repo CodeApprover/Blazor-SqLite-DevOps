@@ -40,6 +40,7 @@ jobs:
         echo "$desc" > $logger
 
     - name: Checkout SHA Repository
+      # Checking out the repository using the commit SHA.
       id: checkout-sha
       uses: actions/checkout@v3.5.3
       with:
@@ -96,6 +97,8 @@ jobs:
 
     - name: Log Commit Details
       run: |
+        echo "Logging details of the commit, GitHub environment and runner specifics." >> ${{ env.LOG }}
+
         echo "-------------------------------------------------" >> ${{ env.LOG }}
         echo "----- COMMIT DETAILS ----------------------------" >> ${{ env.LOG }}
         echo "-------------------------------------------------" >> ${{ env.LOG }}
@@ -140,6 +143,7 @@ jobs:
 
     - name: Check and Display Report
       run: |
+        echo "Checking the existence of the report.txt and displaying its content." >> ${{ env.LOG }}
         if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
           echo "## [ERROR] # report.txt does not exist. Exiting " >> ${{ env.LOG }}
           echo "## [ERROR] # Failure reading report.txt file --> Exit 4" >> ${{ env.LOG }}
@@ -150,6 +154,7 @@ jobs:
         fi
 
     - name: Upload Report as Artifact
+      # Uploading the report.txt as a GitHub artifact
       uses: actions/upload-artifact@v3
       with:
         name: commit-report
@@ -157,6 +162,7 @@ jobs:
 
     - name: Cleanup Redundant Tags and Files
       run: |
+        echo "Cleaning up older tags and removing temporary files." >> ${{ env.LOG }}
         # Delete old tags skipping 12 most recent
         DELETE_TAGS=$(git tag -l | head -n -12)
         for TAG in $DELETE_TAGS; do
@@ -169,7 +175,7 @@ jobs:
       if: success()
       run: |
         trigger="trigger-cache-dependencies"
-        echo "## [INFO] # Triggering next workflow using $trigger." >> ${{ env.LOG }}
+        echo "Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger." >> ${{ env.LOG }}
         
         # Constants
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
