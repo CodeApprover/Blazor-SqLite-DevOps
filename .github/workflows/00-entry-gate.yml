@@ -35,10 +35,6 @@ jobs:
         desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
         desc+="Note: This workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
 
-        logger=${{ github.workspace }}/report.txt
-        echo "LOG=$logger" >> $GITHUB_ENV
-        echo "$desc" > $logger
-
     - name: Checkout SHA Repository
       # Checking out the repository using the commit SHA.
       id: checkout-sha
@@ -49,13 +45,13 @@ jobs:
 
     - name: Validate SHA
       run: |
-        echo "## [INFO] # Validating SHA checkout." >> ${{ env.LOG }}
+        echo "## [INFO] # Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "## [ERROR] # SHA checkout FAIL for ${{ github.sha }} --> Exit 1" >> ${{ env.LOG }}
+          echo "## [ERROR] # SHA checkout FAIL for ${{ github.sha }} --> Exit 1"
           exit 1
         else:
-          echo "## [INFO] # SHA checkout success for ${{ github.sha }}." >> ${{ env.LOG }}
-          echo "## [INFO] # Setting GITHUB_ENV for SHA to ${{ github.sha }}." >> ${{ env.LOG }}
+          echo "## [INFO] # SHA checkout success for ${{ github.sha }}."
+          echo "## [INFO] # Setting GITHUB_ENV for SHA to ${{ github.sha }}."
           echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
         fi
 
@@ -80,81 +76,80 @@ jobs:
 
     - name: Validate .csproj
       run: |
-        echo "## [INFO] # Validating .csproj file." >> ${{ env.LOG }}
+        echo "## [INFO] # Validating .csproj file."
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
         CSPROJ=$(find "$DIR_PATH" -name "*.csproj" -type f)
-        echo "## [DEBUG] # Searching for .csproj in directory: $DIR_PATH" >> ${{ env.LOG }}
-        echo "## [DEBUG] # Located .csproj file at: $CSPROJ" >> ${{ env.LOG }}
+        echo "## [DEBUG] # Searching for .csproj in directory: $DIR_PATH"
+        echo "## [DEBUG] # Located .csproj file at: $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
-          echo "## [DEBUG] # Directory contents of $DIR_PATH:" >> ${{ env.LOG }}
-          ls -la "$DIR_PATH" >> ${{ env.LOG }}
-          echo "## [ERROR] # Failure locating .csproj file within the directory $DIR_PATH --> Exit 3" >> ${{ env.LOG }}
+          echo "## [DEBUG] # Directory contents of $DIR_PATH:"
+          ls -la "$DIR_PATH"
+          echo "## [ERROR] # Failure locating .csproj file within the directory $DIR_PATH --> Exit 3"
           exit 3
         else
-          echo "## [INFO] # Setting GITHUB_ENV for .csproj file to $CSPROJ" >> ${{ env.LOG }}
+          echo "## [INFO] # Setting GITHUB_ENV for .csproj file to $CSPROJ"
           echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
         fi
 
     - name: Log Commit Details
       run: |
-        echo "Logging details of the commit, GitHub environment and runner specifics." >> ${{ env.LOG }}
+        echo "Logging details of the commit, GitHub environment and runner specifics."
 
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "----- COMMIT DETAILS ----------------------------" >> ${{ env.LOG }}
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "Branch Name: ${{ env.SHA_BRANCH }}" >> ${{ env.LOG }}
-        echo "Commit SHA: ${{ github.sha }}" >> ${{ env.LOG }}
-        echo "Commit Message: ${{ github.event.head_commit.message }}" >> ${{ env.LOG }}
-        echo "Commit Author: ${{ github.event.head_commit.author.name }}" >> ${{ env.LOG }}
-        echo "Committer Email: ${{ github.event.head_commit.author.email }}" >> ${{ env.LOG }}
-        echo "Pusher Name: ${{ github.event.pusher.name }}" >> ${{ env.LOG }}
-        echo "Actor: ${{ github.actor }}" >> ${{ env.LOG }}
+        echo "-------------------------------------------------"
+        echo "----- COMMIT DETAILS ----------------------------"
+        echo "-------------------------------------------------"
+        echo "Branch Name: ${{ env.SHA_BRANCH }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "Commit Message: ${{ github.event.head_commit.message }}"
+        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
+        echo "Committer Email: ${{ github.event.head_commit.author.email }}"
+        echo "Pusher Name: ${{ github.event.pusher.name }}"
+        echo "Actor: ${{ github.actor }}"
 
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----" >> ${{ env.LOG }}
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "Date: $(date)" >> ${{ env.LOG }}
-        echo "Event Name: ${{ github.event_name }}" >> ${{ env.LOG }}
-        echo "Ref: ${{ github.ref }}" >> ${{ env.LOG }}
-        echo "Repository: ${{ github.repository }}" >> ${{ env.LOG }}
-        echo "Repository Owner: ${{ github.repository_owner }}" >> ${{ env.LOG }}
-        echo "Workflow Name: ${{ github.workflow }}" >> ${{ env.LOG }}
-        echo "GitHub Server URL: ${{ github.server_url }}" >> ${{ env.LOG }}
-        echo "GitHub API URL: ${{ github.api_url }}" >> ${{ env.LOG }}
-        echo "GitHub GraphQL URL: ${{ github.graphql_url }}" >> ${{ env.LOG }}
-        echo "Runner OS: ${{ runner.os }}" >> ${{ env.LOG }}
-        echo "Workspace: ${{ github.workspace }}" >> ${{ env.LOG }}
-        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}" >> ${{ env.LOG }}
-        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}" >> ${{ env.LOG }}
+        echo "-------------------------------------------------"
+        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
+        echo "-------------------------------------------------"
+        echo "Date: $(date)"
+        echo "Event Name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Repository Owner: ${{ github.repository_owner }}"
+        echo "Workflow Name: ${{ github.workflow }}"
+        echo "GitHub Server URL: ${{ github.server_url }}"
+        echo "GitHub API URL: ${{ github.api_url }}"
+        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Workspace: ${{ github.workspace }}"
+        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
+        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
 
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "----- JOB, RUN AND RUNNER DETAILS ---------------" >> ${{ env.LOG }}
-        echo "-------------------------------------------------" >> ${{ env.LOG }}
-        echo "Job Name: ${{ github.job }}" >> ${{ env.LOG }}
-        echo "Event ID: ${{ github.run_id }}" >> ${{ env.LOG }}
-        echo "Run Number: ${{ github.run_number }}" >> ${{ env.LOG }}
-        echo "Runner Name: ${{ runner.name }}" >> ${{ env.LOG }}
-        echo "Runner Label: ${{ runner.label }}" >> ${{ env.LOG }}
-        echo "Runner Tool Cache: ${{ runner.tool_cache }}" >> ${{ env.LOG }}
-        echo "Runner Temp Directory: ${{ runner.temp }}" >> ${{ env.LOG }}
-        echo "GitHub Event Before: ${{ github.event.before }}" >> ${{ env.LOG }}
-        echo "GitHub Event After: ${{ github.event.after }}" >> ${{ env.LOG }}
-        echo "---------------------------------------" >> ${{ env.LOG }}
+        echo "-------------------------------------------------"
+        echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
+        echo "-------------------------------------------------"
+        echo "Job Name: ${{ github.job }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Runner Name: ${{ runner.name }}"
+        echo "Runner Label: ${{ runner.label }}"
+        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory: ${{ runner.temp }}"
+        echo "GitHub Event Before: ${{ github.event.before }}"
+        echo "GitHub Event After: ${{ github.event.after }}"
+        echo "---------------------------------------"
 
     - name: Check and Display Report
       run: |
-        echo "Checking the existence of the report.txt and displaying its content." >> ${{ env.LOG }}
+        echo "Checking the existence of the report.txt and displaying its content."
         if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
-          echo "## [ERROR] # report.txt does not exist. Exiting " >> ${{ env.LOG }}
-          echo "## [ERROR] # Failure reading report.txt file --> Exit 4" >> ${{ env.LOG }}
+          echo "## [ERROR] # report.txt does not exist. Exiting "
+          echo "## [ERROR] # Failure reading report.txt file --> Exit 4"
           exit 4
         else
-          echo "## [INFO] # Content of report.txt:" >> ${{ env.LOG }}
+          echo "## [INFO] # Content of report.txt:"
           cat "$GITHUB_WORKSPACE/report.txt"
         fi
 
     - name: Upload Report as Artifact
-      # Uploading the report.txt as a GitHub artifact
       uses: actions/upload-artifact@v3
       with:
         name: commit-report
@@ -162,20 +157,20 @@ jobs:
 
     - name: Cleanup Redundant Tags and Files
       run: |
-        echo "Cleaning up older tags and removing temporary files." >> ${{ env.LOG }}
+        echo "## [INFO] # Created report.txt artifact commit-report"
+        echo "## [INFO] # Cleaning up older tags."
         # Delete old tags skipping 12 most recent
         DELETE_TAGS=$(git tag -l | head -n -12)
         for TAG in $DELETE_TAGS; do
             git tag -d $TAG
             git push origin --delete $TAG
         done
-        rm -f "${{ env.LOG }}"
 
     - name: Trigger Next Workflow
       if: success()
       run: |
         trigger="trigger-cache-dependencies"
-        echo "Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger." >> ${{ env.LOG }}
+        echo "Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger."
         
         # Constants
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
@@ -206,19 +201,19 @@ jobs:
         do
             RESPONSE=$("${CMD[@]}") 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
-                echo "## [INFO] # Successfully triggered workflow $trigger on attempt $((retries+1))" >> ${{ env.LOG }}
+                echo "## [INFO] # Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
             fi
-            echo "## [WARN] # Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..." >> ${{ env.LOG }}
+            echo "## [WARN] # Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..."
             retries=$((retries+1))
             sleep 5
         done
         
         if [[ $retries -eq $max ]]; then 
             echo "## [DEBUG] # $CMD"
-            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 5" >> ${{ env.LOG }}
+            echo "## [ERROR] # Failed $max retries triggering next workflow using curl --> Exit 5"
             exit 5
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 6" >> ${{ env.LOG }}
+            echo "## [ERROR] # Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 6"
             exit 6
         fi
