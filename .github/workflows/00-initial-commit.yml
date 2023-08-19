@@ -121,18 +121,6 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-    - name: Write SHA to file
-      run: echo "${{ github.sha }}" > $RUNNER_TEMP/payload.sha
-
-    - name: Archive SHA
-      uses: actions/upload-artifact@v3.1.2
-      with:
-        name: sha-archive
-        path: $RUNNER_TEMP/payload.sha
-
-    - name: Delete SHA file
-      run: rm $RUNNER_TEMP/payload.sha
-
     - name: Set default job status
       run: echo "JOB_STATUS=success" >> $GITHUB_ENV
 
