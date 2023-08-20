@@ -52,6 +52,7 @@ jobs:
           ${{ runner.os }}-dotnet-
 
     - name: Trigger Next Workflow # 02-stylecop-linter.yml
+      if: success()
       run: |
         trigger="trigger-stylecop-linter"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
