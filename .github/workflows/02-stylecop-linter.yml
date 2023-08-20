@@ -103,4 +103,4 @@ jobs:
         -H "Accept: application/vnd.github.v3+json"
         -d "$PAYLOAD"
         "https://api.github.com/repos/${{ github.repository }}/dispatches")
-        eval "${CMD}"
+        eval "${CMD[@]}"
