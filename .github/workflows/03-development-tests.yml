@@ -1,13 +1,6 @@
 ---
 name: "Development Tests"
 
-# Runs development environment tests on code-development branch commits.
-
-# Exit Codes
-# 1: SHA checkout failure
-# 2: Failed to publish status from workflow
-# 3: Curl command to trigger next workflow failed
-
 on:
   repository_dispatch:
     types: trigger-development-tests
@@ -53,15 +46,6 @@ jobs:
         else
           echo "Confirmed current branch $CURRENT_BRANCH == code-development"
         fi
-
-    - name: Report on SHA Commit
-      run: |
-        echo "##[debug] Checking initial state"
-        date
-        echo "SHA=${{ env.SHA }}"
-        echo "Environment=${{ env.SHA_BRANCH }}"
-        echo "Branch=${{ env.SHA_BRANCH }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
 
     - name: Retrieve Cached dotnet Dependencies
       id: cache-dotnet-restore
