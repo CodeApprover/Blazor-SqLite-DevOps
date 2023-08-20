@@ -176,10 +176,13 @@ jobs:
 
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         echo "##[info] curl command is \n$CMD"
+
+        eval $CMD
+        exit 999
         
-        retries=0
-        
+        retries=0        
         while [[ $retries -lt $MAX_RETRIES ]]; do
+            echo "Running command: ${CMD}"
             RESPONSE=$(${CMD} -s -w "%{http_code}" -o /dev/null)
             CURL_EXIT_CODE=$?            
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
