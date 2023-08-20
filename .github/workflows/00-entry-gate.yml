@@ -175,19 +175,17 @@ jobs:
         echo "##[info] curl command is \n$CMD"
 
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
-        echo "##[info] curl command is \n$CMD"
-
-        eval $CMD
-        exit 999
         
         retries=0        
         while [[ $retries -lt $MAX_RETRIES ]]; do
             echo "Running command: ${CMD}"
-            RESPONSE=$(${CMD} -s -w "%{http_code}" -o /dev/null)
+            RESPONSE=$(eval "$CMD")
             CURL_EXIT_CODE=$?            
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] $CMD"
                 if [[ $CURL_EXIT_CODE -eq 3 ]]; then
                     echo "##[error] Curl failed due to malformed URL on attempt $((retries+1))"
+                    break
                 else
                     echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1))"
                 fi
