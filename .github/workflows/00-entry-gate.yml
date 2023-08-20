@@ -165,7 +165,7 @@ jobs:
         SHA="\"sha\": \"${{ env.SHA }}\""
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\""
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
-        PAYLOAD="${BASE},${SHA},${CSPROJ},${BRANCH}}"
+        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH"
         
         CMD=(
             curl -s -o /dev/null -w "%{http_code}" 
