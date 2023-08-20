@@ -170,14 +170,14 @@ jobs:
         
         CMD="curl -X POST -H \"$AUTH_HEADER\" "
         CMD+="-H \"$ACCEPT_HEADER\" "
-        CMD+="-d '$PAYLOAD' "
-        CMD+="$REPO_ENDPOINT"
+        CMD+="-d \"$PAYLOAD\" "
+        CMD+="\"$REPO_ENDPOINT\""
 
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
         until [[ $retries -ge $MAX_RETRIES ]]
         do
-            RESPONSE=$(${CMD}) 
+            RESPONSE=$(${CMD} -o /dev/null -w '%{http_code}')
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
