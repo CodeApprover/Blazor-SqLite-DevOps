@@ -55,7 +55,6 @@ jobs:
       if: success()
       run: |
         trigger="trigger-stylecop-linter"
-        echo "##[info] Calling $trigger"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
