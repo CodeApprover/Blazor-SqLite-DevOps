@@ -57,7 +57,7 @@ jobs:
             echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
             exit 30
         fi
-        echo "##[info] SHA checkout success for ${{ github.sha }}."
+        echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
 
     - name: Validate SHA Branch
@@ -70,6 +70,7 @@ jobs:
             echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 31"
             exit 31
         fi
+        echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Validate .csproj
@@ -81,6 +82,7 @@ jobs:
             echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
             exit 32
         fi
+        echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Report Commit Details
