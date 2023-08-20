@@ -156,7 +156,7 @@ jobs:
         MAX_RETRIES=${{ vars.MAX_RETRIES }}
         WAIT_TIME=${{ vars.WAIT_SECONDS }}
 
-        echo "##[info] Setting curl command for $trigger."
+        echo "##[info] Setting curl command to curl $trigger with payload"
         AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
@@ -165,7 +165,7 @@ jobs:
         BRANCH=", \"branch_name\": \"${{ env.SHA_BRANCH }}\"}}"
         PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
-
+        
         CMD="curl -s -o /dev/null -w \"%{http_code}\" "
         CMD+="-X POST "
         CMD+="-H \"$AUTH_HEADER\" "
@@ -180,20 +180,20 @@ jobs:
         do
             RESPONSE=$(${CMD})
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
-                echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
+                echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
                 break
             fi
             echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in $WAIT_TIME seconds..."
             retries=$((retries+1))
             sleep $WAIT_TIME
         done
-
+        
         echo "##[info] Validating curl request."
         if [[ $retries -eq $MAX_RETRIES ]]; then 
-            echo "##[info] $CMD"
-            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering next workflow using curl --> Exit 33"
+            echo "##[error] Exhausted retries. Curl command: $CMD"
+            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering workflow --> Exit 33"
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 34"
+            echo "##[error] Failed to trigger workflow. HTTP Code $RESPONSE indicates failure --> Exit 34"
             exit 34
         fi
