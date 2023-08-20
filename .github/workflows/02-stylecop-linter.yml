@@ -11,7 +11,7 @@ name: "StyleCop Linter"
 
 on:
   repository_dispatch:
-    types: "trigger-stylecop-linter"
+    types: trigger-stylecop-linter
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
