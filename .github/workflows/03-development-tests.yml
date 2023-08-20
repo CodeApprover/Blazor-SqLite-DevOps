@@ -142,7 +142,7 @@ jobs:
 
     steps:
 
-    - name: Trigger LockFile Checker Workflow # 04-lockfile-checker.yml
+    - name: Trigger Next Workflow # 04-lockfile-checker.yml
       run: |
         trigger="trigger-lockfile-checker"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
@@ -150,18 +150,9 @@ jobs:
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
-        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-    
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST "
-        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="-d '$PAYLOAD' "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches"
-        RESPONSE=$("${CMD[@]}")
 
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] ${{ github.workflow }} failed to ${trigger} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-          exit 3
-        else
-          echo "##[debug] ${{ github.workflow }}  ${trigger} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-        fi
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
