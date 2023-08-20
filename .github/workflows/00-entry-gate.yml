@@ -166,7 +166,8 @@ jobs:
         SHA="\"sha\": \"${{ env.SHA }}\""
         CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
         BRANCH=", \"branch_name\": \"${{ env.SHA_BRANCH }}\"}}"
-        
+        PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+
         CMD="curl -X POST -H \"$AUTH_HEADER\" "
         CMD+="-H \"$ACCEPT_HEADER\" "
         CMD+="-d \"$PAYLOAD\" "
