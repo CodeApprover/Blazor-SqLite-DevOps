@@ -184,10 +184,9 @@ jobs:
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                 echo "##[error] $CMD"
                 if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                    echo "##[error] Curl failed due to malformed URL on attempt $((retries+1))"
-                    break
+                    echo "##[error] Curl failure exit $CURL_EXIT_CODE --> malformed URL, on attempt $((retries+1)) of $MAX_RETRIES."
                 else
-                    echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1))"
+                    echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of $MAX_RETRIES."
                 fi
                 exit $CURL_EXIT_CODE
             elif [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
