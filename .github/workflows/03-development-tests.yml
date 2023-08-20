@@ -10,7 +10,7 @@ name: "Development Tests"
 
 on:
   repository_dispatch:
-    types: "trigger-development-tests"
+    types: trigger-development-tests
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
