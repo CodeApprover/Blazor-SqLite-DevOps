@@ -51,15 +51,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dotnet-
 
-    - name: Set default job status
-      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
-
-    - name: Set failure status if any step failed
-      run: |
-        echo "##[error] Failed detected in previous steps"
-        echo "JOB_STATUS=failure" >> $GITHUB_ENV
-      if: failure()
-
     - name: Trigger Next Workflow # 02-stylecop-linter.yml
       run: |
         trigger="trigger-stylecop-linter"
@@ -69,7 +60,6 @@ jobs:
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-
         CMD=(curl -s -o /dev/null -w "%{http_code}" -X POST 
         -H "Authorization: Bearer ${{ secrets.AUTH }}"
         -H "Accept: application/vnd.github.v3+json"
@@ -77,10 +67,3 @@ jobs:
         "https://api.github.com/repos/${{ github.repository }}/dispatches")
         RESPONSE=$("${CMD[@]}")
 
-        if [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then  # HTTP 'not success'
-          echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
-          echo "##[error] $trigger"
-          exit 1
-        else
-          echo "##[debug] Triggered next workflow=$trigger"
-        fi
