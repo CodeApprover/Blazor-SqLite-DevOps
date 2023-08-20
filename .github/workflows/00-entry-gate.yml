@@ -1,18 +1,17 @@
 ---
 name: "SHA Commit Verification and Report"
 
-# Reports on the initial SHA push
+# Verifies the integrity of commits, reports on commit details, cleans up old versioning tags, triggers subsequent workflow.
 
 # Exit Codes
-# 30 - SHA checkout FAIL
-# 31 - SHA_BRANCH does not exist in repository
-# 32 - Failure locating .csproj file
-# 33 - Failed retries to trigger next workflow using curl
-# 34 - Failed to trigger next workflow HTTP response non success
+# 30 - SHA checkout failure.
+# 31 - SHA_BRANCH does not exist.
+# 32 - Failure locating .csproj file.
+# 33 - Failed to trigger next workflow.
 
 concurrency:
-    group: report-${{ github.sha }}
-    cancel-in-progress: true
+  group: report-${{ github.sha }}
+  cancel-in-progress: true
 
 on:
   push:
@@ -26,24 +25,34 @@ jobs:
     if: (github.actor != 'CodeApprover')
 
     steps:
-
     - name: Setup and Description
       run: |
-        desc="This workflow is triggered on branches code-development, code-production, and code-staging. "
-        desc+="Its main functions are to validate the commit SHA, branch name, and the .csproj file path. "
-        desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
-        desc+="Note this workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
-
         echo "##[info] $(date) ${{ github.workflow }} commit SHA ${{ github.sha }}"
-        echo $desc
+        desc="Workflow Overview of **${{ github.workflow }}**:\n"
+
+        desc+="This workflow ensures code integrity on pushes to the "
+        desc+="'code-development', 'code-production' and 'code-staging' branches.\n"
+        desc+="It acts as an entry gate for pre-validation and debugging.\n"
+
+        desc+="Execution Sequence on pushes include:\n"
+        desc+="Step 1. **Setup and Description**.\n"
+
+        desc+="2. **Checkout SHA Repository** retrieves the SHA of the commit.\n"
+        desc+="3. **Validate SHA** ensures checkout success and captures SHA.\n"
+        desc+="4. **Validate SHA Branch** confirms branch existence and captures its name.\n"
+        desc+="5. **Validate .csproj** locates .csproj file and captures its path.\n"
+        desc+="6. **Report Commit Details** reports on commit specifics and environment details.\n"
+        desc+="7. **Cleanup Redundant Tags** retains the latest 12 git versioning tags, removing older ones.\n"
+        desc+="8. **Trigger Next Workflow** activates the next workflow, retrying on failures."
+        
+        echo "##[info] $desc"
 
     - name: Checkout SHA Repository
-      # Checking out the repository using the commit SHA.
       id: checkout-sha
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ github.sha }}
-        fetch-depth: 0 # deep clone
+        fetch-depth: 0
 
     - name: Validate SHA
       run: |
@@ -53,29 +62,18 @@ jobs:
             exit 30
         fi
         echo "##[info] SHA checkout success for ${{ github.sha }}."
-        echo "##[info] Setting GITHUB_ENV for SHA to ${{ github.sha }}."
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
 
     - name: Validate SHA Branch
       run: |
         echo "##[info] Validating SHA branch name."
-
-        echo "##[info] Extracting branch name from github ref."
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
-        echo "##[info] Detected branch as $branch"
-
-        echo "##[info] Checking if branch exists in the remote repository."
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
             echo "##[info] Branch $branch detected in ${{ github.repository }}"
         else
-            echo "##[debug] Current Branch and HEAD Commit $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
-            echo "##[debug] List of All Branches (Local and Remote)"
-            git branch -a
             echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 31"
             exit 31
         fi
-        
-        echo "##[info] Setting GITHUB_ENV for SHA_BRANCH to $branch for future steps."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Validate .csproj
@@ -83,66 +81,62 @@ jobs:
         echo "##[info] Validating .csproj file."
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
         CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
-        echo "##[info] Checking .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
-            echo "##[debug] Directory contents of $DIR_PATH"
-            ls -la "$DIR_PATH"
             echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
             exit 32
         fi
-        echo "##[info] Setting GITHUB_ENV for .csproj file to $CSPROJ"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
     - name: Report Commit Details
       run: |
-        echo "##[info] Logging details of the commit, GitHub environment and runner specifics."
+        echo "Reporting details of the commit, GitHub environment and runner specifics."
 
         echo "-------------------------------------------------"
         echo "----- COMMIT DETAILS ----------------------------"
         echo "-------------------------------------------------"
-        echo "Branch Name ${{ env.SHA_BRANCH }}"
-        echo "Commit SHA ${{ github.sha }}"
-        echo "Commit Message ${{ github.event.head_commit.message }}"
-        echo "Commit Author ${{ github.event.head_commit.author.name }}"
-        echo "Committer Email ${{ github.event.head_commit.author.email }}"
-        echo "Pusher Name ${{ github.event.pusher.name }}"
-        echo "Actor ${{ github.actor }}"
+        echo "Branch Name: ${{ env.SHA_BRANCH }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "Commit Message: ${{ github.event.head_commit.message }}"
+        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
+        echo "Committer Email: ${{ github.event.head_commit.author.email }}"
+        echo "Pusher Name: ${{ github.event.pusher.name }}"
+        echo "Actor: ${{ github.actor }}"
 
         echo "-------------------------------------------------"
         echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
         echo "-------------------------------------------------"
-        echo "Date $(date)"
-        echo "Event Name ${{ github.event_name }}"
-        echo "Ref ${{ github.ref }}"
-        echo "Repository ${{ github.repository }}"
-        echo "Repository Owner ${{ github.repository_owner }}"
-        echo "Workflow Name ${{ github.workflow }}"
-        echo "GitHub Server URL ${{ github.server_url }}"
-        echo "GitHub API URL ${{ github.api_url }}"
-        echo "GitHub GraphQL URL ${{ github.graphql_url }}"
-        echo "Runner OS ${{ runner.os }}"
-        echo "Workspace ${{ github.workspace }}"
-        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref ${{ github.base_ref }}"
-        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref ${{ github.head_ref }}"
+        echo "Date: $(date)"
+        echo "Event Name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Repository Owner: ${{ github.repository_owner }}"
+        echo "Workflow Name: ${{ github.workflow }}"
+        echo "GitHub Server URL: ${{ github.server_url }}"
+        echo "GitHub API URL: ${{ github.api_url }}"
+        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Workspace: ${{ github.workspace }}"
+        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
+        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
 
         echo "-------------------------------------------------"
         echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
         echo "-------------------------------------------------"
-        echo "Job Name ${{ github.job }}"
-        echo "Event ID ${{ github.run_id }}"
-        echo "Run Number ${{ github.run_number }}"
-        echo "Runner Name ${{ runner.name }}"
-        echo "Runner Label ${{ runner.label }}"
-        echo "Runner Tool Cache ${{ runner.tool_cache }}"
-        echo "Runner Temp Directory ${{ runner.temp }}"
-        echo "GitHub Event Before ${{ github.event.before }}"
-        echo "GitHub Event After ${{ github.event.after }}"
+        echo "Job Name: ${{ github.job }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Runner Name: ${{ runner.name }}"
+        echo "Runner Label: ${{ runner.label }}"
+        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory: ${{ runner.temp }}"
+        echo "GitHub Event Before: ${{ github.event.before }}"
+        echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-    - name: Cleanup Redundant Tags
+    - name: Cleanup Redundant Versioning Tags
       run: |
-        echo "##[info] Deleting old tags skipping 12 most recent"
-        DELETE_TAGS=$(git tag -l | head -n -12)
+        echo "##[info] Deleting versioning tags skipping the 12 most recent."
+        DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
         for TAG in $DELETE_TAGS; do
             git tag -d $TAG
             git push origin --delete $TAG
