@@ -168,8 +168,11 @@ jobs:
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH"
         
-        CMD="curl -s -o /dev/null -w "%{http_code} -X POST -H \"$AUTH_HEADER\" "
-        CMD+="-H "$ACCEPT_HEADER -d "$PAYLOAD "$REPO_ENDPOINT"
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST"
+        CMD+=" -H \"$AUTH_HEADER\""
+        CMD+=" -H \"$ACCEPT_HEADER\""
+        CMD+=" -d \"$PAYLOAD\""
+        CMD+=" \"$REPO_ENDPOINT\""
 
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
