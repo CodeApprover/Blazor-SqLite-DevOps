@@ -59,10 +59,9 @@ jobs:
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
-        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
 
         curl -s -o /dev/null -X POST \
         -H "Authorization: Bearer ${{ secrets.AUTH }}" \
         -H "Accept: application/vnd.github.v3+json" \
-        -d "$PAYLOAD" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches"
