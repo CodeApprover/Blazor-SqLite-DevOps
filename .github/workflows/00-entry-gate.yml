@@ -193,8 +193,9 @@ jobs:
         done
         
         if [[ $retries -eq $max ]]; then 
-            echo "##[debug] $CMD"
-            echo "##[error] Failed $max retries every $wait seconds triggering next workflow using curl --> Exit 33"
+            echo "##[debug] Failed curl command"
+            echo "$CMD"
+            echo "##[error] Failed $max retries at $wait seconds triggering next workflow using curl --> Exit 33"
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
             echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 34"
