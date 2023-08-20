@@ -41,7 +41,7 @@ jobs:
 
     - name: Handle checkout Outcome
       run: |
-        if [[ "${{ steps.checkout-sha.outcome }}" != "true" ]]; then
+        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
           echo "##[error] Failure during checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}."
           exit 1
         else
