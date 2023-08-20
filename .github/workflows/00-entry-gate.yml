@@ -154,14 +154,27 @@ jobs:
         trigger="trigger-cache-dependencies"
         echo "##[info] Triggering $trigger workflow with retries."        
         echo "##[info] Setting trigger curl command."
-        CMD="curl -X POST "
-        CMD+="-H '$AUTH_HEADER' "
-        CMD+="-H '$ACCEPT_HEADER' "
-        CMD+="-d '{\"event_type\": \"$trigger\", \"client_payload\": {"
-        CMD+="\"sha\": \"${{ env.SHA }}\", "
-        CMD+="\"csproj\": \"${{ env.CSPROJ }}\", "
-        CMD+="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
-        CMD+="}}' "
+
+        # Constants
+        REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
+        AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
+        ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+        MAX_RETRIES=${{ vars.MAX_RETRIES }}
+        WAIT_TIME=${{ vars.WAIT_SECONDS }}
+        
+        # Setup Payload for next workflow
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\""
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\""
+        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        PAYLOAD="${BASE},${SHA},${CSPROJ},${BRANCH}}"
+        
+        # Constructing curl command
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" "
+        CMD+="-X POST "
+        CMD+="-H \"$AUTH_HEADER\" "
+        CMD+="-H \"$ACCEPT_HEADER\" "
+        CMD+="-d '$PAYLOAD' "
         CMD+="$REPO_ENDPOINT"
 
         echo "##[info] Sending curl request $CMD with $MAX_RETRIES at $WAIT_TIME second intervals."
