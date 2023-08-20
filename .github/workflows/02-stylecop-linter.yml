@@ -89,6 +89,7 @@ jobs:
           code-staging) trigger="trigger-staging-tests" ;;
           code-production) trigger="trigger-production-tests" ;;
         esac
+        echo "##[info] Calling $trigger"
 
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
