@@ -1,17 +1,11 @@
 ---
 name: "Cache Dependencies"
 
-# Caches reusables e.g. nuget packages
-
-# Exit Codes
-# 1: Curl command to trigger next workflow failed
-
 on:
   repository_dispatch:
     types: trigger-cache-dependencies
 
 env:
-  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -19,11 +13,10 @@ env:
 jobs:
 
   prepare-dotnet:
+
     name: Cache Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
-
     steps:
 
     - name: Checkout SHA Repository
