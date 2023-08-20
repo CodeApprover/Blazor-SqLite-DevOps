@@ -27,6 +27,8 @@ jobs:
     steps:
     - name: Setup and Description
       run: |
+        echo "Workflow Overview"
+
         echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
         echo "##[info]    This workflow ensures code integrity for pushes to the"
         echo "##[info]    'code-development', 'code-production', and 'code-staging' branches."
