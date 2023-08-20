@@ -18,14 +18,14 @@ on:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-  report-usage:
+  accept-commit:
     name: "Report Usage"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
 
     steps:
-    - name: Setup and Description
+    - name: Workflow Overview
       run: |
         echo "Workflow Overview"
 
