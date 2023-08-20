@@ -37,6 +37,9 @@ jobs:
         echo "##[info] $(date) ${{ github.workflow }} commit SHA ${{ github.sha }}"
         echo $desc
 
+        echo "##[info] Setting GITHUB_ENV for PROJECT to ${{ var.PROJECT_NAME }}."
+        echo "PROJECT=${{ var.PROJECT_NAME }}" >> $GITHUB_ENV
+
     - name: Checkout SHA Repository
       # Checking out the repository using the commit SHA.
       id: checkout-sha
@@ -81,8 +84,8 @@ jobs:
     - name: Validate .csproj
       run: |
         echo "##[info] Validating .csproj file."
-        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
-        CSPROJ="${DIR_PATH}/${{ secrets.PROJECT_NAME }}.csproj"
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ env.PROJECT }}"
+        CSPROJ="${DIR_PATH}/${{ env.PROJECT }}.csproj"
         echo "##[info] Checking .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
             echo "##[debug] Directory contents of $DIR_PATH"
@@ -93,7 +96,7 @@ jobs:
         echo "##[info] Setting GITHUB_ENV for .csproj file to $CSPROJ"
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
-    - name: Log Commit Details
+    - name: Report Commit Details
       run: |
         echo "##[info] Logging details of the commit, GitHub environment and runner specifics."
 
