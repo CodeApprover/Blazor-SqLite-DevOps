@@ -17,6 +17,10 @@ jobs:
     name: Cache Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Workflow is ALWAYS called by CodeApprover   
+    #if: (github.actor != 'CodeApprover') # un-comment to run
+    
     steps:
 
     - name: Checkout SHA Repository
