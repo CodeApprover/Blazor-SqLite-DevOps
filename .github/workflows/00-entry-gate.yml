@@ -151,21 +151,22 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        echo "##[info] Triggering next workflow with retries."        
+        echo "##[info] Triggering next workflow."        
         trigger="trigger-cache-dependencies"
         MAX_RETRIES=${{ vars.MAX_RETRIES }}
         WAIT_TIME=${{ vars.WAIT_SECONDS }}
 
-        echo "##[info] Setting curl command to curl $trigger with payload"
-        AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
+        # Construct Payload for the request        
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\""
         CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
         BRANCH=", \"branch_name\": \"${{ env.SHA_BRANCH }}\"}}"
         PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+
+        # Construct CURL command        
+        AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
-        
         CMD="curl -s -o /dev/null -w \"%{http_code}\" "
         CMD+="-X POST "
         CMD+="-H \"$AUTH_HEADER\" "
@@ -174,32 +175,37 @@ jobs:
         CMD+="$REPO_ENDPOINT"
         echo "##[info] curl command is \n$CMD"
 
+        # Execute the CURL command with retries
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
-        
-        retries=0        
+        echo "Running command: ${CMD}"
+
+        retries=0
         while [[ $retries -lt $MAX_RETRIES ]]; do
-            echo "Running command: ${CMD}"
-            RESPONSE=$(eval "$CMD")
-            CURL_EXIT_CODE=$?            
+            RESPONSE_BODY=$(eval "$CMD")
+            CURL_EXIT_CODE=$?
+            RESPONSE_CODE=${RESPONSE_BODY: -3}  # Assumes HTTP status codes are always 3 digits.
+            echo "##[debug] Response body: ${RESPONSE_BODY%???}"
+
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] $CMD"
+                echo "##[error] Curl command failed."
                 if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                    echo "##[error] Curl failure exit $CURL_EXIT_CODE --> malformed URL, on attempt $((retries+1)) of $MAX_RETRIES."
+                    echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of $MAX_RETRIES."
                 else
                     echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of $MAX_RETRIES."
                 fi
-                exit $CURL_EXIT_CODE
-            elif [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
+                sleep $WAIT_TIME  # Wait before retrying
+            elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
+                break  # Exit the loop after a successful response.
             else
-                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in $WAIT_TIME seconds..."
+                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE_CODE. Retrying in $WAIT_TIME seconds..."
                 sleep $WAIT_TIME
             fi           
             retries=$((retries+1))
         done
-        
+
+        # Check if all retries failed
         if [[ $retries -eq $MAX_RETRIES ]]; then
-            # Post-retry loop, only executed if all retries failed:
             echo "##[error] Exhausted retries. Curl command: $CMD"
             echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering workflow."
             exit 33
