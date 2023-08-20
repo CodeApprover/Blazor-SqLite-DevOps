@@ -172,6 +172,8 @@ jobs:
         CMD+="-d \"$PAYLOAD\" "
         CMD+="\"$REPO_ENDPOINT\""
 
+        echo "##[info] $CMD"
+
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
         until [[ $retries -ge $MAX_RETRIES ]]
@@ -188,7 +190,7 @@ jobs:
 
         echo "##[info] Validating curl request."
         if [[ $retries -eq $MAX_RETRIES ]]; then 
-            echo "$CMD"
+            echo "##[info] $CMD"
             echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering next workflow using curl --> Exit 33"
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
