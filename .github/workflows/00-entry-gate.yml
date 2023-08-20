@@ -38,7 +38,7 @@ jobs:
         echo $desc
 
         echo "##[info] Setting GITHUB_ENV for PROJECT to ${{ var.PROJECT_NAME }}."
-        echo "PROJECT=${{ var.PROJECT_NAME }}" >> $GITHUB_ENV
+        echo "PROJECT=${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
 
     - name: Checkout SHA Repository
       # Checking out the repository using the commit SHA.
