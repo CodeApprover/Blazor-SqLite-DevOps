@@ -100,5 +100,5 @@ jobs:
         curl -s -o /dev/null -X POST \
         -H "Authorization: Bearer ${{ secrets.AUTH }}" \
         -H "Accept: application/vnd.github.v3+json" \
-        -d "$$BASE$SHA$CSPROJ$BRANCH$END" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches"
