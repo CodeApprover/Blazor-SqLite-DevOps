@@ -169,6 +169,7 @@ jobs:
 
         # Execute the CURL command with retries
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
+        echo "##[info] Calling $trigger"
         echo "Running command: ${CMD}"
 
         retries=0
