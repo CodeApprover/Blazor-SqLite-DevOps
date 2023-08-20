@@ -87,11 +87,11 @@ jobs:
     - name: Validate .csproj
       run: |
         echo "##[info] Validating .csproj file."
-        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
-        CSPROJ=$(find "$DIR_PATH" -name "*.csproj" -type f)
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')"
+        CSPROJ="${DIR_PATH}/development/${{ secrets.PROJECT_NAME }}/${{ secrets.PROJECT_NAME }}.csproj"
         echo "##[debug] Setting .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
-             echo "##[debug] Directory contents of $DIR_PATH"
+            echo "##[debug] Directory contents of $DIR_PATH"
             ls -la "$DIR_PATH"
             echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
             exit 32
