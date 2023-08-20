@@ -136,32 +136,18 @@ jobs:
           echo "##[debug] Successfully published status for ${{ env.SHA }} HTTP Code: $RESPONSE"
         fi
 
-    - name: Trigger Staging and Production Code Analysis and Linting
+    - name: Trigger Next Workflow # 05-codeql-analysis.yml
       if: success()
       run: |
-        case "${{ env.SHA_BRANCH }}" in
-          code-development) TEST_SUITE="trigger-development-tests" ;;
-          code-staging) TEST_SUITE="trigger-staging-tests" ;;
-          code-production) TEST_SUITE="trigger-production-tests" ;;
-        esac
-
-        BASE="{\"event_type\": \"${TEST_SUITE}\", \"client_payload\": {"
+        trigger="trigger-codeql-analysis"
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
-        PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
 
-        CMD=("curl" "-X" "POST")
-        CMD+=("-H" "Authorization: Bearer ${{ secrets.AUTH }}")
-        CMD+=("-H" "Accept: application/vnd.github.v3+json")
-        CMD+=("-d" "$PAYLOAD")
-        CMD+=("https://api.github.com/repos/${{ github.repository }}/dispatches")
-        RESPONSE=$("${CMD[@]}")
-
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] ${{ github.workflow }} failed to ${TEST_SUITE} workflow for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-          exit 6
-        else
-          echo "##[debug] ${{ github.workflow }}  ${TEST_SUITE} workflow succeeded for ${{ env.SHA }} on branch  ${{ env.SHA_BRANCH }}. HTTP Code: $RESPONSE"
-        fi
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
