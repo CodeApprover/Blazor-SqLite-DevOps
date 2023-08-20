@@ -7,9 +7,8 @@ name: "SHA Commit Verification and Report"
 # 30 - SHA checkout FAIL
 # 31 - SHA_BRANCH does not exist in repository
 # 32 - Failure locating .csproj file
-# 33 - Failure reading report.txt logfile
-# 34 - Failed retries to trigger next workflow using curl
-# 35 - Failed to trigger next workflow HTTP response non success
+# 33 - Failed retries to trigger next workflow using curl
+# 34 - Failed to trigger next workflow HTTP response non success
 
 concurrency:
     group: report-${{ github.sha }}
@@ -146,27 +145,8 @@ jobs:
         echo "GitHub Event After ${{ github.event.after }}"
         echo "---------------------------------------"
 
-    - name: Check and Display Report
+    - name: Cleanup Redundant Tags
       run: |
-        echo "##[info] Checking the existence of the report.txt and displaying its content."
-        if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
-            echo "##[error] report.txt does not exist. Exiting "
-            echo "##[error] Failure reading report.txt file --> Exit 33"
-            exit 33
-        else
-            echo "##[info] Content of report.txt"
-            cat "$GITHUB_WORKSPACE/report.txt"
-        fi
-
-    - name: Upload Report as Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: commit-report
-        path: ${{ env.LOG }}
-
-    - name: Cleanup Redundant Tags and Files
-      run: |
-        echo "##[info] Created report.txt artifact commit-report"
         echo "##[info] Cleaning up older tags."
         # Delete old tags skipping 12 most recent
         DELETE_TAGS=$(git tag -l | head -n -12)
@@ -220,9 +200,9 @@ jobs:
         
         if [[ $retries -eq $max ]]; then 
             echo "##[debug] $CMD"
-            echo "##[error] Failed $max retries triggering next workflow using curl --> Exit 34"
-            exit 34
+            echo "##[error] Failed $max retries triggering next workflow using curl --> Exit 33"
+            exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
-            exit 35
+            echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 34"
+            exit 34
         fi
