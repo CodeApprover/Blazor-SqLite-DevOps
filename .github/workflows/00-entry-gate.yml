@@ -27,25 +27,19 @@ jobs:
     steps:
     - name: Setup and Description
       run: |
-        echo "##[info] $(date) ${{ github.workflow }} commit SHA ${{ github.sha }}"
-        desc="Workflow Overview of **${{ github.workflow }}**:\n"
-
-        desc+="This workflow ensures code integrity on pushes to the "
-        desc+="'code-development', 'code-production' and 'code-staging' branches.\n"
-        desc+="It acts as an entry gate for pre-validation and debugging.\n"
-
-        desc+="Execution Sequence on pushes include:\n"
-        desc+="Step 1. **Setup and Description**.\n"
-
-        desc+="2. **Checkout SHA Repository** retrieves the SHA of the commit.\n"
-        desc+="3. **Validate SHA** ensures checkout success and captures SHA.\n"
-        desc+="4. **Validate SHA Branch** confirms branch existence and captures its name.\n"
-        desc+="5. **Validate .csproj** locates .csproj file and captures its path.\n"
-        desc+="6. **Report Commit Details** reports on commit specifics and environment details.\n"
-        desc+="7. **Cleanup Redundant Tags** retains the latest 12 git versioning tags, removing older ones.\n"
-        desc+="8. **Trigger Next Workflow** activates the next workflow, retrying on failures."
-        
-        echo "##[info] $desc"
+        echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
+        echo "##[info]    This workflow ensures code integrity for pushes to the"
+        echo "##[info]    'code-development', 'code-production', and 'code-staging' branches."
+        echo "##[info]    It serves as an entry gate for pre-validation and debugging."
+        echo "##[info]    Execution Sequence:"
+        echo "##[info]      1. **Setup and Description**"
+        echo "##[info]      2. **Checkout SHA Repository** retrieves the commit SHA."
+        echo "##[info]      3. **Validate SHA** confirms checkout success and captures SHA."
+        echo "##[info]      4. **Validate SHA Branch** confirms branch existence and captures its name."
+        echo "##[info]      5. **Validate .csproj** locates .csproj file and captures its path."
+        echo "##[info]      6. **Report Commit Details** reports on commit specifics and environment."
+        echo "##[info]      7. **Cleanup Redundant Tags** keeps the latest 12 git versioning tags, removing older ones."
+        echo "##[info]      8. **Trigger Next Workflow** activates the next workflow with retries on failures."
 
     - name: Checkout SHA Repository
       id: checkout-sha
