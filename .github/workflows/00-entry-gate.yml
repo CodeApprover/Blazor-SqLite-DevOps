@@ -37,9 +37,6 @@ jobs:
         echo "##[info] $(date) ${{ github.workflow }} commit SHA ${{ github.sha }}"
         echo $desc
 
-        echo "##[info] Setting GITHUB_ENV for PROJECT to ${{ secrets.PROJECT_NAME }}."
-        echo "PROJECT=${{ secrets.PROJECT_NAME }}" >> $GITHUB_ENV
-
     - name: Checkout SHA Repository
       # Checking out the repository using the commit SHA.
       id: checkout-sha
@@ -84,8 +81,8 @@ jobs:
     - name: Validate .csproj
       run: |
         echo "##[info] Validating .csproj file."
-        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ env.PROJECT }}"
-        CSPROJ="${DIR_PATH}/${{ env.PROJECT }}.csproj"
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
+        CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
         echo "##[info] Checking .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
             echo "##[debug] Directory contents of $DIR_PATH"
@@ -161,7 +158,7 @@ jobs:
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
         AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-        MAX_RETRIES=${{ env.MAX_RETRIES }}
+        MAX_RETRIES=${{ vars.MAX_RETRIES }}
         
         # Setup Payload for next workflow
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
@@ -181,7 +178,8 @@ jobs:
 
         # Retry mechanism
         retries=0
-        max=${{ env.MAX_RETRIES }}
+        max=${{ vars.MAX_RETRIES }}
+        wait=${{ vars.WAIT_SECONDS }}
         until [[ $retries -ge $max ]]
         do
             RESPONSE=$("${CMD[@]}") 
@@ -189,14 +187,14 @@ jobs:
                 echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
             fi
-            echo "##[warn] Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in $max seconds..."
+            echo "##[warn] Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in $wait seconds..."
             retries=$((retries+1))
-            sleep 5
+            sleep $wait
         done
         
         if [[ $retries -eq $max ]]; then 
             echo "##[debug] $CMD"
-            echo "##[error] Failed $max retries triggering next workflow using curl --> Exit 33"
+            echo "##[error] Failed $max retries every $wait seconds triggering next workflow using curl --> Exit 33"
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
             echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 34"
