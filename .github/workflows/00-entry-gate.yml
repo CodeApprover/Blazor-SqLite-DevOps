@@ -4,12 +4,12 @@ name: "SHA Commit Verification and Report"
 # Reports on the initial SHA push
 
 # Exit Codes
-# 30: SHA checkout FAIL
-# 31: SHA_BRANCH does not exist in repository
-# 32: Failure locating .csproj file
-# 33: Failure reading report.txt logfile
-# 34: Failed retries to trigger next workflow using curl
-# 35: Failed to trigger next workflow. HTTP Code: not success
+# 30 - SHA checkout FAIL
+# 31 - SHA_BRANCH does not exist in repository
+# 32 - Failure locating .csproj file
+# 33 - Failure reading report.txt logfile
+# 34 - Failed retries to trigger next workflow using curl
+# 35 - Failed to trigger next workflow HTTP response non success
 
 concurrency:
     group: report-${{ github.sha }}
@@ -30,11 +30,12 @@ jobs:
 
     - name: Setup and Description
       run: |
-        desc="This workflow is triggered on branches: code-development, code-production, and code-staging. "
+        desc="This workflow is triggered on branches code-development, code-production, and code-staging. "
         desc+="Its main functions are to validate the commit SHA, branch name, and the .csproj file path. "
         desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
-        desc+="Note: This workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
-        echo "***** $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} *****"
+        desc+="Note this workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
+
+        echo "##[info] "***** $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} *****"
         echo $desc
 
     - name: Checkout SHA Repository
@@ -47,115 +48,114 @@ jobs:
 
     - name: Validate SHA
       run: |
-        echo "***** [INFO] ***** Validating SHA checkout."
+        echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "***** [ERROR] ***** SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
-          exit 30
+            echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
+            exit 30
         else:
-          echo "***** [INFO] ***** SHA checkout success for ${{ github.sha }}."
-          echo "***** [INFO] ***** Setting GITHUB_ENV for SHA to ${{ github.sha }}."
-          echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+            echo "##[info] SHA checkout success for ${{ github.sha }}."
+            echo "##[info] Setting GITHUB_ENV for SHA to ${{ github.sha }}."
+            echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
         fi
 
     - name: Validate SHA Branch
       run: |
-        echo "***** [INFO] ***** Validating SHA branch name."
+        echo "##[info] Validating SHA branch name."
 
         # Extract branch name from github ref
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
-        echo "***** [INFO] ***** Detected branch: $branch"
+        echo "##[info] Detected branch as $branch"
 
         # Store branch name in GitHub environment for future steps
-        echo "***** [INFO] ***** SHA_BRANCH=$branch" >> $GITHUB_ENV
+        echo "##[info] SHA_BRANCH=$branch" >> $GITHUB_ENV
 
         # Check if branch exists in the remote repository
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-          echo "***** [DEBUG] ***** Branch $branch detected in ${{ github.repository }}"
+            echo "##[info] Branch $branch detected in ${{ github.repository }}"
         else
           # Debug information for troubleshooting
-          echo "***** [DEBUG] ***** Branch: $branch not found in remote."
-          echo "***** [DEBUG] ***** Current Branch and HEAD Commit: $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
-          echo "***** [DEBUG] ***** List of All References:"
-          git show-ref
-          echo "***** [DEBUG] ***** List of All Branches (Local and Remote):"
-          git branch -a
-          echo "***** [ERROR] ***** Branch $branch does not exist in ${{ github.repository }}. Exiting..."
-          exit 31
+            echo "##[debug] Branch $branch not found in remote."
+            echo "##[debug] Current Branch and HEAD Commit $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse HEAD)"
+            echo "##[debug] List of All References"
+            git show-ref
+            echo "##[debug] List of All Branches (Local and Remote)"
+            git branch -a
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 31"
+            exit 31
         fi
 
     - name: Validate .csproj
       run: |
-        echo "***** [INFO] ***** Validating .csproj file."
+        echo "##[info] Validating .csproj file."
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
         CSPROJ=$(find "$DIR_PATH" -name "*.csproj" -type f)
-        echo "***** [DEBUG] ***** Searching for .csproj in directory: $DIR_PATH"
-        echo "***** [DEBUG] ***** Located .csproj file at: $CSPROJ"
+        echo "##[debug] Setting .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
-          echo "***** [DEBUG] ***** Directory contents of $DIR_PATH:"
-          ls -la "$DIR_PATH"
-          echo "***** [ERROR] ***** Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
-          exit 32
+             echo "##[debug] Directory contents of $DIR_PATH"
+            ls -la "$DIR_PATH"
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
+            exit 32
         else
-          echo "***** [INFO] ***** Setting GITHUB_ENV for .csproj file to $CSPROJ"
-          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+            echo "##[info] Setting GITHUB_ENV for .csproj file to $CSPROJ"
+            echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
         fi
 
     - name: Log Commit Details
       run: |
-        echo "***** [INFO] ***** Logging details of the commit, GitHub environment and runner specifics."
+        echo "##[info] Logging details of the commit, GitHub environment and runner specifics."
 
         echo "-------------------------------------------------"
         echo "----- COMMIT DETAILS ----------------------------"
         echo "-------------------------------------------------"
-        echo "Branch Name: ${{ env.SHA_BRANCH }}"
-        echo "Commit SHA: ${{ github.sha }}"
-        echo "Commit Message: ${{ github.event.head_commit.message }}"
-        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
-        echo "Committer Email: ${{ github.event.head_commit.author.email }}"
-        echo "Pusher Name: ${{ github.event.pusher.name }}"
-        echo "Actor: ${{ github.actor }}"
+        echo "Branch Name ${{ env.SHA_BRANCH }}"
+        echo "Commit SHA ${{ github.sha }}"
+        echo "Commit Message ${{ github.event.head_commit.message }}"
+        echo "Commit Author ${{ github.event.head_commit.author.name }}"
+        echo "Committer Email ${{ github.event.head_commit.author.email }}"
+        echo "Pusher Name ${{ github.event.pusher.name }}"
+        echo "Actor ${{ github.actor }}"
 
         echo "-------------------------------------------------"
         echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
         echo "-------------------------------------------------"
-        echo "Date: $(date)"
-        echo "Event Name: ${{ github.event_name }}"
-        echo "Ref: ${{ github.ref }}"
-        echo "Repository: ${{ github.repository }}"
-        echo "Repository Owner: ${{ github.repository_owner }}"
-        echo "Workflow Name: ${{ github.workflow }}"
-        echo "GitHub Server URL: ${{ github.server_url }}"
-        echo "GitHub API URL: ${{ github.api_url }}"
-        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
-        echo "Runner OS: ${{ runner.os }}"
-        echo "Workspace: ${{ github.workspace }}"
-        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
-        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
+        echo "Date $(date)"
+        echo "Event Name ${{ github.event_name }}"
+        echo "Ref ${{ github.ref }}"
+        echo "Repository ${{ github.repository }}"
+        echo "Repository Owner ${{ github.repository_owner }}"
+        echo "Workflow Name ${{ github.workflow }}"
+        echo "GitHub Server URL ${{ github.server_url }}"
+        echo "GitHub API URL ${{ github.api_url }}"
+        echo "GitHub GraphQL URL ${{ github.graphql_url }}"
+        echo "Runner OS ${{ runner.os }}"
+        echo "Workspace ${{ github.workspace }}"
+        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref ${{ github.base_ref }}"
+        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref ${{ github.head_ref }}"
 
         echo "-------------------------------------------------"
         echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
         echo "-------------------------------------------------"
-        echo "Job Name: ${{ github.job }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
-        echo "Runner Name: ${{ runner.name }}"
-        echo "Runner Label: ${{ runner.label }}"
-        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
-        echo "Runner Temp Directory: ${{ runner.temp }}"
-        echo "GitHub Event Before: ${{ github.event.before }}"
-        echo "GitHub Event After: ${{ github.event.after }}"
+        echo "Job Name ${{ github.job }}"
+        echo "Event ID ${{ github.run_id }}"
+        echo "Run Number ${{ github.run_number }}"
+        echo "Runner Name ${{ runner.name }}"
+        echo "Runner Label ${{ runner.label }}"
+        echo "Runner Tool Cache ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory ${{ runner.temp }}"
+        echo "GitHub Event Before ${{ github.event.before }}"
+        echo "GitHub Event After ${{ github.event.after }}"
         echo "---------------------------------------"
 
     - name: Check and Display Report
       run: |
-        echo "***** [INFO] ***** Checking the existence of the report.txt and displaying its content."
+        echo "##[info] Checking the existence of the report.txt and displaying its content."
         if [[ ! -f "${{ env.LOG }}" ]] || [[ ! -s "${{ env.LOG }}" ]]; then
-          echo "***** [ERROR] ***** report.txt does not exist. Exiting "
-          echo "***** [ERROR] ***** Failure reading report.txt file --> Exit 33"
-          exit 33
+            echo "##[error] report.txt does not exist. Exiting "
+            echo "##[error] Failure reading report.txt file --> Exit 33"
+            exit 33
         else
-          echo "***** [INFO] ***** Content of report.txt:"
-          cat "$GITHUB_WORKSPACE/report.txt"
+            echo "##[info] Content of report.txt"
+            cat "$GITHUB_WORKSPACE/report.txt"
         fi
 
     - name: Upload Report as Artifact
@@ -166,8 +166,8 @@ jobs:
 
     - name: Cleanup Redundant Tags and Files
       run: |
-        echo "***** [INFO] ***** Created report.txt artifact commit-report"
-        echo "***** [INFO] ***** Cleaning up older tags."
+        echo "##[info] Created report.txt artifact commit-report"
+        echo "##[info] Cleaning up older tags."
         # Delete old tags skipping 12 most recent
         DELETE_TAGS=$(git tag -l | head -n -12)
         for TAG in $DELETE_TAGS; do
@@ -179,7 +179,7 @@ jobs:
       if: success()
       run: |
         trigger="trigger-cache-dependencies"
-        echo "***** [INFO] ***** Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger."
+        echo "##[info] Attempting to trigger the 'trigger-cache-dependencies' workflow using $trigger."
         
         # Constants
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
@@ -210,19 +210,19 @@ jobs:
         do
             RESPONSE=$("${CMD[@]}") 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
-                echo "***** [INFO] ***** Successfully triggered workflow $trigger on attempt $((retries+1))"
+                echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
             fi
-            echo "***** [WARN] ***** Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..."
+            echo "##[warn] Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in 5 seconds..."
             retries=$((retries+1))
             sleep 5
         done
         
         if [[ $retries -eq $max ]]; then 
-            echo "***** [DEBUG] ***** $CMD"
-            echo "***** [ERROR] ***** Failed $max retries triggering next workflow using curl --> Exit 34"
+            echo "##[debug] $CMD"
+            echo "##[error] Failed $max retries triggering next workflow using curl --> Exit 34"
             exit 34
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "***** [ERROR] ***** Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
+            echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 35"
             exit 35
         fi
