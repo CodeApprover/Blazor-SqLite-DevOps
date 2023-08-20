@@ -179,21 +179,79 @@ jobs:
         until [[ $retries -ge $MAX_RETRIES ]]
         do
             RESPONSE=$(${CMD})
+            
+            echo "##[info] Checking if the response is between 200 and 206, indicating success."
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
                 break
+            else
+                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in $WAIT_TIME seconds..."
+                retries=$((retries+1))
+                sleep $WAIT_TIME
             fi
-            echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in $WAIT_TIME seconds..."
-            retries=$((retries+1))
-            sleep $WAIT_TIME
         done
-        
-        echo "##[info] Validating curl request."
+
+        echo "##[info] Validating curl execution."
+        if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1))"
+            case $CURL_EXIT_CODE in
+                1) 
+                    echo "##[error] Unsupported protocol. This build of curl has no support for this protocol."
+                    ;;
+                2) 
+                    echo "##[error] Failed to initialize."
+                    ;;
+                3) 
+                    echo "##[error] Malformed URL detected."
+                    ;;
+                5) 
+                    echo "##[error] Couldn't resolve proxy. The given proxy host could not be resolved."
+                    ;;
+                6) 
+                    echo "##[error] Couldn't resolve host. The given remote host was not resolved."
+                    ;;
+                7) 
+                    echo "##[error] Failed to connect to host."
+                    ;;
+                22)
+                    echo "##[error] HTTP page not retrieved. The requested URL was not found or returned another error with the HTTP error code being 400 or above."
+                    ;;
+                26) 
+                    echo "##[error] Read error. curl couldn't read data from file, the user's home dir, or similar."
+                    ;;
+                28) 
+                    echo "##[error] Operation timeout."
+                    ;;
+                35) 
+                    echo "##[error] SSL/TLS handshake fail."
+                    ;;
+                47) 
+                    echo "##[error] Too many redirects. When following redirects, curl hit the maximum amount."
+                    ;;
+                51) 
+                    echo "##[error] The server's SSL/TLS certificate or SSH md5 fingerprint was deemed not OK."
+                    ;;
+                52) 
+                    echo "##[error] Nothing was returned from the server, and under the circumstances, getting nothing is considered an error."
+                    ;;
+                *)
+                    echo "##[error] An unexpected error occurred."
+                    ;;
+            esac
+            # Depending on the nature of the error, you might want to exit the script or continue the loop. 
+            # For critical errors, you can exit immediately:
+            exit $CURL_EXIT_CODE
+        fi
+
+        fi
         if [[ $retries -eq $MAX_RETRIES ]]; then 
             echo "##[error] Exhausted retries. Curl command: $CMD"
-            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering workflow --> Exit 33"
+            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering workflow."
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
-            echo "##[error] Failed to trigger workflow. HTTP Code $RESPONSE indicates failure --> Exit 34"
+            echo "##[error] Failed to trigger workflow. HTTP Code $RESPONSE indicates failure."
             exit 34
+        else
+            echo "##[info] Workflow triggered successfully."
+            exit 0
         fi
