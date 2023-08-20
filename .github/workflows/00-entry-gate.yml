@@ -87,8 +87,8 @@ jobs:
     - name: Validate .csproj
       run: |
         echo "##[info] Validating .csproj file."
-        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')"
-        CSPROJ="${DIR_PATH}/${{ secrets.PROJECT_NAME }}/${{ secrets.PROJECT_NAME }}.csproj"
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ secrets.PROJECT_NAME }}"
+        CSPROJ="${DIR_PATH}/${{ secrets.PROJECT_NAME }}.csproj"
         echo "##[debug] Setting .csproj file as $CSPROJ"
         if [[ ! -f "$CSPROJ" ]]; then
             echo "##[debug] Directory contents of $DIR_PATH"
