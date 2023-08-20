@@ -1,14 +1,6 @@
 ---
 name: "StyleCop Linter"
 
-# Lints all commits on all valid branches for CSharp compliance
-
-# Exit Codes
-# 1: SHA checkout failure
-# 2: Dotnet restore error
-# 3: Dotnet stylecop build error
-# 4: Curl command to trigger next workflow failed
-
 on:
   repository_dispatch:
     types: trigger-stylecop-linter
@@ -35,24 +27,6 @@ jobs:
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
-
-    - name: Handle checkout Outcome
-      run: |
-        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "##[error] Failure during checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}."
-          exit 1
-        else
-          echo "##[debug] Successful checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}."
-        fi
-
-    - name: Report
-      run: |
-        echo "##[debug] Checking initial state"
-        date
-        echo "SHA=${{ env.SHA }}"
-        echo "Environment=${{ env.SHA_BRANCH }}"
-        echo "Branch=${{ env.SHA_BRANCH }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
 
     - name: Setup .NET Environment
       uses: actions/setup-dotnet@v3.2.0
