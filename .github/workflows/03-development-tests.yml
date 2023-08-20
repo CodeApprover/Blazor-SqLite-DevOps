@@ -25,7 +25,7 @@ jobs:
     name: Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     environment:
       development
