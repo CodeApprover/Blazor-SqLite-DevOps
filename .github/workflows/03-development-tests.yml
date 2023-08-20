@@ -59,7 +59,7 @@ jobs:
           echo "##[error] $CURRENT_BRANCH is not code-development --> Exiting 2"
           exit 2
         else
-          echo "Confirmed on code-development branch."
+          echo "Confirmed current branch $CURRENT_BRANCH == code-development"
         fi
 
     - name: Report
