@@ -51,7 +51,7 @@ jobs:
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
             echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 30"
             exit 30
-        else:
+        else
             echo "##[info] SHA checkout success for ${{ github.sha }}."
             echo "##[info] Setting GITHUB_ENV for SHA to ${{ github.sha }}."
             echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
