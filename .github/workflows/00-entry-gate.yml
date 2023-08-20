@@ -188,7 +188,7 @@ jobs:
         echo $CMD
         CMD+="$REPO_ENDPOINT"
         echo $CMD
-        eval($CMD)
+        eval "$CMD"
         exit 0
         
         echo "##[info] $CMD"
