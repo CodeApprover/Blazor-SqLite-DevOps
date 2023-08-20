@@ -69,7 +69,7 @@ jobs:
           ${{ runner.os }}-dotnet-
 
     - name: Restore Dependencies
-      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
+      if: steps.cache-dotnet-restore.outputs.cache-hit == 'false'
       run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 2)
 
     - name: Dotnet Build with StyleCop
@@ -85,22 +85,18 @@ jobs:
       if: success()
       run: |
         case "${{ env.SHA_BRANCH }}" in
-          code-development) TEST_SUITE="trigger-development-tests" ;;
-          code-staging) TEST_SUITE="trigger-staging-tests" ;;
-          code-production) TEST_SUITE="trigger-production-tests" ;;
+          code-development) trigger="trigger-development-tests" ;;
+          code-staging) trigger="trigger-staging-tests" ;;
+          code-production) trigger="trigger-production-tests" ;;
         esac
-
-        trigger="trigger-stylecop-linter"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH$END"
-
-        CMD=(curl -s -o /dev/null -w "%{http_code}" -X POST 
-        -H "Authorization: Bearer ${{ secrets.AUTH }}"
-        -H "Accept: application/vnd.github.v3+json"
-        -d "$PAYLOAD"
-        "https://api.github.com/repos/${{ github.repository }}/dispatches")
-        eval "${CMD[@]}"
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$PAYLOAD" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
