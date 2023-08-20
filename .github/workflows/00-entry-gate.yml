@@ -154,48 +154,41 @@ jobs:
         trigger="trigger-cache-dependencies"
         echo "##[info] Triggering $trigger workflow with retries."
         
-        # Constants
+        echo "##[info] Setting constants for trigger curl command."
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
         AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
         MAX_RETRIES=${{ vars.MAX_RETRIES }}
+        WAIT_TIME=${{ vars.WAIT_SECONDS }}
         
-        # Setup Payload for next workflow
+        echo "##[info] Setting up payload for next workflow."
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\""
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\""
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH"
         
-        CMD=(
-            curl -s -o /dev/null -w "%{http_code}" 
-            -X POST 
-            -H "$AUTH_HEADER"
-            -H "$ACCEPT_HEADER"
-            -d "$PAYLOAD"
-            "$REPO_ENDPOINT"
-        )
+        CMD="curl -s -o /dev/null -w "%{http_code} -X POST -H \"$AUTH_HEADER\" "
+        CMD+="-H "$ACCEPT_HEADER -d "$PAYLOAD "$REPO_ENDPOINT"
 
-        # Retry mechanism
+        echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
-        max=${{ vars.MAX_RETRIES }}
-        wait=${{ vars.WAIT_SECONDS }}
-        until [[ $retries -ge $max ]]
+        until [[ $retries -ge $MAX_RETRIES ]]
         do
             RESPONSE=$("${CMD[@]}") 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
             fi
-            echo "##[warn] Attempt $((retries+1))/$max failed with response code $RESPONSE. Retrying in $wait seconds..."
+            echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE. Retrying in $WAIT_TIME seconds..."
             retries=$((retries+1))
-            sleep $wait
+            sleep $WAIT_TIME
         done
-        
-        if [[ $retries -eq $max ]]; then 
-            echo "##[debug] Failed curl command"
+
+        echo "##[info] Validating curl request."
+        if [[ $retries -eq $MAX_RETRIES ]]; then 
             echo "$CMD"
-            echo "##[error] Failed $max retries at $wait seconds triggering next workflow using curl --> Exit 33"
+            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering next workflow using curl --> Exit 33"
             exit 33
         elif [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then
             echo "##[error] Failed to trigger next workflow. HTTP Code $RESPONSE non success response to $trigger --> Exit 34"
