@@ -27,9 +27,6 @@ jobs:
     timeout-minutes: 15
     #if: github.actor != 'CodeApprover'
 
-    environment:
-      development
-
     strategy:
       matrix:
         test_framework: [Nunit, Xunit]
@@ -52,7 +49,7 @@ jobs:
           echo "##[debug] Successful checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}."
         fi
 
-    - name: Confirm Branch
+    - name: Validate Branch
       run: |
         CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
         if [[ "$CURRENT_BRANCH" != "code-development" ]]; then
@@ -62,7 +59,7 @@ jobs:
           echo "Confirmed current branch $CURRENT_BRANCH == code-development"
         fi
 
-    - name: Report
+    - name: Report on SHA Commit
       run: |
         echo "##[debug] Checking initial state"
         date
