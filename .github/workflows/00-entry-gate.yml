@@ -169,15 +169,16 @@ jobs:
         BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
         PAYLOAD="${BASE},${SHA},${CSPROJ},${BRANCH}}"
         
-        # Constructing curl command
+        # Construct the curl command
         CMD="curl -s -o /dev/null -w \"%{http_code}\" "
         CMD+="-X POST "
         CMD+="-H \"$AUTH_HEADER\" "
         CMD+="-H \"$ACCEPT_HEADER\" "
         CMD+="-d '$PAYLOAD' "
         CMD+="$REPO_ENDPOINT"
-
-        echo "##[info] Sending curl request $CMD with $MAX_RETRIES at $WAIT_TIME second intervals."
+        
+        echo "##[info] $CMD"
+        echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
         until [[ $retries -ge $MAX_RETRIES ]]
         do
