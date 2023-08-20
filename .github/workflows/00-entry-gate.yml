@@ -164,21 +164,20 @@ jobs:
         echo "##[info] Setting up payload for next workflow."
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\""
-        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\""
-        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
+        BRANCH=", \"branch_name\": \"${{ env.SHA_BRANCH }}\"}}"
         PAYLOAD="$BASE$SHA$CSPROJ$BRANCH"
         
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST"
-        CMD+=" -H \"$AUTH_HEADER\""
-        CMD+=" -H \"$ACCEPT_HEADER\""
-        CMD+=" -d \"$PAYLOAD\""
-        CMD+=" \"$REPO_ENDPOINT\""
+        CMD="curl -X POST -H \"$AUTH_HEADER\" "
+        CMD+="-H \"$ACCEPT_HEADER\" "
+        CMD+="-d '$PAYLOAD' "
+        CMD+="$REPO_ENDPOINT"
 
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
         retries=0
         until [[ $retries -ge $MAX_RETRIES ]]
         do
-            RESPONSE=$("${CMD[@]}") 
+            RESPONSE=$(${CMD}) 
             if [[ $RESPONSE -ge 200 && $RESPONSE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow $trigger on attempt $((retries+1))"
                 break
