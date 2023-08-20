@@ -14,7 +14,6 @@ on:
     types: "trigger-stylecop-linter"
 
 env:
-  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -26,7 +25,7 @@ jobs:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     steps:
 
@@ -104,12 +103,4 @@ jobs:
         -H "Accept: application/vnd.github.v3+json"
         -d "$PAYLOAD"
         "https://api.github.com/repos/${{ github.repository }}/dispatches")
-        RESPONSE=$("${CMD[@]}")
-
-        if [[ $RESPONSE -lt 200 || $RESPONSE -gt 206 ]]; then  # HTTP 'not success'
-          echo "##[error] Failed to trigger next workflow. HTTP Code: $RESPONSE"
-          echo "##[error] $trigger"
-          exit 1
-        else
-          echo "##[debug] Triggered next workflow=$trigger"
-        fi
+        eval "${CMD}"
