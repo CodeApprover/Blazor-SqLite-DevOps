@@ -151,31 +151,45 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        trigger="trigger-cache-dependencies"
-        echo "##[info] Triggering $trigger workflow with retries."        
-        echo "##[info] Setting trigger curl command."
+        echo "##[info] Triggering next workflow with retries."        
 
         # Constants
+        trigger="trigger-cache-dependencies"
+        MAX_RETRIES=${{ vars.MAX_RETRIES }}
+        WAIT_TIME=${{ vars.WAIT_SECONDS }}
+
+        echo "##[info] Setting curl command for $trigger."
+
         REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
         AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-        MAX_RETRIES=${{ vars.MAX_RETRIES }}
-        WAIT_TIME=${{ vars.WAIT_SECONDS }}
-        
-        # Setup Payload for next workflow
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\""
         CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
         BRANCH=", \"branch_name\": \"${{ env.SHA_BRANCH }}\"}}"
         PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+
+        # debug
+        echo "REPO_ENDPOINT: $REPO_ENDPOINT"
+        echo "AUTH_HEADER: $AUTH_HEADER"
+        echo "ACCEPT_HEADER: $ACCEPT_HEADER"
+        echo "PAYLOAD: $PAYLOAD"
         
         # Construct the curl command
         CMD="curl -s -o /dev/null -w \"%{http_code}\" "
+        echo $CMD
         CMD+="-X POST "
+        echo $CMD
         CMD+="-H \"$AUTH_HEADER\" "
+        echo $CMD
         CMD+="-H \"$ACCEPT_HEADER\" "
+        echo $CMD
         CMD+="-d '$PAYLOAD' "
+        echo $CMD
         CMD+="$REPO_ENDPOINT"
+        echo $CMD
+        eval($CMD)
+        exit 0
         
         echo "##[info] $CMD"
         echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
