@@ -35,7 +35,7 @@ jobs:
         desc+="Post validation, it provides a report and can trigger the 'trigger-cache-dependencies' workflow. "
         desc+="Note this workflow doesn't run if initiated by DevOps maintainer 'CodeApprover'."
 
-        echo "##[info] "***** $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} *****"
+        echo "##[info] $(date) ${{ github.workflow }} commit SHA ${{ github.sha }}"
         echo $desc
 
     - name: Checkout SHA Repository
