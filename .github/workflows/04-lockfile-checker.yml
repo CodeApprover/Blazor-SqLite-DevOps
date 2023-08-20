@@ -40,15 +40,6 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
-    - name: Report
-      run: |
-        date
-        echo "SHA=${{ env.SHA }}"
-        branch_name=${{ env.SHA_BRANCH }}
-        echo "Environment=$(echo $branch_name | sed 's#code-##')"
-        echo "Branch=${{ env.SHA_BRANCH }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
-
     - name: Configure Git User and Email
       run: |
         git config user.name "CodeApprover"
@@ -106,34 +97,6 @@ jobs:
         exit 4
         else
         echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
-        fi
-
-    - name: Set default job status
-      run: echo "JOB_STATUS=success" >> $GITHUB_ENV
-
-    - name: Set failure status if any step failed
-      run: |
-        echo "##[error] Failed detected in previous steps"
-        echo "JOB_STATUS=failure" >> $GITHUB_ENV
-      if: failure()
-
-    - name: Publish success or failure status for tracking
-      run: |
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-        -H "Authorization: token ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.sha }} \
-        -d '{
-          "state": "${{ env.JOB_STATUS }}", 
-          "description": "Result from Workflow ${{ github.workflow }}",
-          "context": "status/${{ github.workflow }}"
-        }')
-        # Check for failure (non-200 status codes)
-        if [[ "$RESPONSE" -ne 200 ]]; then
-          echo "##[error] Failed to publish status for ${{ env.SHA }} HTTP Code: $RESPONSE"
-          exit 5
-        else
-          echo "##[debug] Successfully published status for ${{ env.SHA }} HTTP Code: $RESPONSE"
         fi
 
     - name: Trigger Next Workflow # 05-codeql-analysis.yml
