@@ -4,7 +4,7 @@ name: "Cache Dependencies"
 # Caches dependencies in particular for .NET projects
 # 1 - Restores the necessary dependencies.
 # 2 - Caches them for faster subsequent builds.
-# 3 - Upon successful caching, it tiggers the linting using StyleCop workflow.
+# 3 - Upon successful caching, it tiggers the subsequent linting using StyleCop workflow.
 
 # Exit Codes
 # 34 - Dotnet restore failed
