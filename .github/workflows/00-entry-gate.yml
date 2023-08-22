@@ -140,7 +140,7 @@ jobs:
         echo "##[info] Triggering next workflow."        
         
         #trigger="trigger-cache-dependencies"
-        trigger="trigger-lockfile-checker" # TODO Remove
+        trigger="trigger-versioning" # TODO Remove
         
         MAX_RETRIES=${{ vars.MAX_RETRIES }}
         WAIT_TIME=${{ vars.WAIT_SECONDS }}
