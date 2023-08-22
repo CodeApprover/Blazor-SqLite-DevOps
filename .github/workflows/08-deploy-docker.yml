@@ -42,43 +42,13 @@ jobs:
         trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git fetch --tags
         if [ -z "$(git tag)" ]; then
-          echo "No tags found. Exiting."
+          echo "##[error] No tags found. Exiting."
           exit 1
         fi
         
-        echo "Current Tags ="
-        git tag
         # Get the latest tag based on SemVer -V
-        tags=( $(git tag) )
-        latest_major=0
-        latest_minor=0
-        latest_patch=0
-        
-        for tag in "${tags[@]}"; do
-            current_major=$(echo $tag | cut -d. -f1 | sed 's/^v//')
-            current_minor=$(echo $tag | cut -d. -f2)
-            current_patch=$(echo $tag | cut -d. -f3)
-        
-            # Check major
-            if (( current_major > latest_major )); then
-                latest_major=$current_major
-                latest_minor=$current_minor
-                latest_patch=$current_patch
-            elif (( current_major == latest_major )); then
-                # Check minor
-                if (( current_minor > latest_minor )); then
-                    latest_minor=$current_minor
-                    latest_patch=$current_patch
-                elif (( current_minor == latest_minor )); then
-                    # Check patch
-                    if (( current_patch > latest_patch )); then
-                        latest_patch=$current_patch
-                    fi
-                fi
-            fi
-        done
-        latest_tag="v$latest_major.$latest_minor.$latest_patch"
-        echo "Latest Tag = $latest_tag"
+        latest_tag=$(git tag | sort -V | tail -n 1)     
+        echo "##[info] Latest Tag = $latest_tag"
         echo "NEW_VERSION=${latest_tag}" >> $GITHUB_ENV
 
     - name: Build and push Docker image
