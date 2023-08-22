@@ -1,7 +1,9 @@
 ---
 name: "Development Tests"
 
-# Development environment test suite for code-develoment branch.
+# Executes a development environment suite of unit tests for the "code-development" branch.
+# 1. Utilizes the Nunit and Xunit test frameworks for running unit tests.
+# 2. Once the tests pass successfully, triggers the next workflow.
 
 on:
   repository_dispatch:
