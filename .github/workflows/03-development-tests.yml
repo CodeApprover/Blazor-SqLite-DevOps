@@ -1,7 +1,9 @@
 ---
 name: "Development Tests"
 
-# Executes the development environment suite of unit tests for the "code-development" branch.
+# Runs a development environment test suite that includies Nunit and XUnit unit tests."
+# Executes for the "code-development" branch only.
+
 # 1 - Utilizes the Nunit and Xunit test frameworks for running unit tests.
 # 2 - Once the tests pass successfully, triggers the lock file checker workflow.
 
