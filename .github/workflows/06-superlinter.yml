@@ -2,7 +2,7 @@
 name: "Superlinter"  # https://github.com/super-linter/super-linter
 
 # Triggered by a repository_dispatch event "trigger-superlinter".
-# Runs for the code-production branch only i.e. the production environment.
+# Runs in the production environment for the code-production branch only.
 
 # 1. Checks out the payload SHA repository.
 # 2. Executes SuperLinter to lint the codebase.
