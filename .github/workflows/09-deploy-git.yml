@@ -52,9 +52,9 @@ jobs:
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
         
-        # Check if the lock file contains the specific SHA
         git fetch origin ${{ env.SHA_BRANCH }}
         git checkout ${{ env.SHA_BRANCH }}
+
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
 
@@ -95,7 +95,6 @@ jobs:
         src_dir=${{ env.SHA_BRANCH }}
         src_dir=${src_dir#code-}
         dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
-        dir_path="/path/to/your/directory"
         if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
           echo "##[error] Source directory does not exist or is empty --> Exit 46"
           exit 46
