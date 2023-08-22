@@ -167,38 +167,38 @@ jobs:
         echo "##[info] curl command is \n$CMD"
 
         # Execute the CURL command with retries
-        echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
-        echo "##[info] Calling $trigger"
-        echo "Running command: ${CMD}"
+        echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_SECONDS second intervals."
+        echo "##[info] Trigger $tigger being calling via ${CMD}"
 
         retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+        while [[ $retries -lt $MAX_RETRIES ]]; do
             RESPONSE_BODY=$(eval "$CMD")
             CURL_EXIT_CODE=$?
-            RESPONSE_CODE=${RESPONSE_BODY: -3}  # Assumes HTTP status codes are always 3 digits.
+            RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
             echo "##[debug] Response body: ${RESPONSE_BODY%???}"
 
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                 echo "##[error] Curl command failed."
                 if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                    echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of $MAX_RETRIES."
+                    echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
                 else
-                    echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of $MAX_RETRIES."
+                    echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
                 fi
-                sleep ${{ vars.WAIT_SECONDS }} # Wait before retrying
+                sleep $WAIT_SECONDS 
             elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
-                break  # Exit the loop after a successful response.
+                break
             else
-                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                sleep $${{ vars.WAIT_SECONDS }}
+                echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                sleep ${{ vars.WAIT_SECONDS }}
             fi           
             retries=$((retries+1))
         done
 
         # Check if all retries failed
-        if [[ $retries -eq $MAX_RETRIES ]]; then
+        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[error] Exhausted retries. Curl command: $CMD"
-            echo "##[error] Failed $MAX_RETRIES retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 33"
+            echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 33"
             exit 33
         fi
+
