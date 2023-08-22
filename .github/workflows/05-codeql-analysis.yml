@@ -1,7 +1,8 @@
 ---
 name: "CodeQL Analysis"  # https://github.com/github/codeql
 
-# Staging and Production Environmnet Code analysis
+# Executes code and security analysis using CodeQL for the code-staging and code-production branches.
+# If successful, triggers SuperLiner for production code or proceeds to the versioning workflow for staging.
 
 # Exit Codes
 # 34 - Dotnet restore failed
