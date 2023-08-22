@@ -98,10 +98,14 @@ jobs:
         echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
         fi
 
-    - name: Trigger Next Workflow # 05-codeql-analysis.yml
-      if: success()
+    - name: Trigger Next Workflow # 05-codeql-analysis.yml | 07-versioning.yml if development
       run: |
         trigger="trigger-codeql-analysis"
+        if [ "${{ env.SHA_BRANCH }}" == "code-development" ]; then
+            trigger="trigger-deploy-docker"
+        fi
+        echo "##[info] Calling $trigger"
+
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
