@@ -12,7 +12,7 @@ on:
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
   CURRENT_TAG: ""
@@ -43,8 +43,8 @@ jobs:
         run: |
           date
           echo "SHA=${{ env.SHA }}"
-          echo "Environment=$(echo ${{ env.BRANCH_NAME }} | sed 's#code-##')"
-          echo "Branch=${{ env.BRANCH_NAME }}"
+          echo "Environment=$(echo ${{ env.SHA_BRANCH }} | sed 's#code-##')"
+          echo "Branch=${{ env.SHA_BRANCH }}"
           echo "Committer=$(git log -1 --pretty=format:'%an')"
 
       - name: Configure GitHub Actions account
@@ -116,7 +116,7 @@ jobs:
           echo "##[debug] Current tag has major.minor.patch == $major.$minor.$patch"
           
           # Increment for required environment
-          case "${{ env.BRANCH_NAME }}" in
+          case "${{ env.SHA_BRANCH }}" in
             "code-production")
               major=$((major + 1))
               minor=0
@@ -146,7 +146,7 @@ jobs:
           BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
           SHA="\"sha\": \"${{ env.SHA }}\","
           CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-          BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+          BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
           END="}}"
 
           curl -s -o /dev/null -X POST \
