@@ -16,7 +16,6 @@ on:
     types: trigger-lockfile-checker
 
 env:
-  # Pre-validated values / repository variables
   SHA: ${{ github.event.client_payload.sha }}
   BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
