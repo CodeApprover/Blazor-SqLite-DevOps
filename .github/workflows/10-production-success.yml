@@ -3,7 +3,7 @@ name: "Development Success"
 
 on:
   repository_dispatch:
-    types: "trigger-development-success"
+    types: "trigger-production-success"
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
