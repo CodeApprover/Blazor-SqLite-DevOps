@@ -13,7 +13,7 @@ on:
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
@@ -81,7 +81,7 @@ jobs:
           BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
           SHA="\"sha\": \"${{ env.SHA }}\","
           CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-          BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+          BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
           END="}}"
 
           curl -s -o /dev/null -X POST \
