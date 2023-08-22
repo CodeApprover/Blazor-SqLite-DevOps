@@ -58,6 +58,7 @@ jobs:
             echo "##[error] Dockerfile not found for ${{ env.SHA }}"
             exit 2
           fi
+          DOCKER_REPO=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
           docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}" -f "${docker_file}" "${{ github.workspace }}"
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}"
         fi
