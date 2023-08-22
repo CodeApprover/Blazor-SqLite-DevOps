@@ -2,6 +2,8 @@
 name: "Cache Dependencies"
 
 # Caches dependencies in particular for .NET projects
+# Operates for the code-development, code-staging and code-production branches.
+
 # 1 - Restores the necessary dependencies.
 # 2 - Caches them for faster subsequent builds.
 # 3 - Upon successful caching, it tiggers the StyleCop linting workflow.
