@@ -1,8 +1,9 @@
 ---
 name: "Cache Dependencies"
 
-# Caches dependencies in particular for .NET projects
-# Operates for the code-development, code-staging and code-production branches.
+# Caches dependencies in particular for .NET projects.
+# Triggered by 'Commit Verification and Report' entry gate workflow.
+# Executes for the code-development, code-staging and code-production branches.
 
 # 1 - Restores the necessary dependencies.
 # 2 - Caches them for faster subsequent builds.
