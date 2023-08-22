@@ -55,28 +55,27 @@ jobs:
     - name: Check for Remote Lock File
       run: |
         retries=0
-        while [[ $retries -lt ${{ secrets.MAX_RETRIES }} ]]; do
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
           git fetch origin ${{ env.SHA_BRANCH }}
           git checkout ${{ env.SHA_BRANCH }}
-          
+
+          # Check for lock file          
           commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }} --)
-          
-          # Check for lock file
           if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
               retries=$((retries+1))
               locked_sha=$(cat "${{ env.LOCK_FILE }}")
               echo "##[warn] Lock file ${{ env.LOCK_FILE }} found for commit SHA $locked_sha."
-              echo "##[warn] Waiting ${{ secrets.WAIT_MINUTES }} minutes before retry $retries of ${{ secrets.MAX_TRIES }}."
-              sleep $((${{ secrets.WAIT_MINUTES }} * 60))
+              echo "##[warn] Waiting ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_TRIES }}."
+              sleep $((${{ vars.WAIT_MINUTES }} * 60))
           else
               echo "##[info] Lock file ${{ env.LOCK_FILE }} check passed - continuing."
               break
           fi
 
           # Exit loop if at max retries
-          if [[ $retries -eq ${{ env.MAX_RETRIES }} ]]; then
-            echo "##[error] Reached (${{ secrets.MAX_RETRIES }}) max retries at ${{ secrets.WAIT_MINUTES }} intervals."
-            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists."
+          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 38"
             exit 38
           fi
         done
