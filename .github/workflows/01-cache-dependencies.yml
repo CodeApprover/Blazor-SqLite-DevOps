@@ -61,7 +61,7 @@ jobs:
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
 
         curl -s -o /dev/null -X POST \
