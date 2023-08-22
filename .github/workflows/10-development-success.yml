@@ -1,17 +1,9 @@
+---
 name: "Development Success"
 
 on:
-  workflow_run:
-    workflows:
-      - Report
-      - StyleCop Linter
-      - Development Tests
-      - Check Lock File
-      - Versioning
-      - Deploy Docker
-      - Deploy Git
-    types:
-      - completed
+  repository_dispatch:
+    types: "trigger-development-success"
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
@@ -21,7 +13,7 @@ jobs:
     name: Development Success Confirmation
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     steps:
 
