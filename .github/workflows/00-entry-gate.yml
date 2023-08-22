@@ -164,14 +164,13 @@ jobs:
         CMD+="-H \"$ACCEPT_HEADER\" "
         CMD+="-d '$PAYLOAD' "
         CMD+="$REPO_ENDPOINT"
-        echo "##[info] curl command is \n$CMD"
 
         # Execute the CURL command with retries
-        echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_SECONDS second intervals."
+        echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
         echo "##[info] Trigger $tigger being calling via ${CMD}"
 
         retries=0
-        while [[ $retries -lt $MAX_RETRIES ]]; do
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             RESPONSE_BODY=$(eval "$CMD")
             CURL_EXIT_CODE=$?
             RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
