@@ -2,15 +2,12 @@
 name: "CodeQL"  # https://github.com/github/codeql
 
 on:
-  workflow_run:
-    workflows:
-      - StyleCop
-
+  repository_dispatch:
+    types: trigger-codeql-analysis
 env:
-  BASE_PATH: "${{ github.workspace }}"
-  ENV_NAME: "$(echo ${{ github.ref }} | grep -oE '[^-]+$')" 
-  PROJ_DIR: "/Blazor-SqlLite-DevOps/Blazor SqlLite Golf Club/"
-  PROJ_FILE: "Blazor SqlLite Golf Club.csproj"
+  SHA: ${{ github.event.client_payload.sha }}
+  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
   codeql-analysis-codeql:
@@ -31,20 +28,8 @@ jobs:
 
     steps:
 
-      - name: Report SHA and workflow timestamp
-        run: |
-          echo "${{ github.event.client_payload.sha }}"
-          date
-
-      - name: Set filepaths
-        run: |
-          CSPROJ="${{ env.BASE_PATH }}/${{ env.BRANCH_NAME }}"
-          CSPROJ+="${{ env.PROJ_DIR }}"
-          CSPROJ+="${{ env.PROJ_FILE }}"
-          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.3
         
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
@@ -52,12 +37,22 @@ jobs:
           languages: ${{ matrix.language }}
 
       - name: Setup .NET environment
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: '7.0.x'
 
+      - name: Retrieve Cached dotnet Dependencies
+        id: cache-dotnet-restore
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-dotnet-${{ env.SHA }}
+          restore-keys: |
+            ${{ runner.os }}-dotnet-
+
       - name: Restore Dependencies
         run: |
+          if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
           CMD="dotnet restore --no-cache \"$CSPROJ\""
           eval "$CMD"
 
