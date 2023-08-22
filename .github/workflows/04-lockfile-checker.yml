@@ -4,12 +4,10 @@ name: "Check Lock File"
 # Workflow to manage lock files for sequential task execution within a branch.
 
 # Exit Codes
-# 1: Failed to checkout SHA branch on retry
-# 2: Failed to push lock file
-# 3: Failed to fetch branch
-# 4: Failed to detect pushed lock file
-# 5: Failed to publish status from workflow
-# 6: Curl command to trigger next workflow failed
+# 30 - SHA checkout failure.
+# 36 - Failed to push lock file.
+# 37 - Failed to fetch SAH branch.
+# 38 - Failed to detect pushed lock file.
 
 on:
   repository_dispatch:
@@ -57,12 +55,11 @@ jobs:
     - name: Check Lock File with Retry
       run: |
         for (( i=1; i<=${{ env.MAX_RETRIES }}; i++ )); do
-        echo "::group::Attempt $i"
-        git fetch origin ${{ env.BRANCH_NAME }}
-        git checkout ${{ env.BRANCH_NAME }}
-        if [ $? -ne 0 ]; then
-            echo "::error::Failed to checkout ${{ env.BRANCH_NAME }}"
-            exit 1
+            git fetch origin ${{ env.BRANCH_NAME }}
+            git checkout ${{ env.BRANCH_NAME }}
+            if [ $? -ne 0 ]; then
+                echo "##[error] Failed to checkout ${{ env.BRANCH_NAME }}"
+                exit 30
         fi
 
         commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.BRANCH_NAME }} --)
@@ -82,27 +79,28 @@ jobs:
 
         if ! git push origin HEAD:${{ env.BRANCH_NAME }}; then
         echo "::error::Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}"
-        exit 2
+        exit 36
         fi
 
         git fetch origin ${{ env.BRANCH_NAME }}
         if [ $? -ne 0 ]; then
         echo "::error::Failed to fetch ${{ env.BRANCH_NAME }}"
-        exit 3
+        exit 37
         fi
 
         if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
         echo "::error::Lock file ${{ env.LOCK_FILE }} was not detected remotely."
-        exit 4
+        exit 38
         else
         echo "Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
         fi
 
-    - name: Trigger Next Workflow # 05-codeql-analysis.yml | 07-versioning.yml if development
+    - name: Trigger Next Workflow # 05-codeql-analysis.yml | development 07-versioning.yml
+      if: success()
       run: |
         trigger="trigger-codeql-analysis"
         if [ "${{ env.SHA_BRANCH }}" == "code-development" ]; then
-            trigger="trigger-deploy-docker"
+            trigger="trigger-versioning"
         fi
         echo "##[info] Calling $trigger"
 
