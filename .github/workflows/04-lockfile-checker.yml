@@ -69,7 +69,7 @@ jobs:
           fi
 
           # Exit loop if at max retries
-          if [[ $retries -eq ${{ env.MAX_RETRIES }} ]]; then
+          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
             echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists."
             exit 38
