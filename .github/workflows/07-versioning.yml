@@ -2,9 +2,9 @@
 name: "Versioning"
 
 # Exit codes:
-# 1: Error checking out the repository
-# 2: Error fetching tags
-# 3: Error pushing new tag
+# 42 - Error no tags to fetch.
+# 43 - Failed to push tag deletion.
+# 44 - Failed to push new tag.
 
 on:
   repository_dispatch:
@@ -32,44 +32,25 @@ jobs:
           ref: ${{ env.SHA }}
           fetch-depth: 0
         continue-on-error: true
-      
-      - name: Handle checkout error
-        if: steps.checkout.outcome == 'failure'
-        run: |
-          echo "##[error] Error checking out the repository"
-          exit 1
 
-      - name: Report
+      - name: Fetch Versioning Tags
         run: |
-          date
-          echo "SHA=${{ env.SHA }}"
-          echo "Environment=$(echo ${{ env.SHA_BRANCH }} | sed 's#code-##')"
-          echo "Branch=${{ env.SHA_BRANCH }}"
-          echo "Committer=$(git log -1 --pretty=format:'%an')"
+          git fetch --tags
+          if [ -z "$(git tag)" ]; then
+            echo "##[error] No tags found. Exiting."
+            exit 42            
+          fi
 
-      - name: Configure GitHub Actions account
+      - name: Clean Redundant Versioning Tags
         run: |
-          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 4' ERR
           git config user.name "CodeApprover"
           git config user.email "pucfada@pm.me"
-          echo "##[debug] Git user configured."
-
-      - name: Cleanup Redundant Versioning Tags
-        run: |
           echo "##[info] Deleting versioning tags skipping the 12 most recent."
           DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
           for TAG in $DELETE_TAGS; do
               git tag -d $TAG
-              git push origin --delete $TAG
+              git push origin --delete $TAG || (echo "##[error] Failed to push tag deletion." && exit 43)
           done
-
-      - name: Determine latest version tag
-        run: |
-          git fetch --tags
-          if [ -z "$(git tag)" ]; then
-            echo "##[debug] No tags found. Exiting."
-            exit 2            
-          fi
 
           # Get the latest tag based on SemVer -V
           tags=( $(git tag) )
@@ -102,7 +83,7 @@ jobs:
           done
 
           current_tag="v$latest_major.$latest_minor.$latest_patch"
-          echo "##[debug] Current Tag = $current_tag"
+          echo "##[info] Current Tag = $current_tag"
           echo "CURRENT_TAG=${current_tag}" >> $GITHUB_ENV
 
       - name: Increment SemVer version number
@@ -137,7 +118,7 @@ jobs:
       - name: Tag repository with new version
         run: |
           git tag "${{ env.NEW_VERSION }}"
-          git push origin "${{ env.NEW_VERSION }}"
+          git push origin "${{ env.NEW_VERSION }}" || (echo "##[error] Failed to push new tag ${{ env.NEW_VERSION }}" && exit 44)
 
       - name: Trigger Next Workflow # 08-deploy-docker.yml
         if: success()
