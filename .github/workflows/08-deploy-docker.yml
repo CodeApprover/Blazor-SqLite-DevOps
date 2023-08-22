@@ -1,6 +1,16 @@
 ---
 name: "Deploy Docker"
 
+# Builds and pushes a Docker image of the commit SHA repository, if it doesn't exist.
+# Executes for the code-development, code-staging and code-production branches.
+
+# 1 - Checkout: Fetch the payload SHA commit.
+# 2 - Docker Login: Authenticate with Docker Hub.
+# 3 - Enable Features: Turn on Docker's experimental features.
+# 4 - Get Version Tag: Identify the latest semantic version tag from git tags.
+# 5 - Docker Build & Push: Check for existing Docker image, build and push if not found.
+# 6 - Trigger Workflow: If successful, initiate another GitHub workflow (09-deploy-git.yml).
+
 on:
   repository_dispatch:
     types: trigger-deploy-docker
