@@ -50,7 +50,8 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }} > /dev/null; then
+        docker_repo=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
+        if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }} > /dev/null; then
           echo "Docker image already exists! Skipping Docker push."
         else
           docker_file=$(find ./$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') -name "Dockerfile" | head -n 1)
@@ -58,9 +59,8 @@ jobs:
             echo "##[error] Dockerfile not found for ${{ env.SHA }}"
             exit 2
           fi
-          DOCKER_REPO=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
-          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}" -f "${docker_file}" "${{ github.workspace }}"
-          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}"
+          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}" -f "${docker_file}" "${{ github.workspace }}"
+          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}"
         fi
 
     - name: Trigger Next Workflow # 09-deploy-git.yml
