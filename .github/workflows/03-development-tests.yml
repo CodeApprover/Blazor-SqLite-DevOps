@@ -1,7 +1,7 @@
 ---
 name: "Development Tests"
 
-# Runs a development environment test suite that includies Nunit and XUnit unit tests."
+# Runs a development environment test suite matrix that includies Nunit and XUnit unit tests."
 # Executes for the "code-development" branch only.
 
 # 1 - Utilizes the Nunit and Xunit test frameworks for running unit tests.
