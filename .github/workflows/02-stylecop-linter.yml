@@ -1,6 +1,11 @@
 ---
 name: "StyleCop Linter"
 
+# Lints C Sharp and JavaScript for all verified commits
+
+# Exit Codes
+# 34 - Dotnet restore failed
+
 on:
   repository_dispatch:
     types: trigger-stylecop-linter
@@ -44,7 +49,7 @@ jobs:
 
     - name: Restore Dependencies
       if: steps.cache-dotnet-restore.outputs.cache-hit == 'false'
-      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 2)
+      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 34)
 
     - name: Dotnet Build with StyleCop
       run: |
@@ -53,7 +58,7 @@ jobs:
         CMD+="/p:StyleCopEnabled=true "
         CMD+="/p:StyleCopTreatErrorsAsWarnings=false "
         CMD+="/p:StyleCopForceFullAnalysis=false"
-        eval "$CMD" || (echo "##[error] Dotnet build failed" && exit 3)
+        eval "$CMD" || (echo "##[error] Dotnet build failed" && exit 31)
 
     - name: Trigger Next Workflow # 03-development-tests.yml | 03-staging-tests.yml | 03-production-tests.yml
       if: success()
