@@ -1,11 +1,17 @@
 ---
 name: "Cache Dependencies"
 
+# Caches dependencies such as dotnet restore nuget packages.
+
+# Exit Codes
+# 34 - Dotnet restore failed
+
 on:
   repository_dispatch:
     types: trigger-cache-dependencies
 
 env:
+  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
@@ -18,8 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Workflow is ALWAYS called by CodeApprover   
-    #if: (github.actor != 'CodeApprover') # un-comment to run
+    # un-comment to block execution
+    #if: (github.actor != 'CodeApprover') 
     
     steps:
 
@@ -29,19 +35,10 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
-    - name: Report
+    - name: Restore dotnet Dependencies
       run: |
-        echo "##[debug] Checking initial state"
-        date
-        echo "SHA=${{ env.SHA }}"
-        echo "Environment=${{ env.SHA_BRANCH }}"
-        echo "Branch=${{ env.SHA_BRANCH }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
-
-    - name: Restore Dependencies
-      run: |
-        echo "Restoring .NET dependencies for ${{ env.CSPROJ }}"
-        dotnet restore ${{ env.CSPROJ }}
+        echo "##[info] Restoring .NET dependencies for ${{ env.CSPROJ }}"
+        run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 34)
 
     - name: Cache dotnet Dependencies
       uses: actions/cache@v3
