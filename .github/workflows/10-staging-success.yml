@@ -1,15 +1,15 @@
-name: "Development Success"
+name: "Staging Success"
 
 on:
   repository_dispatch:
-    types: trigger-development-success
+    types: trigger-staging-success
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
   succeed:
-    name: Development Success Confirmation
+    name: Staging Success Confirmation
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != 'CodeApprover')
