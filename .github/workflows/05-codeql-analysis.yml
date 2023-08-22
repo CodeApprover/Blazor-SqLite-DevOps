@@ -1,8 +1,17 @@
 ---
 name: "CodeQL Analysis"  # https://github.com/github/codeql
 
-# Executes code and security analysis using CodeQL for the code-staging and code-production branches.
-# If successful, triggers SuperLiner for production code or proceeds to the versioning workflow for staging.
+# Runs code and security analysis using the CodeQL tool.
+# Executes for the code-staging and code-production branches only.
+
+# 1 - Checkout Repository: Pulls the current state of the repository using the payload SHA.
+# 2 - Initialize CodeQL: Sets up the CodeQL environment for the specified languages (C# and JavaScript).
+# 3 - Setup .NET Environment: Installs the specified .NET version.
+# 4 - Retrieve Cached dotnet Dependencies: Attempts to fetch cached .NET dependencies to expedite the restoration process.
+# 5 - Restore Dependencies: Restores necessary .NET dependencies. If cache retrieval fails, it performs a fresh restore.
+# 6 - Dotnet Build: Compiles the code using the .NET framework.
+# 7 - Perform CodeQL Analysis: Executes the CodeQL tool to conduct a code and security analysis.
+# 8 - If successful, triggers SuperLiner for production code or proceeds to the versioning workflow for staging.
 
 # Exit Codes
 # 34 - Dotnet restore failed
