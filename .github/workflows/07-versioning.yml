@@ -154,4 +154,3 @@ jobs:
           -H "Accept: application/vnd.github.v3+json" \
           -d "$BASE$SHA$CSPROJ$BRANCH$END" \
           "https://api.github.com/repos/${{ github.repository }}/dispatches"
-
