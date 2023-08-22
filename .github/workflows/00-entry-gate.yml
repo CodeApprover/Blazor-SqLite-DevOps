@@ -2,6 +2,13 @@
 name: "Commit Verification and Report"
 
 # Verifies the integrity of commits, reports on commit details, cleans up old versioning tags, triggers subsequent workflow.
+# 1 - Workflow Overview: Presents a detailed breakdown of the workflow's objectives and steps.
+# 2 - Checkout SHA Repository: Retrieves the commit using its SHA and performs a deep fetch.
+# 3 - Validate SHA: Ensures the correct SHA was checked out, or exits with an error.
+# 4 - Validate SHA Branch: Checks for the branch linked to the SHA and flags any inconsistencies.
+# 5 - Validate .csproj: Confirms the existence of a specific .csproj file in a designated directory.
+# 6 - Report Commit Details: Provides an extensive report on the commit, GitHub setup, and execution environment.
+# 7 - Trigger Next Workflow: Initiates another GitHub Actions workflow, with built-in retries on failures
 
 # Exit Codes
 # 30 - SHA checkout failure.
