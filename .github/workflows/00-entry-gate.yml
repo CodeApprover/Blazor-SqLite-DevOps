@@ -138,7 +138,10 @@ jobs:
       if: success()
       run: |
         echo "##[info] Triggering next workflow."        
-        trigger="trigger-cache-dependencies"
+        
+        #trigger="trigger-cache-dependencies"
+        trigger="trigger-lockfile-checker" # TODO Remove
+        
         MAX_RETRIES=${{ vars.MAX_RETRIES }}
         WAIT_TIME=${{ vars.WAIT_SECONDS }}
 
