@@ -1,7 +1,11 @@
 ---
 name: "StyleCop Linter"
 
-# Lints C Sharp and JavaScript for all verified commits
+# Lints C# (C Sharp) and JavaScript code for verified commits using StyleCop tool.
+# 1 - Sets .NET environment
+# 2 - Retrieves cached dotnet restore nuget packages.
+# 3 - Performs a build with StyleCop enabled.
+# 4 - Upon successful linting, it triggers the subsequent, appropriate code-testing suite.
 
 # Exit Codes
 # 34 - Dotnet restore failed.
