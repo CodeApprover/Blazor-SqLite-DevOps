@@ -65,7 +65,7 @@ jobs:
         echo "##[info] Latest Tag = $latest_tag"
         echo "NEW_VERSION=${latest_tag}" >> $GITHUB_ENV
 
-    - name: Build and push Docker image
+    - name: Build and Push Docker image
       run: |
         docker_repo=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }} > /dev/null; then
@@ -80,7 +80,7 @@ jobs:
             CMD+="-f \"${docker_file}\" \"${{ github.workspace }}\" "
             echo "##[info] Docker build command is $CMD"
             eval ${CMD} || (echo "##[error] Docker build failed" && exit 49)
-            CMD="docker push \"${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}\"
+            CMD="docker push \"${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}\""
             eval ${CMD} || (echo "##[error] Docker push failed" && exit 50)
         fi
 
