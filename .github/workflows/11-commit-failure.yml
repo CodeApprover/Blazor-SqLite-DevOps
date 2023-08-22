@@ -1,27 +1,26 @@
 ---
-name: "SHA Failure"
+name: "Commit Failure"
 
 on:
   workflow_run:
     workflows:
-      - Report
+      - Commit Verification and Report
       - Cache Dependencies
       - StyleCop Linter
       - Development Tests
       - Staging Tests
       - Production Tests
-      - CodeQL
-      - Superlinter
       - Check Lock File
+      - CodeQL Analysis
+      - Superlinter
       - Versioning
       - Deploy Docker
       - Deploy Git
-      - SHA Success
+      - Development Success
+      - Staging Success
+      - Production Success
     types:
       - failure
-
-env:
-  PROJ_NAME: "Blazor SqlLite Golf Club"
 
 jobs:
 
@@ -29,6 +28,7 @@ jobs:
     name: Revert Failed Commit
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    #if: (github.actor != 'CodeApprover')
 
     steps:
     
