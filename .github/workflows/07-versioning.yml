@@ -62,49 +62,17 @@ jobs:
               git push origin --delete $TAG || (echo "##[error] Failed to push tag deletion." && exit 43)
           done
 
-          # Get the latest tag based on SemVer -V
-          tags=( $(git tag) )
-          latest_major=0
-          latest_minor=0
-          latest_patch=0
-          
-          for tag in "${tags[@]}"; do
-              current_major=$(echo $tag | cut -d. -f1 | sed 's/^v//')
-              current_minor=$(echo $tag | cut -d. -f2)
-              current_patch=$(echo $tag | cut -d. -f3)
-          
-              # Check major
-              if (( current_major > latest_major )); then
-                  latest_major=$current_major
-                  latest_minor=$current_minor
-                  latest_patch=$current_patch
-              elif (( current_major == latest_major )); then
-                  # Check minor
-                  if (( current_minor > latest_minor )); then
-                      latest_minor=$current_minor
-                      latest_patch=$current_patch
-                  elif (( current_minor == latest_minor )); then
-                      # Check patch
-                      if (( current_patch > latest_patch )); then
-                          latest_patch=$current_patch
-                      fi
-                  fi
-              fi
-          done
-
-          current_tag="v$latest_major.$latest_minor.$latest_patch"
-          echo "##[info] Current Tag = $current_tag"
-          echo "CURRENT_TAG=${current_tag}" >> $GITHUB_ENV
-
-      - name: Increment SemVer version number
+      - name: Increment SemVer 2.0 version number
         run: |
+          # Get the latest tag based on SemVer
+          latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+          echo "##[info] Latest Tag = $latest_tag"
+
           # Strip 'v' and SemVer split
-          version=$(echo "${{ env.CURRENT_TAG }}" | sed 's/^v//')
+          version=$(echo $latest_tag | sed 's/^v//')
           major=$(echo $version  | cut -d. -f1)
           minor=$(echo $version  | cut -d. -f2)
           patch=$(echo $version  | cut -d. -f3)
-          
-          echo "##[debug] Current tag has major.minor.patch == $major.$minor.$patch"
           
           # Increment for required environment
           case "${{ env.SHA_BRANCH }}" in
