@@ -7,7 +7,7 @@ name: "StyleCop Linter"
 # 1 - Sets .NET environment.
 # 2 - Retrieves cached dotnet restore nuget packages.
 # 3 - Performs a build with StyleCop enabled.
-# 4 - Upon successful linting, it triggers the subsequent, appropriate code-testing suite.
+# 4 - Upon successful linting, it triggers the appropriate code-testing suite.
 
 # Exit Codes
 # 34 - Dotnet restore failed.
