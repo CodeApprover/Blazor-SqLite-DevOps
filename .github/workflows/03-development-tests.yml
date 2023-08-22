@@ -1,6 +1,8 @@
 ---
 name: "Development Tests"
 
+# Development environment test suite for code-develoment branch.
+
 on:
   repository_dispatch:
     types: trigger-development-tests
@@ -32,7 +34,7 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
-    - name: Install dependencies
+    - name: Install Test Suite Dependencies
       run: |
         if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
           test_type="Nunit_Player_Unit_Tests"
@@ -43,7 +45,7 @@ jobs:
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
 
-    - name: Run Nunit and Xunit unit tests
+    - name: Run Nunit and Xunit Unit Tests
       run: |
         if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
           test_type="Nunit_Player_Unit_Tests"
@@ -69,6 +71,7 @@ jobs:
     steps:
 
     - name: Trigger Next Workflow # 04-lockfile-checker.yml
+      if: success()
       run: |
         trigger="trigger-lockfile-checker"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
