@@ -3,7 +3,7 @@ name: "Deploy Git"
 
 on:
   repository_dispatch:
-    types: "trigger-deploy-git"
+    types: trigger-deploy-git
 
 env:
   PROJ_NAME: "Blazor-SqLite-Golf-Club"
@@ -12,7 +12,7 @@ jobs:
   deploy-to-environment:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     steps:
 
@@ -127,12 +127,25 @@ jobs:
         git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
         git push origin ${{ env.DEPLOY_BRANCH }}
 
-    - name: Trigger Success Workflow
+    - name: Trigger Next Workflow # 10-development-success.yml | 10-staging-success.yml | 10-production-success.yml
       if: success()
       run: |
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\": \"trigger-success\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
-        eval ${CMD}
+        case "${{ env.SHA_BRANCH }}" in
+          code-development) trigger="trigger-development-success" ;;
+          code-staging) trigger="trigger-staging-success" ;;
+          code-production) trigger="trigger-production-success" ;;
+        esac
+        echo "##[info] Calling $trigger"
+
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        END="}}"
+
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
+
