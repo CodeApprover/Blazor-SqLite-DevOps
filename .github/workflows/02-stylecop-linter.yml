@@ -2,7 +2,9 @@
 name: "StyleCop Linter"
 
 # Lints C# (C Sharp) and JavaScript code for verified commits using StyleCop tool.
-# 1 - Sets .NET environment
+# Operates for the code-development, code-staging and code-production branches.
+
+# 1 - Sets .NET environment.
 # 2 - Retrieves cached dotnet restore nuget packages.
 # 3 - Performs a build with StyleCop enabled.
 # 4 - Upon successful linting, it triggers the subsequent, appropriate code-testing suite.
