@@ -1,8 +1,9 @@
 ---
 name: "Versioning"
 
+# Sets a version number for the SHA commint using SemVer 2.0 notation.
 # Triggered by a repository_dispatch event "trigger-versioning".
-# Operates for the code-development, code-staging and code-production branches.
+# Executes for the code-development, code-staging and code-production branches.
 
 # 1 - Checks out the repo using the SHA provided by the dispatch payload.
 # 2 - Determines the latest version tag, and increments based on branch name (production, staging, or development).
