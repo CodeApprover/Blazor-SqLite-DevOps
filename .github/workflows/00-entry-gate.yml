@@ -95,21 +95,31 @@ jobs:
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
 
+    - name: Sanitise Untrusted User-Controlled Commit Details # security harden vs injection threats
+      env:
+        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+        COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+      run: |
+        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
+    
     - name: Report Commit Details
       run: |
         echo "Reporting details of the commit, GitHub environment and runner specifics."
-
+    
         echo "-------------------------------------------------"
         echo "----- COMMIT DETAILS ----------------------------"
         echo "-------------------------------------------------"
-        echo "Branch Name: ${{ env.SHA_BRANCH }}"
+        echo "Branch Name: $SHA_BRANCH"
         echo "Commit SHA: ${{ github.sha }}"
-        echo "Commit Message: ${{ github.event.head_commit.message }}"
-        echo "Commit Author: ${{ github.event.head_commit.author.name }}"
-        echo "Committer Email: ${{ github.event.head_commit.author.email }}"
+        echo "Commit Message: $COMMIT_MESSAGE"
+        echo "Commit Author: $COMMIT_AUTHOR_NAME"
+        echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
         echo "Pusher Name: ${{ github.event.pusher.name }}"
         echo "Actor: ${{ github.actor }}"
-
+    
         echo "-------------------------------------------------"
         echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
         echo "-------------------------------------------------"
@@ -126,7 +136,7 @@ jobs:
         echo "Workspace: ${{ github.workspace }}"
         [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
         [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
-
+    
         echo "-------------------------------------------------"
         echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
         echo "-------------------------------------------------"
