@@ -6,7 +6,9 @@ on:
     types: trigger-deploy-git
 
 env:
-  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+  SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
   deploy-to-environment:
