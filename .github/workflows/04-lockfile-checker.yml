@@ -1,10 +1,12 @@
 ---
 name: "Check Lock File"
 
-# Workflow to manage lock files for sequential task execution within a branch.
-# 1.  Creates a lock file if none exists.
-# 2. Checks and waits for an existing lock file to be released.
-# 3. Once lock file checks pass, creates a lock and triggers the next workflow.
+# Manages lock files for sequential task execution within a branch.
+# Operates for the code-development, code-staging and code-production branches.
+
+# 1 - Creates a lock file if none exists.
+# 2 - Checks and waits for an existing lock file to be released.
+# 3 - Once lock file checks pass, creates a lock and triggers the next workflow.
 
 # Exit Codes
 # 36 - Failed to push lock file.
