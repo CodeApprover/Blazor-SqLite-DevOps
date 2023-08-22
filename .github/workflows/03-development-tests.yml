@@ -32,21 +32,6 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
-    - name: Set Git user
-      run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-
-    - name: Validate Branch
-      run: |
-        CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
-        if [[ "$CURRENT_BRANCH" != "code-development" ]]; then
-          echo "##[error] $CURRENT_BRANCH is not code-development --> Exiting 2"
-          exit 2
-        else
-          echo "Confirmed current branch $CURRENT_BRANCH == code-development"
-        fi
-
     - name: Retrieve Cached dotnet Dependencies
       id: cache-dotnet-restore
       uses: actions/cache@v3
