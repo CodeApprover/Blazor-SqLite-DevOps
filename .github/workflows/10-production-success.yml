@@ -10,7 +10,7 @@ env:
 
 jobs:
   succeed:
-    name: Development Success Confirmation
+    name: Production Success Confirmation
     runs-on: ubuntu-latest
     timeout-minutes: 15
     #if: (github.actor != 'CodeApprover')
