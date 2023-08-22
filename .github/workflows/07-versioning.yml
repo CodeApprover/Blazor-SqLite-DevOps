@@ -22,7 +22,7 @@ jobs:
   version-and-tag:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     steps:
 
@@ -54,11 +54,18 @@ jobs:
           git config user.email "pucfada@pm.me"
           echo "##[debug] Git user configured."
 
+      - name: Cleanup Redundant Versioning Tags
+        run: |
+          echo "##[info] Deleting versioning tags skipping the 12 most recent."
+          DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
+          for TAG in $DELETE_TAGS; do
+              git tag -d $TAG
+              git push origin --delete $TAG
+          done
+
       - name: Determine latest version tag
         run: |
-          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 2' ERR
           git fetch --tags
-
           if [ -z "$(git tag)" ]; then
             echo "##[debug] No tags found. Exiting."
             exit 2            
@@ -129,16 +136,22 @@ jobs:
 
       - name: Tag repository with new version
         run: |
-          trap 'echo "##[error] Error on line $LINENO: $BASH_COMMAND"; exit 3' ERR
           git tag "${{ env.NEW_VERSION }}"
           git push origin "${{ env.NEW_VERSION }}"
 
-      - name: Trigger Docker Publish Workflow
+      - name: Trigger Next Workflow # 08-deploy-docker.yml
         if: success()
         run: |
-          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-          CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-          CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-          CMD+="-d '{\"event_type\": \"trigger-deploy-docker\", "
-          CMD+="\"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}'"
-          eval ${CMD}
+          trigger="trigger-deploy-docker"
+          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+          SHA="\"sha\": \"${{ env.SHA }}\","
+          CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+          BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+          END="}}"
+
+          curl -s -o /dev/null -X POST \
+          -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+          "https://api.github.com/repos/${{ github.repository }}/dispatches"
+
