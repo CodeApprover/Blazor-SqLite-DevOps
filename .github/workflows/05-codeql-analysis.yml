@@ -1,9 +1,16 @@
 ---
-name: "CodeQL"  # https://github.com/github/codeql
+name: "CodeQL Analysis"  # https://github.com/github/codeql
+
+# Staging and Production Environmnet Code analysis
+
+# Exit Codes
+# 34 - Dotnet restore failed
+# 35 - Dotnet build failed
 
 on:
   repository_dispatch:
     types: trigger-codeql-analysis
+
 env:
   SHA: ${{ github.event.client_payload.sha }}
   BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
@@ -53,11 +60,32 @@ jobs:
       - name: Restore Dependencies
         run: |
           if [ "${{ steps.cache-dotnet-restore.outputs.cache-hit }}" != 'true' ]; then
-            dotnet restore --no-cache "$CSPROJ"
+            dotnet restore --no-cache "$CSPROJ" || (echo "##[error] Dotnet restore failed" && exit 34)
           fi
 
       - name: Dotnet build
-        run: dotnet build --no-restore $CSPROJ
+        run: dotnet build --no-restore $CSPROJ  || (echo "##[error] Dotnet restore failed" && exit 35)
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+
+      - name: Trigger Next Workflow # production 06-superlinter.yml | staging 07-versioning.yml
+        if: success()
+        run: |
+          trigger="trigger-superlinter"
+          if [ "${{ env.SHA_BRANCH }}" == "code-staging" ]; then
+              trigger="trigger-versioning"
+          fi
+          echo "##[info] Calling $trigger"
+
+          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+          SHA="\"sha\": \"${{ env.SHA }}\","
+          CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+          BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+          END="}}"
+
+          curl -s -o /dev/null -X POST \
+          -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+          "https://api.github.com/repos/${{ github.repository }}/dispatches"
