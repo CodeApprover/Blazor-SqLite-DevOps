@@ -11,6 +11,13 @@ name: "Deploy Docker"
 # 5 - Docker Build & Push: Check for existing Docker image, build and push if not found.
 # 6 - Trigger Workflow: If successful, initiate another GitHub workflow (09-deploy-git.yml).
 
+# Exit Codes
+# 47 - No tags found.
+# 48 - Dockerfile not found.
+# 49 - Dockerfile build failed.
+# 50 - Dockerfile push failed.
+
+
 on:
   repository_dispatch:
     types: trigger-deploy-docker
@@ -51,8 +58,8 @@ jobs:
       run: |
         git fetch --tags
         if [ -z "$(git tag)" ]; then
-          echo "##[error] No tags found. Exiting."
-          exit 1
+            echo "##[error] No tags found --> Exit 47"
+            exit 47
         fi
         latest_tag=$(git tag | sort -V | tail -n 1)     
         echo "##[info] Latest Tag = $latest_tag"
@@ -62,15 +69,19 @@ jobs:
       run: |
         docker_repo=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }} > /dev/null; then
-          echo "Docker image already exists! Skipping Docker push."
+            echo "Docker image already exists! Skipping Docker push."
         else
-          docker_file=$(find ./$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') -name "Dockerfile" | head -n 1)
-          if [[ ! -f "$docker_file" ]]; then
-            echo "##[error] Dockerfile not found for ${{ env.SHA }}"
-            exit 2
-          fi
-          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}" -f "${docker_file}" "${{ github.workspace }}"
-          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}"
+            docker_file=$(find ./$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') -name "Dockerfile" | head -n 1)
+            if [[ ! -f "$docker_file" ]]; then
+                echo "##[error] Dockerfile not found for ${{ env.SHA }} --> Exit 48"
+                exit 48
+            fi
+            CMD="docker build -t \"${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}\" "
+            CMD+="-f \"${docker_file}\" \"${{ github.workspace }}\" "
+            echo "##[info] Docker build command is $CMD"
+            eval ${CMD} || (echo "##[error] Docker build failed" && exit 49)
+            CMD="docker push \"${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}\"
+            eval ${CMD} || (echo "##[error] Docker push failed" && exit 50)
         fi
 
     - name: Trigger Next Workflow # 09-deploy-git.yml
