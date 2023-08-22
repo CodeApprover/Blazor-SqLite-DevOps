@@ -1,6 +1,20 @@
 ---
 name: "Deploy Git"
 
+# Deploy changes from the source environment to the target environment
+# Then trigger the successful deployment workflow based on the branch.
+
+# 1 -  Checkout SHA repository.
+# 2 -  Check and Remove Lock File for Payload SHA.
+# 3 -  Set Next Deployment Environment: Determines the target deployment environment based on the source branch.
+# 4 -  Set required source directory.
+# 5 -  Archive development directory.
+# 6 -  Checkout target branch.
+# 7 -  Download archived development directory.
+# 8 -  Synchronize target dir with source dir.
+# 9 -  Commit changes and push to target branch.
+# 10 - Trigger appropriate 'successful deployment' workflow.
+
 on:
   repository_dispatch:
     types: trigger-deploy-git
@@ -18,59 +32,44 @@ jobs:
 
     steps:
 
-    - name: Report SHA and Workflow Timestamp
-      run: |
-        echo "${{ github.event.client_payload.sha }}"
-        date
-    
-    - name: Extract SHA for Checkout
-      run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
-
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
-    - name: Extract Branch Name from SHA Commit
+    - name: Check and Remove Lock File for Payload SHA
       run: |
-        branch=$(git branch -r --contains ${{ env.SHA }} | grep 'origin/' | sed 's#origin/##' | head -n 1 | xargs)
-        echo "BRANCH_NAME=${branch}" >> $GITHUB_ENV
-
-    - name: Check and Remove Lock File with Specific SHA
-      run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
-        echo "##[debug] Branch is ${{ env.BRANCH_NAME }}"
-        lock_file=${branch_lock_map[${{ env.BRANCH_NAME }}]}
-        echo "##[debug] lock_file is $lock_file"
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-        # Force branch refresh
-        git fetch origin ${{ env.BRANCH_NAME }}
-        git checkout ${{ env.BRANCH_NAME }}
+        lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
+        echo "##[info] Lock file set as $lock_file"
         
         # Check if the lock file contains the specific SHA
-        if [[ $(cat "$lock_file") == "${{ github.event.client_payload.sha }}" ]]; then
-          echo "Lock file with SHA ${{ github.event.client_payload.sha }} found on branch ${{ env.BRANCH_NAME }}"
+        git fetch origin ${{ env.SHA_BRANCH }}
+        git checkout ${{ env.SHA_BRANCH }}
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+
+        if [[ $(cat "$lock_file") == "${{ env.SHA }}" ]]; then
+          echo "Lock file with SHA ${{ env.SHA }} found on branch ${{ env.SHA_BRANCH }}"
           git rm "$lock_file"
-          git commit -m "Removed lock after versioning [skip ci]"
-          git push origin "${{ env.BRANCH_NAME }}"
+          git commit -m "Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
+          git push origin "${{ env.SHA_BRANCH }}"
         else
-          echo "Lock file with SHA ${{ github.event.client_payload.sha }} not found on branch ${{ env.BRANCH_NAME }}. Exiting."
-          exit 1
+          echo "##[error] Lock file with SHA ${{ env.SHA }} not found on branch ${{ env.SHA_BRANCH }}."
+          exit 55
         fi
 
-    - name: Determine Deploy Branch and Directories
+    - name: Set Next Deployment Environment
       run: |
         deploy_branch="Invalid"
         directory="Invalid"
         
-        case "${{ env.BRANCH_NAME }}" in
+        case "${{ env.SHA_BRANCH }}" in
           "code-development")
             deploy_branch="code-staging"
             directory="development"
@@ -84,19 +83,12 @@ jobs:
             exit 0
             ;;
         esac
-        
-        if [[ "$deploy_branch" == "Invalid" ]]; then
-          echo "Error: Invalid deployment branch determined."
-          exit 1
-        fi
-        
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    - name: Locate required source directory
+    - name: Set required source directory
       run: |
-        branch_suffix=${BRANCH_NAME#code-}
-        dir_path=$(find $GITHUB_WORKSPACE -type d -name "$branch_suffix" -print | head -n 1)
+        dir_path=$(find ${{ github.workspace }} -type d -name "${${{ env.SHA_BRANCH }}#code-}" -print | head -n 1)
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
     - name: Archive development directory
@@ -119,7 +111,7 @@ jobs:
     - name: Synchronize target dir with source dir
       run: |
         echo "Synchronizing target dir with source dir using rsync:"
-        rsync -av --delete --checksum /tmp/temp-dir/ $GITHUB_WORKSPACE/${{ env.DIRECTORY }}/
+        rsync -av --delete --checksum /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
 
     - name: Commit changes and push to target branch 
       run: |
@@ -142,7 +134,7 @@ jobs:
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
 
         curl -s -o /dev/null -X POST \
