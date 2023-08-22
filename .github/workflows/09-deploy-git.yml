@@ -15,6 +15,10 @@ name: "Deploy Git"
 # 9 -  Commit changes and push to target branch.
 # 10 - Trigger appropriate 'successful deployment' workflow.
 
+# Exit Codes
+# 45 - Lock file with correct SHA not found on branch.
+# 46 - Source directory does not exist or is empty.
+
 on:
   repository_dispatch:
     types: trigger-deploy-git
@@ -60,8 +64,8 @@ jobs:
           git commit -m "Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
           git push origin "${{ env.SHA_BRANCH }}"
         else
-          echo "##[error] Lock file with SHA ${{ env.SHA }} not found on branch ${{ env.SHA_BRANCH }}."
-          exit 55
+          echo "##[error] Lock file with SHA ${{ env.SHA }} not found on branch ${{ env.SHA_BRANCH }} --> Exit 45"
+          exit 45
         fi
 
     - name: Set Next Deployment Environment
@@ -86,9 +90,16 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    - name: Set required source directory
+    - name: Set required source directory # development | staging | produciotn
       run: |
-        dir_path=$(find ${{ github.workspace }} -type d -name "${${{ env.SHA_BRANCH }}#code-}" -print | head -n 1)
+        src_dir=${{ env.SHA_BRANCH }}
+        src_dir=${src_dir#code-}
+        dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
+        dir_path="/path/to/your/directory"
+        if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
+          echo "##[error] Source directory does not exist or is empty --> Exit 46"
+          exit 46
+        fi
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
     - name: Archive development directory
@@ -142,4 +153,3 @@ jobs:
         -H "Accept: application/vnd.github.v3+json" \
         -d "$BASE$SHA$CSPROJ$BRANCH$END" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches"
-
