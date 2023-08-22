@@ -37,3 +37,18 @@ jobs:
           DEFAULT_BRANCH: ${{ github.ref }}
           GITHUB_TOKEN: ${{ secrets.AUTH }}
           JSCPD_CONFIG_FILE: .jscpd.json
+
+      - name: Trigger Next Workflow # 08-deploy-docker.yml
+        run: |
+          trigger="trigger-deploy-docker"
+          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+          SHA="\"sha\": \"${{ env.SHA }}\","
+          CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+          BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+          END="}}"
+
+          curl -s -o /dev/null -X POST \
+          -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+          "https://api.github.com/repos/${{ github.repository }}/dispatches"
