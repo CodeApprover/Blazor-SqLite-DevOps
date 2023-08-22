@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['csharp']
+        language: ['csharp', 'javascript']
 
     steps:
 
@@ -52,14 +52,12 @@ jobs:
 
       - name: Restore Dependencies
         run: |
-          if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
-          CMD="dotnet restore --no-cache \"$CSPROJ\""
-          eval "$CMD"
+          if [ "${{ steps.cache-dotnet-restore.outputs.cache-hit }}" != 'true' ]; then
+            dotnet restore --no-cache "$CSPROJ"
+          fi
 
       - name: Dotnet build
-        run: |
-          CMD="dotnet build --no-restore \"$CSPROJ\""
-          eval "$CMD"
+        run: dotnet build --no-restore $CSPROJ
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
