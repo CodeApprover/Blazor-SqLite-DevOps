@@ -39,14 +39,11 @@ jobs:
 
     - name: Determine next version tag
       run: |
-        trap 'echo "Error on line $LINENO: $BASH_COMMAND"; exit 1' ERR
         git fetch --tags
         if [ -z "$(git tag)" ]; then
           echo "##[error] No tags found. Exiting."
           exit 1
         fi
-        
-        # Get the latest tag based on SemVer -V
         latest_tag=$(git tag | sort -V | tail -n 1)     
         echo "##[info] Latest Tag = $latest_tag"
         echo "NEW_VERSION=${latest_tag}" >> $GITHUB_ENV
@@ -58,11 +55,10 @@ jobs:
         else
           docker_file=$(find ./$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//') -name "Dockerfile" | head -n 1)
           if [[ ! -f "$docker_file" ]]; then
-            echo "Dockerfile not found for ${{ env.SAH }}"
-            exit 1
+            echo "##[error] Dockerfile not found for ${{ env.SHA }}"
+            exit 2
           fi
-          echo "Running docker build with: -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}""
-          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }} -f "${docker_file}" "${{ github.workspace }}"
+          docker build -t "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}" -f "${docker_file}" "${{ github.workspace }}"
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}"
         fi
 
