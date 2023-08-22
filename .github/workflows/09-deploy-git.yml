@@ -128,7 +128,7 @@ jobs:
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
         git add -A
-        git commit -m "Migrating changes from ${{ env.BRANCH_NAME }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
+        git commit -m "Migrating changes from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
         git push origin ${{ env.DEPLOY_BRANCH }}
 
     - name: Trigger Next Workflow # 10-development-success.yml | 10-staging-success.yml | 10-production-success.yml
