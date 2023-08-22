@@ -1,26 +1,96 @@
+---
 name: "Development Success"
 
 on:
-  workflow_run:
-    workflows:
-      - Report
-      - StyleCop Linter
-      - Development Tests
-      - Check Lock File
-      - CodeQL
-      - Superlinter
-      - Versioning
-      - Deploy Docker
-      - Deploy Git
-    types:
-      - completed
+  repository_dispatch:
+    types: "trigger-development-success"
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
 
 jobs:
   succeed:
     name: Development Success Confirmation
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
+
+    steps:
+
+    - name: Download archived SHA
+      uses: actions/download-artifact@v3
+      with:
+        name: sha-archive
+        path: $RUNNER_TEMP/
+
+    - name: Use the SHA (example)
+      run: |
+        SHA=$(cat /$RUNNER_TEMP/payload.sha)
+        echo "SHA=$SHA" >> $GITHUB_ENV
+    
+    - name: Report SHA and workflow date
+      run: |
+        echo "${{ github.env.sha }}"
+        date
+
+    - name: Check Previous Workflow Statuses for Development
+      run: |
+        GITHUB_REPO=${{ github.repository }}
+        COMMIT_SHA=${{ github.env.sha }}
+        TOKEN=${{ secrets.AUTH }}
+
+        function check_workflow_status() {
+          WORKFLOW_NAME=$1
+          # Fetch the status of the given workflow for the specific commit SHA
+          STATUS=$(curl -s -H "Authorization: token $TOKEN" \
+                       -H "Accept: application/vnd.github.v3+json" \
+                       "https://api.github.com/repos/$GITHUB_REPO/commits/$COMMIT_SHA/check-runs" \
+                       | jq -r ".check_runs[] | select(.name == \"$WORKFLOW_NAME\") | .conclusion")
+
+          if [[ $STATUS != "success" ]]; then
+            echo "Workflow $WORKFLOW_NAME did not succeed"
+            exit 1
+          fi
+        }
+
+        # Check each workflow status for development branch
+        check_workflow_status "Report"
+        check_workflow_status "StyleCop Linter"
+        check_workflow_status "Development Tests"
+        check_workflow_status "Check Lock File"
+        check_workflow_status "Versioning"
+        check_workflow_status "Deploy Docker"
+        check_workflow_status "Deploy Git"
+      shell: bash
+
+    - name: Publish success status
+      run: |
+        # Make a curl request to update the commit status
+        curl -X POST \
+        -H "Authorization: token ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.env.sha }} \
+        -d '{
+          "state": "success",
+          "description": "All development workflows succeeded.",
+          "context": "status/${{ github.workflow }}"
+        }' || exit 1
+---
+name: "Development Success"
+
+on:
+  repository_dispatch:
+    types: "trigger-development-success"
+
+env:
+  PROJ_NAME: "Blazor-SqLite-Golf-Club"
+
+jobs:
+  succeed:
+    name: Development Success Confirmation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    #if: (github.actor != 'CodeApprover')
 
     steps:
 
