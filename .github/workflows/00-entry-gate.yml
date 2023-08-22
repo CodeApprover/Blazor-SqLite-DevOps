@@ -2,6 +2,8 @@
 name: "Commit Verification and Report"
 
 # Verifies the integrity of commits, reports on commit details, cleans up old versioning tags, triggers subsequent workflow.
+# Operates for the code-development, code-staging and code-production branches.
+
 # 1 - Workflow Overview: Presents a detailed breakdown of the workflow's objectives and steps.
 # 2 - Checkout SHA Repository: Retrieves the commit using its SHA and performs a deep fetch.
 # 3 - Validate SHA: Ensures the correct SHA was checked out, or exits with an error.
