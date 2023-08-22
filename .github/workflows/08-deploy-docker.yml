@@ -3,24 +3,21 @@ name: "Deploy Docker"
 
 on:
   repository_dispatch:
-    types: "trigger-deploy-docker"
+    types: trigger-deploy-docker
 
 env:
-  PROJ_NAME: "Blazor-SqLite-Golf-Club"
-  DOCKER_REPO: "blazor-sqlite-devops"
+  SHA: ${{ github.event.client_payload.sha }}
+  BRANCH_NAME: ${{ github.event.client_payload.branch_name }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
+
   save-docker-image:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    #if: (github.actor != 'CodeApprover')
 
     steps:
-
-    - name: Report SHA and workflow timestamp
-      run: |
-        echo "${{ github.event.client_payload.sha }}"
-        date
     
     - name: Checkout SHA repository
       uses: actions/checkout@v3.5.3
@@ -46,15 +43,6 @@ jobs:
         echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
         sudo systemctl restart docker
         docker version
-
-    - name: Extract Branch Name from SHA Commit
-      run: |
-        branch=$(git branch -r --contains ${{ github.event.client_payload.sha }} | sed -n 's#^ *origin/##p' | head -n 1)
-        if [[ -z "$branch" ]]; then
-          echo "Failed to extract branch name for SHA: ${{ github.event.client_payload.sha }}"
-          exit 1
-        fi
-        echo "BRANCH_NAME=$branch" >> $GITHUB_ENV
 
     - name: Set Environment Name
       run: |
@@ -129,12 +117,18 @@ jobs:
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_REPO }}:${{ env.NEW_VERSION }}"
         fi
 
-    - name: Trigger Git Deployment
+    - name: Trigger Next Workflow # 09-deploy-git.yml
       if: success()
       run: |
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/\"${{ github.repository }}\"/dispatches "
-        CMD+="-d '{\"event_type\": \"trigger-deploy-git\", "
-        CMD+="\"client_payload\": {\"sha\": \"${{ github.event.client_payload.sha }}\"}}'"
-        eval ${CMD}
+        trigger="trigger-deploy-git"
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"branch_name\": \"${{ env.SHA_BRANCH }}\""
+        END="}}"
+
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
