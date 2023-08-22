@@ -54,7 +54,10 @@ jobs:
     - name: Trigger Next Workflow # 02-stylecop-linter.yml
       if: success()
       run: |
-        trigger="trigger-stylecop-linter"
+
+        #trigger="trigger-stylecop-linter"
+        trigger="trigger-development-tests"
+        
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
         SHA="\"sha\": \"${{ env.SHA }}\","
         CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
