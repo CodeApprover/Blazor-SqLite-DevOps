@@ -147,12 +147,7 @@ jobs:
       if: success()
       run: |
         echo "##[info] Triggering next workflow."        
-        
-        #trigger="trigger-cache-dependencies"
-        trigger="trigger-versioning" # TODO Remove
-        
-        MAX_RETRIES=${{ vars.MAX_RETRIES }}
-        WAIT_TIME=${{ vars.WAIT_SECONDS }}
+        trigger="trigger-cache-dependencies"
 
         # Construct Payload for the request        
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
@@ -174,12 +169,12 @@ jobs:
         echo "##[info] curl command is \n$CMD"
 
         # Execute the CURL command with retries
-        echo "##[info] Sending curl request with $MAX_RETRIES at $WAIT_TIME second intervals."
+        echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
         echo "##[info] Calling $trigger"
         echo "Running command: ${CMD}"
 
         retries=0
-        while [[ $retries -lt $MAX_RETRIES ]]; do
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             RESPONSE_BODY=$(eval "$CMD")
             CURL_EXIT_CODE=$?
             RESPONSE_CODE=${RESPONSE_BODY: -3}  # Assumes HTTP status codes are always 3 digits.
@@ -192,13 +187,13 @@ jobs:
                 else
                     echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of $MAX_RETRIES."
                 fi
-                sleep $WAIT_TIME  # Wait before retrying
+                sleep ${{ vars.WAIT_SECONDS }} # Wait before retrying
             elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 206 ]]; then
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
                 break  # Exit the loop after a successful response.
             else
-                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE_CODE. Retrying in $WAIT_TIME seconds..."
-                sleep $WAIT_TIME
+                echo "##[warn] Attempt $((retries+1))/$MAX_RETRIES failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                sleep $${{ vars.WAIT_SECONDS }}
             fi           
             retries=$((retries+1))
         done
@@ -206,7 +201,7 @@ jobs:
         # Check if all retries failed
         if [[ $retries -eq $MAX_RETRIES ]]; then
             echo "##[error] Exhausted retries. Curl command: $CMD"
-            echo "##[error] Failed $MAX_RETRIES retries at $WAIT_TIME seconds triggering workflow."
+            echo "##[error] Failed $MAX_RETRIES retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow."
             echo "##[error] Error on line $LINENO: $BASH_COMMAND --> Exit 33"
             exit 33
         fi
