@@ -24,6 +24,8 @@ jobs:
 
     - name: Use the SHA (example)
       run: |
+        exit 0
+      
         SHA=$(cat /$RUNNER_TEMP/payload.sha)
         echo "SHA=$SHA" >> $GITHUB_ENV
     
