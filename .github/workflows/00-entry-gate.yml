@@ -13,250 +13,321 @@ name: "Commit Verification and Report"
 # 7 - Trigger Next Workflow: Initiates the subsequent cache dependencies workflow, with built-in retries on failures
 
 # Exit Codes
-# 28 - SHA checkout failure.
-# 29 - SHA_BRANCH does not exist.
-# 30 - Approved teams secrets may be null.
-# 31 - Unauthorised committer.
-# 32 - Failure locating .csproj file.
-# 33 - Failed to trigger next workflow.
+# 10 - Secret is null for branch.
+# 11 - Committer is not approved.
+# 12 - SHA checkout failure.
+# 13 - SHA_BRANCH does not exist.
+# 14 - Approved teams secrets may be null.
+# 15 - Unauthorised committer.
+# 16 - Failure locating .csproj file.
+# 17 - Failed to trigger next workflow.
 
 concurrency:
   group: report-${{ github.sha }}
   cancel-in-progress: true
-
-env:
-  DEVEVOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
-  STAGING_TEAM: ${{ secrets.STAGING_TEAM }}
-  PRODUCTION_TEAM: ${{ secrets.PRODUCTION_TEAM }}
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
 
 jobs:
-  accept-commit:
-    name: "Report Usage"
+  set-development-team:
+    name: Set Development Team
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
-
+    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
+    environment:
+      name: development
     steps:
-    - name: Workflow Overview
-      run: |
-        echo "Workflow Overview"
+      - name: Set Approved Development Team
+        run: |
+          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
+          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
-        echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
-        echo "##[info]    This workflow ensures code integrity for pushes to the"
-        echo "##[info]    'code-development', 'code-production', and 'code-staging' branches."
-        echo "##[info]    It serves as an entry gate for pre-validation and debugging."
-        echo "##[info]    Execution Sequence:"
-        echo "##[info]      1. **Setup and Description**"
-        echo "##[info]      2. **Checkout SHA Repository** retrieves the commit SHA."
-        echo "##[info]      3. **Validate SHA** confirms checkout success and captures SHA."
-        echo "##[info]      4. **Validate SHA Branch** confirms branch existence and captures its name."
-        echo "##[info]      5. **Validate .csproj** locates .csproj file and captures its path."
-        echo "##[info]      6. **Report Commit Details** reports on commit specifics and environment."
-        echo "##[info]      7. **Cleanup Redundant Tags** keeps the latest 12 git versioning tags, removing older ones."
-        echo "##[info]      8. **Trigger Next Workflow** activates the next workflow with retries on failures."
+  set-staging-team:
+    name: Set Staging Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
+    environment:
+      name: staging
+    steps:
+      - name: Set Approved Staging Team
+        run: |
+          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
+          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
-    - name: Checkout SHA Repository
-      id: checkout-sha
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ github.sha }}
-        fetch-depth: 0 # deep fetch
+  set-production-team:
+    name: Set Production Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
+    environment:
+      name: production
+    steps:
+      - name: Set Approved Production Team
+        run: |
+          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
+          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
-    - name: Validate SHA
-      run: |
-        echo "##[info] Validating SHA checkout."
-        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 28"
-            exit 28
-        fi
-        echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
-        echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+  authorise-main-committer:
+    name: "Authorise Main Committer"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor == ${{ github.repository_owner }}) # DevOps only
+    environment:
+      name: main
+    steps:
+      - name: Set Approved Main Team
+        run: |
+          APPROVED_TEAM="${{ github.repository_owner }}"
+          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
-    - name: Validate SHA Branch
-      run: |
-        echo "##[info] Validating SHA branch name."
-        branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
-        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-            echo "##[info] Branch $branch detected in ${{ github.repository }}"
-        else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 29"
-            exit 29
-        fi
-        echo "##[info] Successfully validated SHA branch name $branch."
-        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+  validate-committer:
+    name: "Validate Committer"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
+    steps:
+      - name: Validate Committer
+        run: |
+          APPROVED_TEAM="${{ env.APPROVED_TEAM }}"
+          if [[ -z "$APPROVED_TEAM" || "$APPROVED_TEAM" == "${{ github.repository_owner }}," ]]; then
+              echo "##[error] APPROVED_TEAM is null for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
+              exit 10
+          fi
 
-    - name: Sanitise Untrusted User-Controlled Commit Details
-      env:
-        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
-        COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
-      run: |
-        echo "##[info]# Security hardening versus injection threats."
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
+          echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
+          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
+              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
+              exit 11
+          fi
 
-    - name: Verify committer based on branch
-      run: |       
-        echo "##[info]# Security hardening. Setting approved committers based on branch."
-        DEVOPS="${{ github.repository_owner }}"
-        APPROVED_TEAM=""
+  validate-report-commit:
+  
+      name: "Commit Verification and Report"
+      runs-on: ubuntu-latest
+      timeout-minutes: 15
+      if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
+  
+      steps:
+  
+      - name: Workflow Overview
+        run: |
+          echo "Workflow Overview"
 
-        case ${{ env.SHA_BRANCH }} in
-          main)
-            # For main only the owner is allowed
-            APPROVED_TEAM="$DEVOPS"
-            ;;
-          code-development)
-            APPROVED_TEAM="$DEVOPS,${{ env.DEVELOPMENT_TEAM }}"
-            ENV_SECRET="${{ env.DEVELOPMENT_TEAM }}"
-            ;;
-          code-staging)
-            APPROVED_TEAM="$DEVOPS,${{ env.STAGING_TEAM }}"
-            ENV_SECRET="${{ env.STAGING_TEAM }}"
-            ;;
-          code-production)
-            APPROVED_TEAM="$DEVOPS,${{ env.PRODUCTION_TEAM }}"
-            ENV_SECRET="${{ env.PRODUCTION_TEAM }}"
-            ;;
-        esac
+          echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
+          echo "##[info]    This workflow ensures code integrity for pushes to the"
+          echo "##[info]    'code-development', 'code-production', and 'code-staging' branches."
+          echo "##[info]    It serves as an entry gate for pre-validation and debugging."
+          echo "##[info]    Execution Sequence:"
+          echo "##[info]      1. **Setup and Description**"
+          echo "##[info]      2. **Checkout SHA Repository** retrieves the commit SHA."
+          echo "##[info]      3. **Validate SHA** confirms checkout success and captures SHA."
+          echo "##[info]      4. **Validate SHA Branch** confirms branch existence and captures its name."
+          echo "##[info]      5. **Validate .csproj** locates .csproj file and captures its path."
+          echo "##[info]      6. **Report Commit Details** reports on commit specifics and environment."
+          echo "##[info]      7. **Cleanup Redundant Tags** keeps the latest 12 git versioning tags, removing older ones."
+          echo "##[info]      8. **Trigger Next Workflow** activates the next workflow with retries on failures."
 
-        echo "##[info]# Approved team is $APPROVED_TEAM"
+      - name: Checkout SHA Repository
+        id: checkout-sha
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0 # deep fetch
 
-        # Security check -> Ensure we have the correct team set
-        if [[ "$APPROVED_TEAM" == *"$DEVOPS,"* && "$APPROVED_TEAM" == "$DEVOPS," || "$APPROVED_TEAM" == "" ]]; then
-            if [[ -z "${{ env.DEVELOPMENT_TEAM }}" ]]; then echo "##[debug]# DEVELOPMENT TEAM is null."; fi
-            if [[ -z "${{ env.STAGING_TEAM }}" ]]; then echo "##[debug]# STAGING TEAM is null."; fi
-            if [[ -z "${{ env.PRODUCTION_TEAM }}" ]]; then echo "##[debug]# PRODUCTION TEAM is null."; fi
-            echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 30"
-            exit 30
-        fi
+      - name: Validate SHA
+        run: |
+          echo "##[info] Validating SHA checkout."
+          if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
+              echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 12"
+              exit 12
+          fi
+          echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
+          echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
 
-        # Security check -> Approve committer
-        echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
-        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
-            echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 31"
-            exit 31
-        fi
+      - name: Validate SHA Branch
+        run: |
+          echo "##[info] Validating SHA branch name."
+          branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
+          if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+              echo "##[info] Branch $branch detected in ${{ github.repository }}"
+          else
+              echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 13"
+              exit 13
+          fi
+          echo "##[info] Successfully validated SHA branch name $branch."
+          echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-    - name: Validate .csproj
-      run: |
-        echo "##[info] Validating .csproj file."
-        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
-        CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
-        if [[ ! -f "$CSPROJ" ]]; then
-            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 32"
-            exit 32
-        fi
-        echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
-        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-    
-    - name: Report Commit Details
-      run: |
-        echo "Reporting details of the commit, GitHub environment and runner specifics."
-    
-        echo "-------------------------------------------------"
-        echo "----- COMMIT DETAILS ----------------------------"
-        echo "-------------------------------------------------"
-        echo "Branch Name: $SHA_BRANCH"
-        echo "Commit SHA: ${{ github.sha }}"
-        echo "Commit Message: $COMMIT_MESSAGE"
-        echo "Commit Author: $COMMIT_AUTHOR_NAME"
-        echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
-        echo "Pusher Name: ${{ github.event.pusher.name }}"
-        echo "Actor: ${{ github.actor }}"
-    
-        echo "-------------------------------------------------"
-        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
-        echo "-------------------------------------------------"
-        echo "Date: $(date)"
-        echo "Event Name: ${{ github.event_name }}"
-        echo "Ref: ${{ github.ref }}"
-        echo "Repository: ${{ github.repository }}"
-        echo "Repository Owner: ${{ github.repository_owner }}"
-        echo "Workflow Name: ${{ github.workflow }}"
-        echo "GitHub Server URL: ${{ github.server_url }}"
-        echo "GitHub API URL: ${{ github.api_url }}"
-        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
-        echo "Runner OS: ${{ runner.os }}"
-        echo "Workspace: ${{ github.workspace }}"
-        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
-        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
-    
-        echo "-------------------------------------------------"
-        echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
-        echo "-------------------------------------------------"
-        echo "Job Name: ${{ github.job }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
-        echo "Runner Name: ${{ runner.name }}"
-        echo "Runner Label: ${{ runner.label }}"
-        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
-        echo "Runner Temp Directory: ${{ runner.temp }}"
-        echo "GitHub Event Before: ${{ github.event.before }}"
-        echo "GitHub Event After: ${{ github.event.after }}"
-        echo "---------------------------------------"
+      - name: Sanitise Untrusted User-Controlled Commit Details
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+        run: |
+          echo "##[info]# Security hardening versus injection threats."
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
+          echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
 
-    - name: Trigger Next Workflow # 01-cache-dependencies.yml
-      if: success()
-      run: |
-        echo "##[info] Triggering next workflow."        
-        trigger="trigger-cache-dependencies"
+      - name: Verify committer based on branch
+        run: |       
+          echo "##[info]# Security hardening. Setting approved committers based on branch."
+          DEVOPS="${{ github.repository_owner }}"
+          APPROVED_TEAM= 
 
-        # Construct Payload for the request        
-        ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\""
-        CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
-        BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
-        PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+          case ${{ env.SHA_BRANCH }} in
+            main)
+              # For main only the owner is allowed
+              APPROVED_TEAM="$DEVOPS"
+              ;;
+            code-development)
+              APPROVED_TEAM="$DEVOPS,${{ env.DEVELOPMENT_TEAM }}"
+              ENV_SECRET="${{ env.DEVELOPMENT_TEAM }}"
+              ;;
+            code-staging)
+              APPROVED_TEAM="$DEVOPS,${{ env.STAGING_TEAM }}"
+              ENV_SECRET="${{ env.STAGING_TEAM }}"
+              ;;
+            code-production)
+              APPROVED_TEAM="$DEVOPS,${{ env.PRODUCTION_TEAM }}"
+              ENV_SECRET="${{ env.PRODUCTION_TEAM }}"
+              ;;
+          esac
 
-        # Construct CURL command        
-        AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
-        REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" "
-        CMD+="-X POST "
-        CMD+="-H \"$AUTH_HEADER\" "
-        CMD+="-H \"$ACCEPT_HEADER\" "
-        CMD+="-d '$PAYLOAD' "
-        CMD+="$REPO_ENDPOINT"
+          echo "##[info]# Approved team is $APPROVED_TEAM"
 
-        # Execute the CURL command with retries
-        echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
-        echo "##[info] Trigger $tigger being calling via ${CMD}"
+          # Security check -> Ensure we have the correct team set
+          if [[ "$APPROVED_TEAM" == *"$DEVOPS,"* && "$APPROVED_TEAM" == "$DEVOPS," || "$APPROVED_TEAM" == "" ]]; then
+              if [[ -z "${{ env.DEVELOPMENT_TEAM }}" ]]; then echo "##[debug]# DEVELOPMENT TEAM is null."; fi
+              if [[ -z "${{ env.STAGING_TEAM }}" ]]; then echo "##[debug]# STAGING TEAM is null."; fi
+              if [[ -z "${{ env.PRODUCTION_TEAM }}" ]]; then echo "##[debug]# PRODUCTION TEAM is null."; fi
+              echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 14"
+              exit 14
+          fi
 
-        retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            RESPONSE_BODY=$(eval "$CMD")
-            CURL_EXIT_CODE=$?
-            RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
-            echo "##[debug] Response body: ${RESPONSE_BODY%???}"
+          # Security check -> Approve committer
+          echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
+          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
+              echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 15"
+              exit 15
+          fi
 
-            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] Curl command failed."
-                if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                    echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                else
-                    echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                fi
-                sleep $WAIT_SECONDS 
-            elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 206 ]]; then
-                echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
-                break
-            else
-                echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                sleep ${{ vars.WAIT_SECONDS }}
-            fi           
-            retries=$((retries+1))
-        done
+      - name: Validate .csproj
+        run: |
+          echo "##[info] Validating .csproj file."
+          DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
+          CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
+          if [[ ! -f "$CSPROJ" ]]; then
+              echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 16"
+              exit 16
+          fi
+          echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
+          echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+      
+      - name: Report Commit Details
+        run: |
+          echo "Reporting details of the commit, GitHub environment and runner specifics."
 
-        # Check if all retries failed
-        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-            echo "##[error] Exhausted retries. Curl command: $CMD"
-            echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 33"
-            exit 33
-        fi
+          echo "-------------------------------------------------"
+          echo "----- COMMIT DETAILS ----------------------------"
+          echo "-------------------------------------------------"
+          echo "Branch Name: $SHA_BRANCH"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Commit Message: $COMMIT_MESSAGE"
+          echo "Commit Author: $COMMIT_AUTHOR_NAME"
+          echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
+          echo "Pusher Name: ${{ github.event.pusher.name }}"
+          echo "Actor: ${{ github.actor }}"
+
+          echo "-------------------------------------------------"
+          echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
+          echo "-------------------------------------------------"
+          echo "Date: $(date)"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository Owner: ${{ github.repository_owner }}"
+          echo "Workflow Name: ${{ github.workflow }}"
+          echo "GitHub Server URL: ${{ github.server_url }}"
+          echo "GitHub API URL: ${{ github.api_url }}"
+          echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Workspace: ${{ github.workspace }}"
+          [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
+          [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
+
+          echo "-------------------------------------------------"
+          echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
+          echo "-------------------------------------------------"
+          echo "Job Name: ${{ github.job }}"
+          echo "Event ID: ${{ github.run_id }}"
+          echo "Run Number: ${{ github.run_number }}"
+          echo "Runner Name: ${{ runner.name }}"
+          echo "Runner Label: ${{ runner.label }}"
+          echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+          echo "Runner Temp Directory: ${{ runner.temp }}"
+          echo "GitHub Event Before: ${{ github.event.before }}"
+          echo "GitHub Event After: ${{ github.event.after }}"
+          echo "---------------------------------------"
+
+      - name: Trigger Next Workflow # 01-cache-dependencies.yml
+        if: success()
+        run: |
+          echo "##[info] Triggering next workflow."        
+          trigger="trigger-cache-dependencies"
+
+          # Construct Payload for the request        
+          ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+          SHA="\"sha\": \"${{ env.SHA }}\""
+          CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
+          BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
+          PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+
+          # Construct CURL command        
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
+          REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
+          CMD="curl -s -o /dev/null -w \"%{http_code}\" "
+          CMD+="-X POST "
+          CMD+="-H \"$AUTH_HEADER\" "
+          CMD+="-H \"$ACCEPT_HEADER\" "
+          CMD+="-d '$PAYLOAD' "
+          CMD+="$REPO_ENDPOINT"
+
+          # Execute the CURL command with retries
+          echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
+          echo "##[info] Trigger $tigger being calling via ${CMD}"
+
+          retries=0
+          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+              RESPONSE_BODY=$(eval "$CMD")
+              CURL_EXIT_CODE=$?
+              RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
+              echo "##[debug] Response body: ${RESPONSE_BODY%???}"
+
+              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                  echo "##[error] Curl command failed."
+                  if [[ $CURL_EXIT_CODE -eq 3 ]]; then
+                      echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                  else
+                      echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                  fi
+                  sleep $WAIT_SECONDS 
+              elif [[ $RESPONSE_CODE -ge 110 && $RESPONSE_CODE -le 116 ]]; then
+                  echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
+                  break
+              else
+                  echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                  sleep ${{ vars.WAIT_SECONDS }}
+              fi           
+              retries=$((retries+1))
+          done
+
+          # Check if all retries failed
+          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[error] Exhausted retries. Curl command: $CMD"
+              echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 17"
+              exit 17
+          fi
