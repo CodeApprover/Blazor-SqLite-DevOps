@@ -21,14 +21,14 @@ jobs:
 
     steps:
 
-    - name: Publish Development Success Status
-      run: |
-        # Make a curl request to update the commit status
-        CMD="curl -X POST "
-        CMD+="-H \"Authorization: token ${{ secrets.AUTH }}\" "
-        CMD+="-H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"All development workflows succeeded.\", \"context\": \"status/${{ github.workflow }}\"}' "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}"
-        echo "$CMD"
-        eval "$CMD" || exit 9
+    - name: Seek deployment
+      uses: cloudposse/github-action-seek-deployment@0.1.0
+      id: deployment
+      with:
+        github-token: ${{ secrets.AUTH }}
+        environment: dev
+        ref: ${{ env.SHA }}
+        status: success
 
+    outputs:
+      id: "${{ steps.deployment.outputs.id }}"
