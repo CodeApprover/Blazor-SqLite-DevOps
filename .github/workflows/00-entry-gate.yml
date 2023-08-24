@@ -209,7 +209,7 @@ jobs:
       name: Authorise Committer
       runs-on: ubuntu-latest
       timeout-minutes: 15
-      if: success()
+      needs: [development-push,staging-push,production-push,main-push]
       steps:
 
       - name: Checkout SHA Repository
