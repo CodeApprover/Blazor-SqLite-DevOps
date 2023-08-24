@@ -149,13 +149,13 @@ jobs:
 
       - name: Set Approved Team Members for Branch
         run: |
-          if ("${{ env.SHA_BRANCH" == "code-development"); then
+          if ("${{ env.SHA_BRANCH }}" == "code-development"); then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH" == "code-staging"); then
+          elif ("${{ env.SHA_BRANCH }}" == "code-staging"); then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH" == "code-production"); then
+          elif ("${{ env.SHA_BRANCH }}" == "code-production"); then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH" == "main"); then
+          elif ("${{ env.SHA_BRANCH }}" == "main"); then
               echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
 
       - name: Validate Committer
