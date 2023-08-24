@@ -140,24 +140,28 @@ jobs:
           echo "---------------------------------------"
 
   validate-committer:
-
-    name: Set Approved Team for Branch
+  
+    name: Validate Committer
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: verify-report-commit
     steps:
-
-      - name: Set Approved Team Members for Branch
+      - name: Extract branch name
+        id: extract_branch
+        run: echo "::set-output name=branch::$(echo "${{ github.ref }}" | sed "s#refs/heads/##")"
+        
+      - name: Set Approved Team Members
         run: |
-          if ("${{ env.SHA_BRANCH }}" == "code-development"); then
+          if [[ "${{ steps.extract_branch.outputs.branch }}" == "code-development" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH }}" == "code-staging"); then
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "code-staging" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH }}" == "code-production"); then
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "code-production" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
-          elif ("${{ env.SHA_BRANCH }}" == "main"); then
+          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "main" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
-
+          fi
+  
       - name: Validate Committer
         run: |
           if [[ "$APPROVED_TEAM" == "" ]]; then
@@ -169,7 +173,7 @@ jobs:
               echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
               exit 11
           fi
-
+  
       - name: Trigger Next Workflow # 01-cache-dependencies.yml
         if: success()
         run: |
