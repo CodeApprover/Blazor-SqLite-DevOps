@@ -1,18 +1,32 @@
 ---
-name: "Authentication, Integity and Validation Gateway"
+name: "Authentication, Integrity and Validation Gateway"
 
-# Verifies the integrity of commits, reports on commit details, validates committer. triggers subsequent workflow.
-# Executes for the code-development, code-staging, code-production and main branches.
+# The purpose of this workflow is to verify the integrity of commits, report on commit details, 
+# validate the identity of the committer and trigger subsequent workflows.
+# This ensures code integrity for pushes to specific branches: code-development, code-production, code-staging and main.
+
+#  $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
+
+# Steps
+# 1.  Workflow Overview: Displays a brief description of the workflow's intent.
+# 2.  Checkout SHA Repository: Retrieves the repository using the specific commit SHA.
+# 3.  Validate SHA: Confirms the repository's checked-out SHA is accurate.
+# 4.  Validate SHA Branch: Confirms the branch linked to the SHA is accurate.
+# 5.  Validate .csproj: Confirms a .csproj file's presence in a directory based on the branch name and the PROJECT_NAME variable.
+# 6.  Sanitise Commit Details: Adds security by cleaning commit details to prevent malicious injections.
+# 7.  Report Commit Details: Presents detailed information about the commit, GitHub settings and the workflow runner.
+# 8.  Set Approved Team Members: Assigns a list of authorized committers based on the branch, comprising the repository owner and a team from the secrets.
+# 9:  Validate Committer: Ensures the committer belongs to the approved team for that branch.
+# 10: Trigger Next Workflow: Initiates next, cache-dependencies workflow. Retries up to MAX_RETRIES at WAIT_SECONDS intervals.
 
 # Exit Codes
-# 10 - Secret is null for branch.
-# 11 - Committer is not approved.
-# 12 - SHA checkout failure.
-# 13 - SHA_BRANCH does not exist.
-# 14 - Approved teams secrets may be null.
-# 15 - Unauthorised committer.
-# 16 - Failure locating .csproj file.
-# 17 - Failed to trigger next workflow.
+# 20 - SHA checkout failure.
+# 21 - SHA_BRANCH does not exist.
+# 22 - Failure locating .csproj file.
+# 23 - APPROVED_TEAM not set.
+# 24 - Committer is not approved.
+# 25 - Curl failure due to malformed URL.
+# 26 - Failed to trigger next workflow.
 
 concurrency:
   group: report-${{ github.sha }}
@@ -27,18 +41,9 @@ jobs:
   verify-commit: 
       name: Commit Verification, Authentication and Report
       runs-on: ubuntu-latest
-      timeout-minutes: 15
-      if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence  
+      timeout-minutes: 25
+      if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps maintainence  
       steps:
-  
-      - name: Workflow Overview
-        run: |
-          echo "Workflow Overview"
-
-          echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
-          echo "##[info]    This workflow ensures code integrity for pushes to the"
-          echo "##[info]    'code-development', 'code-production', 'code-staging' and 'main' branches."
-          echo "##[info]    It serves as ..."
 
       - name: Checkout SHA Repository
         id: checkout-sha
@@ -51,8 +56,8 @@ jobs:
         run: |
           echo "##[info] Validating SHA checkout."
           if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-              echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 12"
-              exit 12
+              echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 20"
+              exit 20
           fi
           echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
           echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
@@ -64,8 +69,8 @@ jobs:
           if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
               echo "##[info] Branch $branch detected in ${{ github.repository }}"
           else
-              echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 13"
-              exit 13
+              echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 21"
+              exit 21
           fi
           echo "##[info] Successfully validated SHA branch name $branch."
           echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
@@ -76,8 +81,8 @@ jobs:
           DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
           CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
           if [[ ! -f "$CSPROJ" ]]; then
-              echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 16"
-              exit 16
+              echo "##[error] Failure locating .csproj file within the directory $DIR_PATH --> Exit 22"
+              exit 22
           fi
           echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
           echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
@@ -155,14 +160,14 @@ jobs:
         run: |
           COMMITTER_NAME=$(echo "${{ github.event.head_commit.author.name }}" | tr -d ' ')
           if [[ "$APPROVED_TEAM" == "" ]]; then
-              echo "##[error] APPROVED TEAM not set for branch ${{ env.SHA_BRANCH }} --> Exit 10"
-              exit 10
+              echo "##[error] APPROVED TEAM not set for branch ${{ env.SHA_BRANCH }} --> Exit 23"
+              exit 23
           fi
           echo "##[info] Committer is $COMMITTER_NAME"
           if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMITTER_NAME(,|$)"; then
               echo "##[info] APPROVED_TEAM=$APPROVED_TEAM"
-              echo "##[error] Committer $COMMITTER_NAME is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 11"
-              exit 11
+              echo "##[error] Committer $COMMITTER_NAME is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 24"
+              exit 24
           fi
 
       - name: Trigger Next Workflow
@@ -203,7 +208,8 @@ jobs:
               if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                   echo "##[error] Curl command failed."
                   if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                      echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                      echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} --> Exit 25."
+                      exit 25
                   else
                       echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
                   fi
@@ -221,6 +227,6 @@ jobs:
           # Check if all retries failed
           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
               echo "##[error] Exhausted retries. Curl command: $CMD"
-              echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 17"
-              exit 17
+              echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 26"
+              exit 26
           fi
