@@ -198,11 +198,16 @@ jobs:
       APPROVED_TEAM: ${{ steps.set_main_branch_team.outputs.APPROVED_TEAM }}
 
   validate-committer: 
-      name: Authorise Committer
-      runs-on: ubuntu-latest
-      timeout-minutes: 15
-      if: success()
-      steps:
+    name: Authorise Committer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [development-push,staging-push,production-push,main-push]
+    if: |
+      (needs.development-push.result == 'success' || needs.development-push.result == 'skipped') || 
+      (needs.staging-push.result == 'success' || needs.staging-push.result == 'skipped') || 
+      (needs.production-push.result == 'success' || needs.production-push.result == 'skipped') || 
+      (needs.main-push.result == 'success' || needs.main-push.result == 'skipped')
+    steps:
 
       - name: Assign APPROVED_TEAM from populated value
         run: |
