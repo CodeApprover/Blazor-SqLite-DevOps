@@ -1,11 +1,9 @@
 ---
-name: "Development Success"
-
-#  Confirms the success of the development workflow by publishing a success status for the related commit.
+name: "Deployment Success"
 
 on:
   repository_dispatch:
-    types: trigger-development-success
+    types: trigger-deployment-success
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -13,26 +11,25 @@ env:
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
-  succeed:
-    name: Publish Development Success Status
+  publish-deployment-success:
+
+    name: Publish Deployment Success
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != ${{ github.repository_owner }}) # prevents workflow
-
+    #if: (github.actor != ${{ github.repository_owner }}) # prevent workflow
     steps:
-    - name: Start Deployment
-      uses: tallyb/deployments@master
-      id: deployment
-      with:
-        step: start
-        token: ${{ secrets.AUTH }}
-        env: development
 
-    - name: Update Deployment Status
-      uses: Tallyb/deployments@0.5.0
-      if: always()
+    - name: Checkout SHA Repository
+      uses: actions/checkout@v3.5.3
       with:
-        step: finish
-        token: ${{ secrets.AUTH }}
-        status: ${{ job.status }}
-        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
+
+    - name: Publish Environment Deployment Approval
+      uses: activescott/automate-environment-deployment-approval@v1.0.1
+      with:
+        github_token: ${{ secrets.AUTH }}
+        environment_allow_list: ${{ env.SHA_BRANCH/#code-}}
+        actor_allow_list: |
+          dependabot[bot]
+          ${{github.repository_owner }}
