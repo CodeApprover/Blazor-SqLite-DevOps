@@ -27,7 +27,7 @@ jobs:
 
     - name: Set Environment
       run: |
-        envirn="${{ env.SHA_BRANCH/#code-}}"
+        envirn=$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')
         echo "ENVIRONMENT=$envirn" >> $GITHUB_ENV
 
     - name: Publish Environment Deployment Approval
