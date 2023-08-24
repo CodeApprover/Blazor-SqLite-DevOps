@@ -36,7 +36,7 @@ jobs:
 
     steps:
 
-    - name: Checkout SHA repository
+    - name: Checkout SHA Repository
       uses: actions/checkout@v3.5.3
       with:
         ref: ${{ env.SHA }}
@@ -90,7 +90,7 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    - name: Set required source directory # development | staging | produciotn
+    - name: Set Eequired Source Directory # development | staging | produciotn
       run: |
         src_dir=${{ env.SHA_BRANCH }}
         src_dir=${src_dir#code-}
@@ -101,10 +101,10 @@ jobs:
         fi
         echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
 
-    - name: Archive development directory
+    - name: Archive Required Source Directory
       uses: actions/upload-artifact@v3.1.2
       with:
-        name: development-archive
+        name: commit-archive
         path: ${{ env.SOURCE_DIR }}
 
     - name: Checkout target branch
@@ -112,24 +112,29 @@ jobs:
         git fetch
         git checkout ${{ env.DEPLOY_BRANCH }}
 
-    - name: Download archived development directory
+    - name: Download Archived Source Directory
       uses: actions/download-artifact@v3
       with:
-        name: development-archive
+        name: commit-archive
         path: /tmp/temp-dir
 
-    - name: Synchronize target dir with source dir
+    - name: Synchronize Target Directory with Source Directory
       run: |
         echo "Synchronizing target dir with source dir using rsync:"
         rsync -av --delete --checksum /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
 
-    - name: Commit changes and push to target branch 
+    - name: Commit Changes and Push to Target Branch 
       run: |
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
         git add -A
-        git commit -m "Migrating changes from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
-        git push origin ${{ env.DEPLOY_BRANCH }}
+        if git diff --staged --quiet; then
+          echo "##[warn] No changes detected. Skipping commit --> Exit 99"
+          exit 99
+        else
+          git commit -m "Migrating changes from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
+          git push origin ${{ env.DEPLOY_BRANCH }}
+        fi
 
     - name: Trigger Next Workflow # 10-development-success.yml | 10-staging-success.yml | 10-production-success.yml
       if: success()
