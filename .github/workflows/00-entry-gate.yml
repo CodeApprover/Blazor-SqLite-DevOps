@@ -34,7 +34,7 @@ jobs:
 
   verify-report-commit:
   
-      name: "Commit Verification and Report"
+      name: Commit Verification and Report
       runs-on: ubuntu-latest
       timeout-minutes: 15
       if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
@@ -158,31 +158,55 @@ jobs:
           echo "GitHub Event After: ${{ github.event.after }}"
           echo "---------------------------------------"
 
-  validate-committer:
-
-    name: Set ${{ matrix.environment_name }} Team
+  development-push:
+    name: Set Development Team
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Run the job only if the actor is not the repository owner
-    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/${{ matrix.environment_name }}')
-  
-    strategy:
-      matrix:
-        environment_name: [development, staging, production, main]
-        include:
-          - environment_name: development
-            team_secret: DEVELOPMENT_TEAM
-          - environment_name: staging
-            team_secret: STAGING_TEAM
-          - environment_name: production
-            team_secret: PRODUCTION_TEAM
-          - environment_name: main
-            team_secret: ${{ github.repository_owner }}
-  
+    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/code-development')
     environment:
-      name: ${{ matrix.environment_name }}
-  
+      name: development
     steps:
+      - name: Set Approved Development Team
+        run: echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
+
+  staging-push:
+    name: Set Staging Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/code-staging')
+    environment:
+      name: staging
+    steps:
+      - name: Set Approved Staging Team
+        run: echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
+
+  production-push:
+    name: Set Production Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/code-production')
+    environment:
+      name: production
+    steps:
+      - name: Set Approved Production Team
+        run: echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
+
+  main-push:
+    name: Set Main Branch Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
+    steps:
+      - name: Set Approved Main Branch Team
+        run: echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
+
+  validate-committer:
+  
+      name: Authorise Committer
+      runs-on: ubuntu-latest
+      timeout-minutes: 15
+      if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
+      steps:
 
       - name: Checkout SHA Repository
         id: checkout-sha
@@ -190,15 +214,6 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0 # deep fetch
-  
-      - name: Set Approved ${{ matrix.environment_name }} Team
-        run: |
-          if [[ "${{ matrix.environment_name }}" == "main" ]]; then
-            APPROVED_TEAM="${{ github.repository_owner }}"
-          else
-            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets[matrix.team_secret] }}"
-          fi
-          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
   
       - name: Validate Committer
         run: |
