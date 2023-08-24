@@ -173,9 +173,10 @@ jobs:
       - name: Trigger Next Workflow
         if: success()
         run: |
-          echo "##[info] Triggering next workflow."        
+          echo "##[info] Triggering next workflow."
+          
           trigger="trigger-cache-dependencies"
-          trigger="trigger-lockfile-checker" #TODO REMOVE
+          trigger="trigger-development-success" #TODO REMOVE
 
           # Construct Payload for the request        
           ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
