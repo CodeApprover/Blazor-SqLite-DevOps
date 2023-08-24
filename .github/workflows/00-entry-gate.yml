@@ -139,140 +139,93 @@ jobs:
           echo "GitHub Event After: ${{ github.event.after }}"
           echo "---------------------------------------"
 
-  development-push:
-    name: Set Development Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.ref == 'refs/heads/code-development')
-    needs: verify-report-commit
-    environment:
-      name: development
-    steps:
-      - name: Set Approved Development Team
-        id: set_development_team
-        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
-    outputs:
-      APPROVED_TEAM: ${{ steps.set_development_team.outputsAPPROVED_TEAM }}
-
-  staging-push:
-    name: Set Staging Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.ref == 'refs/heads/code-staging')
-    needs: verify-report-commit
-    environment:
-      name: staging
-    steps:
-      - name: Set Approved Staging Team
-        id: set_staging_team
-        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
-    outputs:
-      APPROVED_TEAM: ${{ steps.set_staging_team.outputs.APPROVED_TEAM }}
-
-  production-push:
-    name: Set Production Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.ref == 'refs/heads/code-production')
-    needs: verify-report-commit
-    environment:
-      name: production
-    steps:
-      - name: Set Approved Production Team
-        id: set_production_team
-        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
-    outputs:
-      APPROVED_TEAM: ${{ steps.set_production_team.outputs.APPROVED_TEAM }}
-
-  main-push:
-    name: Set Main Branch Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.ref == 'refs/heads/main')
-    needs: verify-report-commit
-    steps:
-      - name: Set Approved Main Branch Team
-        id: set_main_branch_team
-        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }}"
-    outputs:
-      APPROVED_TEAM: ${{ steps.set_main_branch_team.outputs.APPROVED_TEAM }}
-
   validate-committer:
-     runs-on: ubuntu-latest
-     timeout-minutes: 15
-     steps:
-       - name: Validate Committer
-         run: |
-           APPROVED_TEAM=${{ needs.development-push.outputs.APPROVED_TEAM }}
-           APPROVED_TEAM+=${{ needs.staging-push.outputs.APPROVED_TEAM }}
-           APPROVED_TEAM+=${{ needs.production-push.outputs.APPROVED_TEAM }}
-           APPROVED_TEAm+=${{ needs.main-push.outputs.APPROVED_TEAM }}
-           if [[ "$APPROVED_TEAM" == "" ]]; then
-                echo "##[error] APPROVED TEAM not set for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
-                exit 10
-           fi
-           echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
-           if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
-                echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
-                exit 11
-           fi
 
-       - name: Trigger Next Workflow # 01-cache-dependencies.yml
-         if: success()
-         run: |
-           echo "##[info] Triggering next workflow."        
-           trigger="trigger-cache-dependencies"
+    name: Set Approved Team for Branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify-report-commit
+    steps:
 
-           # Construct Payload for the request        
-           ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-           BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-           SHA="\"sha\": \"${{ env.SHA }}\""
-           CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
-           BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
-           PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+      - name: Set Approved Team Members for Branch
+        run: |
+          if ("${{ env.SHA_BRANCH" == "code-development"); then
+              echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
+          elif ("${{ env.SHA_BRANCH" == "code-staging"); then
+              echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
+          elif ("${{ env.SHA_BRANCH" == "code-production"); then
+              echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
+          elif ("${{ env.SHA_BRANCH" == "main"); then
+              echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
 
-           # Construct CURL command        
-           AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
-           REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
-           CMD="curl -s -o /dev/null -w \"%{http_code}\" "
-           CMD+="-X POST "
-           CMD+="-H \"$AUTH_HEADER\" "
-           CMD+="-H \"$ACCEPT_HEADER\" "
-           CMD+="-d '$PAYLOAD' "
-           CMD+="$REPO_ENDPOINT"
+      - name: Validate Committer
+        run: |
+          if [[ "$APPROVED_TEAM" == "" ]]; then
+              echo "##[error] APPROVED TEAM not set for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
+              exit 10
+          fi
+          echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
+          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
+              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
+              exit 11
+          fi
 
-           # Execute the CURL command with retries
-           echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
-           echo "##[info] Trigger $tigger being calling via ${CMD}"
+      - name: Trigger Next Workflow # 01-cache-dependencies.yml
+        if: success()
+        run: |
+          echo "##[info] Triggering next workflow."        
+          trigger="trigger-cache-dependencies"
 
-           retries=0
-           while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-               RESPONSE_BODY=$(eval "$CMD")
-               CURL_EXIT_CODE=$?
-               RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
-               echo "##[debug] Response body: ${RESPONSE_BODY%???}"
+          # Construct Payload for the request        
+          ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+          SHA="\"sha\": \"${{ env.SHA }}\""
+          CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
+          BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
+          PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
 
-               if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                   echo "##[error] Curl command failed."
-                   if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                       echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                   else
-                       echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                   fi
-                   sleep $WAIT_SECONDS 
-               elif [[ $RESPONSE_CODE -ge 110 && $RESPONSE_CODE -le 116 ]]; then
-                   echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
-                   break
-               else
-                   echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                   sleep ${{ vars.WAIT_SECONDS }}
-               fi           
-               retries=$((retries+1))
-           done
+          # Construct CURL command        
+          AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
+          REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
+          CMD="curl -s -o /dev/null -w \"%{http_code}\" "
+          CMD+="-X POST "
+          CMD+="-H \"$AUTH_HEADER\" "
+          CMD+="-H \"$ACCEPT_HEADER\" "
+          CMD+="-d '$PAYLOAD' "
+          CMD+="$REPO_ENDPOINT"
 
-           # Check if all retries failed
-           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-               echo "##[error] Exhausted retries. Curl command: $CMD"
-               echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 17"
-               exit 17
-           fi
+          # Execute the CURL command with retries
+          echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
+          echo "##[info] Trigger $tigger being calling via ${CMD}"
+
+          retries=0
+          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+              RESPONSE_BODY=$(eval "$CMD")
+              CURL_EXIT_CODE=$?
+              RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
+              echo "##[debug] Response body: ${RESPONSE_BODY%???}"
+
+              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                  echo "##[error] Curl command failed."
+                  if [[ $CURL_EXIT_CODE -eq 3 ]]; then
+                      echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                  else
+                      echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                  fi
+                  sleep $WAIT_SECONDS 
+              elif [[ $RESPONSE_CODE -ge 110 && $RESPONSE_CODE -le 116 ]]; then
+                  echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
+                  break
+              else
+                  echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                  sleep ${{ vars.WAIT_SECONDS }}
+              fi           
+              retries=$((retries+1))
+          done
+
+          # Check if all retries failed
+          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[error] Exhausted retries. Curl command: $CMD"
+              echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 17"
+              exit 17
+          fi
