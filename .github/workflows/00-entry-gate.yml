@@ -163,6 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.ref == 'refs/heads/code-development')
+    needs: verify-report-commit
     environment:
       name: development
     steps:
@@ -174,6 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.ref == 'refs/heads/code-staging')
+    needs: verify-report-commit
     environment:
       name: staging
     steps:
@@ -185,6 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.ref == 'refs/heads/code-production')
+    needs: verify-report-commit
     environment:
       name: production
     steps:
@@ -196,6 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor == ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
+    needs: verify-report-commit
     steps:
       - name: Set Approved Main Branch Team
         run: echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
@@ -205,7 +209,7 @@ jobs:
       name: Authorise Committer
       runs-on: ubuntu-latest
       timeout-minutes: 15
-      if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
+      if: success()
       steps:
 
       - name: Checkout SHA Repository
