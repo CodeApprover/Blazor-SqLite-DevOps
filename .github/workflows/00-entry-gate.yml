@@ -119,7 +119,7 @@ jobs:
           echo "-------------------------------------------------"
           echo "----- COMMIT DETAILS ----------------------------"
           echo "-------------------------------------------------"
-          echo "Branch Name: $SHA_BRANCH"
+          echo "Branch Name: ${{ env.SHA_BRANCH }}"
           echo "Commit SHA: ${{ github.sha }}"
           echo "Commit Message: $COMMIT_MESSAGE"
           echo "Commit Author: $COMMIT_AUTHOR_NAME"
@@ -175,6 +175,8 @@ jobs:
             team_secret: STAGING_TEAM
           - environment_name: production
             team_secret: PRODUCTION_TEAM
+          - environment_name: main
+            team_secret: ${{ github.repository_owner }}
 
     environment:
       name: ${{ matrix.environment_name }}
@@ -190,9 +192,6 @@ jobs:
       - name: Set Approved ${{ matrix.environment_name }} Team
         run: |
           APPROVED_TEAM="${{ github.repository_owner }},${{ secrets[matrix.team_secret] }}"
-          if [[ "${{ matrix.environment_name }}" == "main" ]];
-              then APPROVED_TEAM="${{ github.repository_owner }}"
-          fi
           echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
       - name: Validate Committer
