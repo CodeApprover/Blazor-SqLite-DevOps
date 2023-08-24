@@ -153,13 +153,15 @@ jobs:
   
       - name: Validate Committer
         run: |
+          COMMITTER_NAME=$(echo "${{ github.event.head_commit.author.name }}" | tr -d ' ')
           if [[ "$APPROVED_TEAM" == "" ]]; then
               echo "##[error] APPROVED TEAM not set for branch ${{ env.SHA_BRANCH }} --> Exit 10"
               exit 10
           fi
-          echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
-          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
-              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 11"
+          echo "##[info] Committer is $COMMITTER_NAME"
+          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMITTER_NAME(,|$)"; then
+              echo "##[info] APPROVED_TEAM=$APPROVED_TEAM"
+              echo "##[error] Committer $COMMITTER_NAME is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 11"
               exit 11
           fi
   
