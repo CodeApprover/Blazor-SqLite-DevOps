@@ -158,10 +158,8 @@ jobs:
       name: development
     steps:
       - name: Set Approved Development Team
-        id: flag
-        run: |
-          echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
-          echo "FLAG_COMPLETED=true" >> $GITHUB_ENV
+        id: set_team
+        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
 
   staging-push:
     name: Set Staging Team
@@ -171,20 +169,10 @@ jobs:
     needs: verify-report-commit
     environment:
       name: staging
-    steps:
-
-      - name: Checkout SHA Repository
-        id: checkout-sha
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0 # deep fetch
-  
+    steps:  
       - name: Set Approved Staging Team
-        id: flag
-        run: |
-          echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
-          echo "FLAG_COMPLETED=true" >> $GITHUB_ENV
+        id: set_team
+        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
 
   production-push:
     name: Set Production Team
@@ -195,19 +183,9 @@ jobs:
     environment:
       name: production
     steps:
-
-      - name: Checkout SHA Repository
-        id: checkout-sha
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0 # deep fetch
-  
       - name: Set Approved Production Team
-        id: flag
-        run: |
-          echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}" >> $GITHUB_ENV
-          echo "FLAG_COMPLETED=true" >> $GITHUB_ENV
+        id: set_team
+        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
 
   main-push:
     name: Set Main Branch Team
@@ -216,25 +194,19 @@ jobs:
     if: (github.actor == ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
     needs: verify-report-commit
     steps:
-
-      - name: Checkout SHA Repository
-        id: checkout-sha
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0 # deep fetch
-
       - name: Set Approved Main Branch Team
-        id: flag
-        run: |
-          echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "FLAG_COMPLETED=true" >> $GITHUB_ENV
+        id: set_team
+        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
 
   validate-committer: 
       name: Authorise Committer
       runs-on: ubuntu-latest
       timeout-minutes: 15
-      if: needs.main-push.outputs.FLAG_COMPLETED == 'true'
+      if: |
+        needs.development-push.result == 'success' ||
+        needs.staging-push.result == 'success' ||
+        needs.production-push.result == 'success' ||
+        needs.main-push.result == 'success'
       needs: [development-push,staging-push,production-push,main-push]
       steps:
 
