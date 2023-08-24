@@ -84,12 +84,13 @@ jobs:
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-    - name: Sanitise Untrusted User-Controlled Commit Details # security harden vs injection threats
+    - name: Sanitise Untrusted User-Controlled Commit Details
       env:
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
         COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
       run: |
+        echo "##[info]# Security hardening versus injection threats."
         echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
@@ -98,6 +99,7 @@ jobs:
       run: |       
         echo "##[info]# Security hardening. Setting approved committers based on branch."
         DEVOPS="${{ github.repository_owner }}"
+        APPROVED_TEAM=""
 
         case ${{ env.SHA_BRANCH }} in
           main)
@@ -106,18 +108,22 @@ jobs:
             ;;
           code-development)
             APPROVED_TEAM="$DEVOPS,${{ secrets.DEVELOPMENT_TEAM }}"
+            ENV_SECRET="${{ secrets.DEVELOPMENT_TEAM }}"
             ;;
           code-staging)
             APPROVED_TEAM="$DEVOPS,${{ secrets.STAGING_TEAM }}"
+            ENV_SECRET="${{ secrets.STAGING_TEAM }}"
             ;;
           code-production)
             APPROVED_TEAM="$DEVOPS,${{ secrets.PRODUCTION_TEAM }}"
+            ENV_SECRET="${{ secrets.PRODUCTION_TEAM }}"
             ;;
         esac
-        
+
         echo "##[info]# Approved team is $APPROVED_TEAM"
 
-        if [ "$APPROVED_TEAM" = "$DEVOPS," ]; then
+        # Security check: Ensure we have the correct team set
+        if [[ -z "$ENV_SECRET" ]] || [[ "$APPROVED_TEAM" == "$DEVOPS," ]]; then
             echo "##[debug]# DEVELOPMENT TEAM --> ${{ secrets.DEVELOPMENT_TEAM }}"
             echo "##[debug]# STAGING TEAM --> ${{ secrets.STAGING_TEAM }}"
             echo "##[debug]# PRODUCTION TEAM --> ${{ secrets.PRODUCTION_TEAM }}"
@@ -125,7 +131,7 @@ jobs:
             exit 30
         fi
 
-        # Check if committer is approved
+        # Check if committer is approved (including 404bot or CodeApprover)
         echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
             echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 31"
