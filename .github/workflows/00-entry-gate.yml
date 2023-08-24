@@ -191,7 +191,7 @@ jobs:
     name: Set Main Branch Team
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor == ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
+    if: (${{ github.event.head_commit.author.name }} == ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
     needs: verify-report-commit
     steps:
       - name: Set Approved Main Branch Team
@@ -207,7 +207,6 @@ jobs:
         needs.staging-push.result == 'success' ||
         needs.production-push.result == 'success' ||
         needs.main-push.result == 'success'
-      needs: [development-push,staging-push,production-push,main-push]
       steps:
 
       - name: Checkout SHA Repository
