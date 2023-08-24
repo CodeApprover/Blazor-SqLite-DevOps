@@ -37,17 +37,8 @@ jobs:
 
           echo "##[info]    Workflow Overview $(date) ${{ github.workflow }} commit SHA ${{ github.sha }} -->"
           echo "##[info]    This workflow ensures code integrity for pushes to the"
-          echo "##[info]    'code-development', 'code-production', and 'code-staging' branches."
-          echo "##[info]    It serves as an entry gate for pre-validation and debugging."
-          echo "##[info]    Execution Sequence:"
-          echo "##[info]      1. **Setup and Description**"
-          echo "##[info]      2. **Checkout SHA Repository** retrieves the commit SHA."
-          echo "##[info]      3. **Validate SHA** confirms checkout success and captures SHA."
-          echo "##[info]      4. **Validate SHA Branch** confirms branch existence and captures its name."
-          echo "##[info]      5. **Validate .csproj** locates .csproj file and captures its path."
-          echo "##[info]      6. **Report Commit Details** reports on commit specifics and environment."
-          echo "##[info]      7. **Cleanup Redundant Tags** keeps the latest 12 git versioning tags, removing older ones."
-          echo "##[info]      8. **Trigger Next Workflow** activates the next workflow with retries on failures."
+          echo "##[info]    'code-development', 'code-production', 'code-staging' and 'main' branches."
+          echo "##[info]    It serves as ..."
 
       - name: Checkout SHA Repository
         id: checkout-sha
@@ -191,7 +182,7 @@ jobs:
         id: set_production_team
         run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
     outputs:
-      APPROVED_TEAM: ${{ steps.set_staging_team.outputs.APPROVED_TEAM }}
+      APPROVED_TEAM: ${{ steps.set_production_team.outputs.APPROVED_TEAM }}
 
   main-push:
     name: Set Main Branch Team
@@ -211,6 +202,7 @@ jobs:
       runs-on: ubuntu-latest
       timeout-minutes: 15
       if: |
+        succes() &&
         needs.development-push.outputs.APPROVED_TEAM != '' ||
         needs.staging-push.outputs.APPROVED_TEAM != '' ||
         needs.production-push.outputs.APPROVED_TEAM != '' ||
