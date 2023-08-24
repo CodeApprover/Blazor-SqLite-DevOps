@@ -13,8 +13,9 @@ name: "Commit Verification and Report"
 # 7 - Trigger Next Workflow: Initiates the subsequent cache dependencies workflow, with built-in retries on failures
 
 # Exit Codes
-# 29 - SHA checkout failure.
-# 30 - SHA_BRANCH does not exist.
+# 28 - SHA checkout failure.
+# 29 - SHA_BRANCH does not exist.
+# 30 - Approved teams secrets may be null.
 # 31 - Unauthorised committer.
 # 32 - Failure locating .csproj file.
 # 33 - Failed to trigger next workflow.
@@ -32,7 +33,7 @@ jobs:
     name: "Report Usage"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
+    if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
 
     steps:
     - name: Workflow Overview
@@ -64,8 +65,8 @@ jobs:
       run: |
         echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 29"
-            exit 29
+            echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 28"
+            exit 28
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
@@ -77,8 +78,8 @@ jobs:
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
             echo "##[info] Branch $branch detected in ${{ github.repository }}"
         else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 30"
-            exit 30
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 29"
+            exit 29
         fi
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
@@ -93,26 +94,34 @@ jobs:
         echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
 
-    - name: Verify committer based on branch # approved committers only
-      run: |
-        echo "##[info]# Security hardening. Seting approved committers based on branch."
+    - name: Verify committer based on branch
+      run: |       
+        echo "##[info]# Security hardening. Setting approved committers based on branch."
+        DEVOPS="${{ github.repository_owner }}"
+
         case ${{ env.SHA_BRANCH }} in
           main)
-            # For main only CodeApprover is allowed
-            APPROVED_TEAM="CodeApprover"
+            # For main only the owner is allowed
+            APPROVED_TEAM="$DEVOPS"
             ;;
           code-development)
-            APPROVED_TEAM="CodeApprover,${{ secrets.DEVELOPMENT_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ secrets.DEVELOPMENT_TEAM }}"
             ;;
           code-staging)
-            APPROVED_TEAM="CodeApprover,${{ secrets.STAGING_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ secrets.STAGING_TEAM }}"
             ;;
           code-production)
-            APPROVED_TEAM="CodeApprover,${{ secrets.PRODUCTION_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ secrets.PRODUCTION_TEAM }}"
             ;;
         esac
-        echo "##[info]# Approved team is $APPROVED_TEAM"
         
+        echo "##[info]# Approved team is $APPROVED_TEAM"
+
+        if [ "$APPROVED_TEAM" = "$DEVOPS," ]; then
+            echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 30"
+            exit 30
+        fi
+
         # Check if committer is approved
         echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
