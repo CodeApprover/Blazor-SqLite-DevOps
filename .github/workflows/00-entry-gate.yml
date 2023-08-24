@@ -24,8 +24,10 @@ concurrency:
   group: report-${{ github.sha }}
   cancel-in-progress: true
 
-permissions:
-  contents: write # ensures workflow permissions to access repository secrets
+env:
+  DEVEVOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+  STAGING_TEAM: ${{ secrets.STAGING_TEAM }}
+  PRODUCTION_TEAM: ${{ secrets.PRODUCTION_TEAM }}
 
 on:
   push:
@@ -110,16 +112,16 @@ jobs:
             APPROVED_TEAM="$DEVOPS"
             ;;
           code-development)
-            APPROVED_TEAM="$DEVOPS,${{ secrets.DEVELOPMENT_TEAM }}"
-            ENV_SECRET="${{ secrets.DEVELOPMENT_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ env.DEVELOPMENT_TEAM }}"
+            ENV_SECRET="${{ env.DEVELOPMENT_TEAM }}"
             ;;
           code-staging)
-            APPROVED_TEAM="$DEVOPS,${{ secrets.STAGING_TEAM }}"
-            ENV_SECRET="${{ secrets.STAGING_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ env.STAGING_TEAM }}"
+            ENV_SECRET="${{ env.STAGING_TEAM }}"
             ;;
           code-production)
-            APPROVED_TEAM="$DEVOPS,${{ secrets.PRODUCTION_TEAM }}"
-            ENV_SECRET="${{ secrets.PRODUCTION_TEAM }}"
+            APPROVED_TEAM="$DEVOPS,${{ env.PRODUCTION_TEAM }}"
+            ENV_SECRET="${{ env.PRODUCTION_TEAM }}"
             ;;
         esac
 
@@ -127,9 +129,9 @@ jobs:
 
         # Security check -> Ensure we have the correct team set
         if [[ "$APPROVED_TEAM" == *"$DEVOPS,"* && "$APPROVED_TEAM" == "$DEVOPS," || "$APPROVED_TEAM" == "" ]]; then
-            if [[ -z "${{ secrets.DEVELOPMENT_TEAM }}" ]]; then echo "##[debug]# DEVELOPMENT TEAM is null."; fi
-            if [[ -z "${{ secrets.STAGING_TEAM }}" ]]; then echo "##[debug]# STAGING TEAM is null."; fi
-            if [[ -z "${{ secrets.PRODUCTION_TEAM }}" ]]; then echo "##[debug]# PRODUCTION TEAM is null."; fi
+            if [[ -z "${{ env.DEVELOPMENT_TEAM }}" ]]; then echo "##[debug]# DEVELOPMENT TEAM is null."; fi
+            if [[ -z "${{ env.STAGING_TEAM }}" ]]; then echo "##[debug]# STAGING TEAM is null."; fi
+            if [[ -z "${{ env.PRODUCTION_TEAM }}" ]]; then echo "##[debug]# PRODUCTION TEAM is null."; fi
             echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 30"
             exit 30
         fi
