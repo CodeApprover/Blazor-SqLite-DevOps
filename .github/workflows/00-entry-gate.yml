@@ -1,5 +1,5 @@
 ---
-name: "Commit Verification and Report"
+name: "Authentication, Integity and Validation Gateway"
 
 # Verifies the integrity of commits, reports on commit details, validates committer. triggers subsequent workflow.
 # Executes for the code-development, code-staging, code-production and main branches.
@@ -158,8 +158,10 @@ jobs:
       name: development
     steps:
       - name: Set Approved Development Team
-        id: set_team
+        id: set_development_team
         run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
+    outputs:
+      APPROVED_TEAM: ${{ steps.set_development_team.outputsAPPROVED_TEAM }}
 
   staging-push:
     name: Set Staging Team
@@ -169,10 +171,12 @@ jobs:
     needs: verify-report-commit
     environment:
       name: staging
-    steps:  
+    steps:
       - name: Set Approved Staging Team
-        id: set_team
+        id: set_staging_team
         run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
+    outputs:
+      APPROVED_TEAM: ${{ steps.set_staging_team.outputs.APPROVED_TEAM }}
 
   production-push:
     name: Set Production Team
@@ -184,8 +188,10 @@ jobs:
       name: production
     steps:
       - name: Set Approved Production Team
-        id: set_team
+        id: set_production_team
         run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
+    outputs:
+      APPROVED_TEAM: ${{ steps.set_staging_team.outputs.APPROVED_TEAM }}
 
   main-push:
     name: Set Main Branch Team
@@ -195,8 +201,10 @@ jobs:
     needs: verify-report-commit
     steps:
       - name: Set Approved Main Branch Team
-        id: set_team
+        id: set_main_branch_team
         run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }}"
+    outputs:
+      APPROVED_TEAM: ${{ steps.set_main_branch_team.outputs.APPROVED_TEAM }}
 
   validate-committer: 
       name: Authorise Committer
