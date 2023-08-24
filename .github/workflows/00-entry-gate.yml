@@ -13,8 +13,9 @@ name: "Commit Verification and Report"
 # 7 - Trigger Next Workflow: Initiates the subsequent cache dependencies workflow, with built-in retries on failures
 
 # Exit Codes
-# 30 - SHA checkout failure.
-# 31 - SHA_BRANCH does not exist.
+# 29 - SHA checkout failure.
+# 30 - SHA_BRANCH does not exist.
+# 31 - Unauthorised committer.
 # 32 - Failure locating .csproj file.
 # 33 - Failed to trigger next workflow.
 
@@ -63,9 +64,8 @@ jobs:
       run: |
         echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ github.sha }}"
-            echo "##[error] Error on line $LINENO: $BASH_COMMAND --> Exit 30"
-            exit 30
+            echo "##[error] SHA checkout FAIL for ${{ github.sha }} --> Exit 29"
+            exit 29
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
         echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
@@ -77,11 +77,37 @@ jobs:
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
             echo "##[info] Branch $branch detected in ${{ github.repository }}"
         else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 31"
-            exit 31
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }} --> Exit 30"
+            exit 30
         fi
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+
+    - name: Verify committer based on branch
+      run: |
+        COMMITTER=$(git log -1 --pretty=format:'%an')
+        echo "##[info]# Security hardening. Seting approved committers based on branch."
+        case ${{ env.SHA_BRANCH }} in
+          main)
+            # For main only CodeApprover is allowed
+            APPROVED_TEAM="CodeApprover"
+            ;;
+          code-development)
+            APPROVED_TEAM="CodeApprover,${{ secrets.DEVELOPMENT_TEAM }}"
+            ;;
+          code-staging)
+            APPROVED_TEAM="CodeApprover,${{ secrets.STAGING_TEAM }}"
+            ;;
+          code-production)
+            APPROVED_TEAM="CodeApprover,${{ secrets.PRODUCTION_TEAM }}"
+            ;;
+        esac
+
+        # Check if committer is approved
+        if ! echo "$APPROVED_TEAM" | grep -qE "(^|,)$COMMITTER_NAME(,|$)"; then
+          echo "##[error]# Committer $COMMITTER_NAME is not approved for branch $BRANCH_NAME commit ${{ github.sha }} --> Exit 31"
+          exit 31
+        fi
 
     - name: Validate .csproj
       run: |
@@ -210,4 +236,3 @@ jobs:
             echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 33"
             exit 33
         fi
-
