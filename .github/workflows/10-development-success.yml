@@ -25,11 +25,16 @@ jobs:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
+    - name: Set Environment
+      run: |
+        envirn="${{ env.SHA_BRANCH/#code-}}"
+        echo "ENVIRONMENT=$envirn" >> $GITHUB_ENV
+
     - name: Publish Environment Deployment Approval
       uses: activescott/automate-environment-deployment-approval@v1.0.1
       with:
         github_token: ${{ secrets.AUTH }}
-        environment_allow_list: ${{ env.SHA_BRANCH/#code-}}
+        environment_allow_list: ${{ env.ENVIRONMENT }}
         actor_allow_list: |
           dependabot[bot]
-          ${{github.repository_owner }}
+          ${{ github.repository_owner }}
