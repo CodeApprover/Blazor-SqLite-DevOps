@@ -20,15 +20,19 @@ jobs:
     #if: (github.actor != ${{ github.repository_owner }}) # prevents workflow
 
     steps:
-
-    - name: Seek deployment
-      uses: cloudposse/github-action-seek-deployment@0.1.0
+    - name: Start Deployment
+      uses: tallyb/deployments@master
       id: deployment
       with:
-        github-token: ${{ secrets.AUTH }}
-        environment: development
-        ref: ${{ env.SHA }}
-        status: success
+        step: start
+        token: ${{ secrets.AUTH }}
+        env: development
 
-    outputs:
-      id: "${{ steps.deployment.outputs.id }}"
+    - name: Update Deployment Status
+      uses: Tallyb/deployments@0.5.0
+      if: always()
+      with:
+        step: finish
+        token: ${{ secrets.AUTH }}
+        status: ${{ job.status }}
+        deployment_id: ${{ steps.deployment.outputs.deployment_id }}
