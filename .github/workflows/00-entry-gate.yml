@@ -201,12 +201,7 @@ jobs:
       name: Authorise Committer
       runs-on: ubuntu-latest
       timeout-minutes: 15
-      if: |
-        success() &&
-        needs.development-push.outputs.APPROVED_TEAM != '' ||
-        needs.staging-push.outputs.APPROVED_TEAM != '' ||
-        needs.production-push.outputs.APPROVED_TEAM != '' ||
-        needs.main-push.outputs.APPROVED_TEAM != ''
+      if: success()
       steps:
 
       - name: Assign APPROVED_TEAM from populated value
