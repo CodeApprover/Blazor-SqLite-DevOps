@@ -83,9 +83,18 @@ jobs:
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-    - name: Verify committer based on branch
+    - name: Sanitise Untrusted User-Controlled Commit Details # security harden vs injection threats
+      env:
+        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+        COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
       run: |
-        COMMITTER=$(git log -1 --pretty=format:'%an')
+        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
+
+    - name: Verify committer based on branch # approved committers only
+      run: |
         echo "##[info]# Security hardening. Seting approved committers based on branch."
         case ${{ env.SHA_BRANCH }} in
           main)
@@ -104,9 +113,9 @@ jobs:
         esac
 
         # Check if committer is approved
-        echo "##[info]# Committer is $COMMITTER_NAME"
-        if ! echo "$APPROVED_TEAM" | grep -qE "(^|,)$COMMITTER_NAME(,|$)"; then
-          echo "##[error]# Committer $COMMITTER_NAME is not approved for branch $BRANCH_NAME commit ${{ github.sha }} --> Exit 31"
+        echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
+        if ! echo "$APPROVED_TEAM" | grep -qE "(^|,) ${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
+          echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 31"
           exit 31
         fi
 
@@ -123,16 +132,6 @@ jobs:
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-
-    - name: Sanitise Untrusted User-Controlled Commit Details # security harden vs injection threats
-      env:
-        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
-        COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
-      run: |
-        echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
     
     - name: Report Commit Details
       run: |
