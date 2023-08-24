@@ -111,10 +111,11 @@ jobs:
             APPROVED_TEAM="CodeApprover,${{ secrets.PRODUCTION_TEAM }}"
             ;;
         esac
-
+        echo "##[info]# Approved team is $APPROVED_TEAM"
+        
         # Check if committer is approved
         echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
-        if ! echo "$APPROVED_TEAM" | grep -qE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
+        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
             echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 31"
             exit 31
         fi
