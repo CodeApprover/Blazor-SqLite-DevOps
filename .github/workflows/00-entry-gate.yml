@@ -42,7 +42,7 @@ jobs:
       name: Commit Verification, Authentication and Report
       runs-on: ubuntu-latest
       timeout-minutes: 25
-      if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps maintainence  
+      if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps maintainence
       steps:
 
       - name: Checkout SHA Repository
