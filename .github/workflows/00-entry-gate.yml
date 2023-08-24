@@ -173,62 +173,36 @@ jobs:
     needs: verify-commit
     steps:
 
-      - name: Trigger Next Workflow
-        if: success()
-        run: |
-          echo "##[info] Triggering next workflow."        
-          trigger="trigger-cache-dependencies"
+    - name: trigger-next-workflow
+      run: |
+        trigger="trigger-cache-dependencies"
+        ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+        PAYLOAD="{\"event_type\": \"$trigger\", \"client_payload\": {\"sha\": \"${{ env.SHA }}\", "
+        PAYLOAD+="\"csproj\": \"${{ env.CSPROJ }}\", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
+        AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
+        REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST -H \"$AUTH_HEADER\" -H \"$ACCEPT_HEADER\" -d '$PAYLOAD' $REPO_ENDPOINT"
 
-          # Construct Payload for the request        
-          ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-          SHA="\"sha\": \"${{ env.SHA }}\""
-          CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
-          BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
-          PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            RESPONSE_BODY=$(eval "$CMD")
+            CURL_EXIT_CODE=$?
+            RESPONSE_CODE=${RESPONSE_BODY: -3}  
 
-          # Construct CURL command        
-          AUTH_HEADER="Authorization: Bearer ${{ secrets.AUTH }}"
-          REPO_ENDPOINT="https://api.github.com/repos/${{ github.repository }}/dispatches"
-          CMD="curl -s -o /dev/null -w \"%{http_code}\" "
-          CMD+="-X POST "
-          CMD+="-H \"$AUTH_HEADER\" "
-          CMD+="-H \"$ACCEPT_HEADER\" "
-          CMD+="-d '$PAYLOAD' "
-          CMD+="$REPO_ENDPOINT"
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl failed on attempt $((retries+1))/${{ vars.MAX_RETRIES }} with exit code $CURL_EXIT_CODE. Retrying..."
+                sleep ${{ vars.WAIT_SECONDS }}
+            elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
+                echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
+                break
+            else
+                echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                sleep ${{ vars.WAIT_SECONDS }}
+            fi           
+            retries=$((retries+1))
+        done
 
-          # Execute the CURL command with retries
-          echo "##[info] Sending curl request with ${{ vars.MAX_RETRIES }} at ${{ vars.WAIT_SECONDS }} second intervals."
-          echo "##[info] Trigger $tigger being calling via ${CMD}"
-
-          retries=0
-          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-              RESPONSE_BODY=$(eval "$CMD")
-              CURL_EXIT_CODE=$?
-              RESPONSE_CODE=${RESPONSE_BODY: -3}  # HTTP status code 3 digits
-              echo "##[debug] Response body: ${RESPONSE_BODY%???}"
-
-              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                  echo "##[error] Curl command failed."
-                  if [[ $CURL_EXIT_CODE -eq 3 ]]; then
-                      echo "##[error] Curl failure due to malformed URL on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                  else
-                      echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                  fi
-                  sleep $WAIT_SECONDS 
-              elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
-                  echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
-                  break
-              else
-                  echo "##[warn] Attempt $((retries+1))/${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE. Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                  sleep ${{ vars.WAIT_SECONDS }}
-              fi           
-              retries=$((retries+1))
-          done
-
-          # Check if all retries failed
-          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-              echo "##[error] Exhausted retries. Curl command: $CMD"
-              echo "##[error] Failed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds triggering workflow --> Exit 17"
-              exit 17
-          fi
+        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error] Failed triggering workflow after ${{ vars.MAX_RETRIES }} retries."
+            exit 17
+        fi
