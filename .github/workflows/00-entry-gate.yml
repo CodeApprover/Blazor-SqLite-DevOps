@@ -24,8 +24,8 @@ on:
 
 jobs:
 
-  verify-report-commit: 
-      name: Commit Verification and Report
+  verify-commit: 
+      name: Commit Verification, Authentication and Report
       runs-on: ubuntu-latest
       timeout-minutes: 15
       if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence  
@@ -138,39 +138,28 @@ jobs:
           echo "GitHub Event Before: ${{ github.event.before }}"
           echo "GitHub Event After: ${{ github.event.after }}"
           echo "---------------------------------------"
-
-  validate-committer:
-  
-    name: Validate Committer
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: verify-report-commit
-    steps:
-      - name: Extract branch name
-        id: extract_branch
-        run: echo "::set-output name=branch::$(echo "${{ github.ref }}" | sed "s#refs/heads/##")"
         
       - name: Set Approved Team Members
         run: |
-          if [[ "${{ steps.extract_branch.outputs.branch }}" == "code-development" ]]; then
+          if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
-          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "code-staging" ]]; then
+          elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
-          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "code-production" ]]; then
+          elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
-          elif [[ "${{ steps.extract_branch.outputs.branch }}" == "main" ]]; then
+          elif [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
               echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
           fi
   
       - name: Validate Committer
         run: |
           if [[ "$APPROVED_TEAM" == "" ]]; then
-              echo "##[error] APPROVED TEAM not set for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
+              echo "##[error] APPROVED TEAM not set for branch ${{ env.SHA_BRANCH }} --> Exit 10"
               exit 10
           fi
           echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
           if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
-              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
+              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 11"
               exit 11
           fi
   
