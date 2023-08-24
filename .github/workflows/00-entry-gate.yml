@@ -118,6 +118,9 @@ jobs:
         echo "##[info]# Approved team is $APPROVED_TEAM"
 
         if [ "$APPROVED_TEAM" = "$DEVOPS," ]; then
+            echo "##[debug]# DEVELOPMENT TEAM --> ${{ secrets.DEVELOPMENT_TEAM }}"
+            echo "##[debug]# STAGING TEAM --> ${{ secrets.STAGING_TEAM }}"
+            echo "##[debug]# PRODUCTION TEAM --> ${{ secrets.PRODUCTION_TEAM }}"
             echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 30"
             exit 30
         fi
