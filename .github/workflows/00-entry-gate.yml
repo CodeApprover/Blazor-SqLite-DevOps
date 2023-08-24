@@ -217,7 +217,7 @@ jobs:
                       echo "##[error] Curl failed with exit code $CURL_EXIT_CODE on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
                   fi
                   sleep $WAIT_SECONDS 
-              elif [[ $RESPONSE_CODE -ge 110 && $RESPONSE_CODE -le 116 ]]; then
+              elif [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
                   echo "##[info] Successfully triggered workflow on attempt $((retries+1))"
                   break
               else
