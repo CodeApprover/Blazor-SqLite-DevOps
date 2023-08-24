@@ -191,31 +191,36 @@ jobs:
     name: Set Main Branch Team
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (${{ github.event.head_commit.author.name }} == ${{ github.repository_owner }}) && (github.ref == 'refs/heads/main')
+    if: (github.ref == 'refs/heads/main')
     needs: verify-report-commit
     steps:
       - name: Set Approved Main Branch Team
         id: set_team
-        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }},${{ secrets.APPROVED_TEAM }}"
+        run: echo "set-output name=APPROVED_TEAM::${{ github.repository_owner }}"
 
   validate-committer: 
       name: Authorise Committer
       runs-on: ubuntu-latest
       timeout-minutes: 15
       if: |
-        needs.development-push.result == 'success' ||
-        needs.staging-push.result == 'success' ||
-        needs.production-push.result == 'success' ||
-        needs.main-push.result == 'success'
+        needs.development-push.outputs.APPROVED_TEAM != '' ||
+        needs.staging-push.outputs.APPROVED_TEAM != '' ||
+        needs.production-push.outputs.APPROVED_TEAM != '' ||
+        needs.main-push.outputs.APPROVED_TEAM != ''
       steps:
 
-      - name: Checkout SHA Repository
-        id: checkout-sha
-        uses: actions/checkout@v3.5.3
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0 # deep fetch
-  
+      - name: Assign APPROVED_TEAM from populated value
+        run: |
+          if [ -n "${{ needs.development-push.outputs.APPROVED_TEAM }}" ]; then
+            echo "APPROVED_TEAM=${{ needs.development-push.outputs.APPROVED_TEAM }}" >> $GITHUB_ENV
+          elif [ -n "${{ needs.staging-push.outputs.APPROVED_TEAM }}" ]; then
+            echo "APPROVED_TEAM=${{ needs.staging-push.outputs.APPROVED_TEAM }}" >> $GITHUB_ENV
+          elif [ -n "${{ needs.production-push.outputs.APPROVED_TEAM }}" ]; then
+            echo "APPROVED_TEAM=${{ needs.production-push.outputs.APPROVED_TEAM }}" >> $GITHUB_ENV
+          elif [ -n "${{ needs.main-push.outputs.APPROVED_TEAM }}" ]; then
+            echo "APPROVED_TEAM=${{ needs.main-push.outputs.APPROVED_TEAM }}" >> $GITHUB_ENV
+          fi
+
       - name: Validate Committer
         run: |
           if [[ -z "${{ env.APPROVED_TEAM }}" || "${{ env.APPROVED_TEAM }}" == "${{ github.repository_owner }}," ]]; then
