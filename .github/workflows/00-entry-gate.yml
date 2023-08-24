@@ -28,82 +28,11 @@ concurrency:
 
 on:
   push:
-    branches: ["code-development", "code-production", "code-staging"]
+    branches: ["code-development", "code-production", "code-staging", "main"]
 
 jobs:
-  set-development-team:
-    name: Set Development Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
-    environment:
-      name: development
-    steps:
-      - name: Set Approved Development Team
-        run: |
-          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
-          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
 
-  set-staging-team:
-    name: Set Staging Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
-    environment:
-      name: staging
-    steps:
-      - name: Set Approved Staging Team
-        run: |
-          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
-          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
-
-  set-production-team:
-    name: Set Production Team
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
-    environment:
-      name: production
-    steps:
-      - name: Set Approved Production Team
-        run: |
-          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
-          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
-
-  authorise-main-committer:
-    name: "Authorise Main Committer"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.actor == ${{ github.repository_owner }}) # DevOps only
-    environment:
-      name: main
-    steps:
-      - name: Set Approved Main Team
-        run: |
-          APPROVED_TEAM="${{ github.repository_owner }}"
-          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
-
-  validate-committer:
-    name: "Validate Committer"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
-    steps:
-      - name: Validate Committer
-        run: |
-          APPROVED_TEAM="${{ env.APPROVED_TEAM }}"
-          if [[ -z "$APPROVED_TEAM" || "$APPROVED_TEAM" == "${{ github.repository_owner }}," ]]; then
-              echo "##[error] APPROVED_TEAM is null for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
-              exit 10
-          fi
-
-          echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
-          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
-              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
-              exit 11
-          fi
-
-  validate-report-commit:
+  verify-report-commit:
   
       name: "Commit Verification and Report"
       runs-on: ubuntu-latest
@@ -160,60 +89,6 @@ jobs:
           echo "##[info] Successfully validated SHA branch name $branch."
           echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-      - name: Sanitise Untrusted User-Controlled Commit Details
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
-          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
-        run: |
-          echo "##[info]# Security hardening versus injection threats."
-          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-          echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
-          echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
-
-      - name: Verify committer based on branch
-        run: |       
-          echo "##[info]# Security hardening. Setting approved committers based on branch."
-          DEVOPS="${{ github.repository_owner }}"
-          APPROVED_TEAM= 
-
-          case ${{ env.SHA_BRANCH }} in
-            main)
-              # For main only the owner is allowed
-              APPROVED_TEAM="$DEVOPS"
-              ;;
-            code-development)
-              APPROVED_TEAM="$DEVOPS,${{ env.DEVELOPMENT_TEAM }}"
-              ENV_SECRET="${{ env.DEVELOPMENT_TEAM }}"
-              ;;
-            code-staging)
-              APPROVED_TEAM="$DEVOPS,${{ env.STAGING_TEAM }}"
-              ENV_SECRET="${{ env.STAGING_TEAM }}"
-              ;;
-            code-production)
-              APPROVED_TEAM="$DEVOPS,${{ env.PRODUCTION_TEAM }}"
-              ENV_SECRET="${{ env.PRODUCTION_TEAM }}"
-              ;;
-          esac
-
-          echo "##[info]# Approved team is $APPROVED_TEAM"
-
-          # Security check -> Ensure we have the correct team set
-          if [[ "$APPROVED_TEAM" == *"$DEVOPS,"* && "$APPROVED_TEAM" == "$DEVOPS," || "$APPROVED_TEAM" == "" ]]; then
-              if [[ -z "${{ env.DEVELOPMENT_TEAM }}" ]]; then echo "##[debug]# DEVELOPMENT TEAM is null."; fi
-              if [[ -z "${{ env.STAGING_TEAM }}" ]]; then echo "##[debug]# STAGING TEAM is null."; fi
-              if [[ -z "${{ env.PRODUCTION_TEAM }}" ]]; then echo "##[debug]# PRODUCTION TEAM is null."; fi
-              echo "##[error]# $APPROVED_TEAM set incorrectly, secrets may be null --> Exit 14"
-              exit 14
-          fi
-
-          # Security check -> Approve committer
-          echo "##[info]# Committer is ${{ env.COMMIT_AUTHOR_NAME }}"
-          if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)${{ env.COMMIT_AUTHOR_NAME }}(,|$)"; then
-              echo "##[error]# Committer ${{ env.COMMIT_AUTHOR_NAME }} is not approved for branch ${{ env.SHA_BRANCH }} commit ${{ github.sha }} --> Exit 15"
-              exit 15
-          fi
-
       - name: Validate .csproj
         run: |
           echo "##[info] Validating .csproj file."
@@ -225,7 +100,18 @@ jobs:
           fi
           echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
           echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-      
+
+      - name: Sanitise Untrusted User-Controlled Commit Details
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+        run: |
+          echo "##[info]# Security hardening versus injection threats."
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "COMMIT_AUTHOR_NAME=$COMMIT_AUTHOR_NAME" >> $GITHUB_ENV
+          echo "COMMIT_AUTHOR_EMAIL=$COMMIT_AUTHOR_EMAIL" >> $GITHUB_ENV
+
       - name: Report Commit Details
         run: |
           echo "Reporting details of the commit, GitHub environment and runner specifics."
@@ -271,6 +157,56 @@ jobs:
           echo "GitHub Event Before: ${{ github.event.before }}"
           echo "GitHub Event After: ${{ github.event.after }}"
           echo "---------------------------------------"
+
+  validate-committer:
+
+    name: Set ${{ matrix.environment_name }} Team
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
+
+    strategy:
+      matrix:
+        environment_name: [development, staging, production, main]
+        include:
+          - environment_name: development
+            team_secret: DEVELOPMENT_TEAM
+          - environment_name: staging
+            team_secret: STAGING_TEAM
+          - environment_name: production
+            team_secret: PRODUCTION_TEAM
+
+    environment:
+      name: ${{ matrix.environment_name }}
+
+    steps:
+      - name: Checkout SHA Repository
+        id: checkout-sha
+        uses: actions/checkout@v3.5.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0 # deep fetch
+
+      - name: Set Approved ${{ matrix.environment_name }} Team
+        run: |
+          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets[matrix.team_secret] }}"
+          if [[ "${{ matrix.environment_name }}" == "main" ]];
+              then APPROVED_TEAM="${{ github.repository_owner }}"
+          fi
+          echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
+
+      - name: Validate Committer
+        run: |
+          if [[ -z "${{ env.APPROVED_TEAM }}" || "${{ env.APPROVED_TEAM }}" == "${{ github.repository_owner }}," ]]; then
+              echo "##[error] APPROVED TEAM is null for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
+              exit 10
+          fi
+
+          echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
+          if ! echo "${{ env.APPROVED_TEAM }}" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
+              echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
+              exit 11
+          fi
 
       - name: Trigger Next Workflow # 01-cache-dependencies.yml
         if: success()
