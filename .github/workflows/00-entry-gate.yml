@@ -164,8 +164,17 @@ jobs:
               echo "##[error] Committer $COMMITTER_NAME is not approved for branch ${{ env.SHA_BRANCH }}. --> Exit 11"
               exit 11
           fi
-  
-      - name: Trigger Next Workflow # 01-cache-dependencies.yml
+
+
+  trigger-next-workflow: 
+    name: Trigger Next Workflow # 01-cache-dependencies.yml
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: (github.actor != ${{ github.repository_owner }}) # DevOps maintainence
+    needs: verify-commit
+    steps:
+
+      - name: Trigger Next Workflow
         if: success()
         run: |
           echo "##[info] Triggering next workflow."        
