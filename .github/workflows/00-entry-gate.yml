@@ -24,6 +24,9 @@ concurrency:
   group: report-${{ github.sha }}
   cancel-in-progress: true
 
+permissions:
+  contents: write # ensures workflow permissions to access repository secrets
+
 on:
   push:
     branches: ["code-development", "code-production", "code-staging"]
