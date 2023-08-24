@@ -176,7 +176,7 @@ jobs:
           echo "##[info] Triggering next workflow."
           
           trigger="trigger-cache-dependencies"
-          trigger="trigger-development-success" #TODO REMOVE
+          trigger="trigger-deployment-success" #TODO REMOVE
 
           # Construct Payload for the request        
           ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
