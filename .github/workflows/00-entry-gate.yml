@@ -163,8 +163,9 @@ jobs:
     name: Set ${{ matrix.environment_name }} Team
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # exclude DevOps
-
+    # Run the job only if the actor is not the repository owner
+    if: (github.actor != ${{ github.repository_owner }}) && (github.ref == 'refs/heads/${{ matrix.environment_name }}')
+  
     strategy:
       matrix:
         environment_name: [development, staging, production, main]
@@ -177,30 +178,34 @@ jobs:
             team_secret: PRODUCTION_TEAM
           - environment_name: main
             team_secret: ${{ github.repository_owner }}
-
+  
     environment:
       name: ${{ matrix.environment_name }}
-
+  
     steps:
+
       - name: Checkout SHA Repository
         id: checkout-sha
         uses: actions/checkout@v3.5.3
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0 # deep fetch
-
+  
       - name: Set Approved ${{ matrix.environment_name }} Team
         run: |
-          APPROVED_TEAM="${{ github.repository_owner }},${{ secrets[matrix.team_secret] }}"
+          if [[ "${{ matrix.environment_name }}" == "main" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }}"
+          else
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets[matrix.team_secret] }}"
+          fi
           echo "APPROVED_TEAM=$APPROVED_TEAM" >> $GITHUB_ENV
-
+  
       - name: Validate Committer
         run: |
           if [[ -z "${{ env.APPROVED_TEAM }}" || "${{ env.APPROVED_TEAM }}" == "${{ github.repository_owner }}," ]]; then
               echo "##[error] APPROVED TEAM is null for branch $(echo "${{ github.ref }}" | sed "s#refs/heads/##") --> Exit 10"
               exit 10
           fi
-
           echo "##[info] Committer is ${{ github.event.head_commit.author.name }}"
           if ! echo "${{ env.APPROVED_TEAM }}" | grep -qiE "(^|,)${{ github.event.head_commit.author.name }}(,|$)"; then
               echo "##[error] Committer ${{ github.event.head_commit.author.name }} is not approved. --> Exit 11"
