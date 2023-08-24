@@ -44,7 +44,7 @@ jobs:
     - name: Restore dotnet Dependencies
       run: |
         echo "##[info] Restoring .NET dependencies for ${{ env.CSPROJ }}"
-        dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 34)
+        dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed for ${{ env.CSPROJ }}" && exit 34)
 
     - name: Cache dotnet Dependencies
       uses: actions/cache@v3
