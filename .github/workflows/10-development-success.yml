@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout SHA Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.5.0
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
@@ -45,7 +45,9 @@ jobs:
 
       - name: Set Commit API Status URL
         run: |
-          STATUS_URL="https://api.github.com/repos/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/statuses/${{ env.SHA }}"
+          REPO_OWNER=${{ github.repository_owner }}
+          REPO_NAME=${{ github.repository }}
+          STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
 
       - name: Check Current Deployment Status
