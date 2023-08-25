@@ -60,9 +60,9 @@ jobs:
       - name: Update Deployment Status to Success
         run: |
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
-          CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses "
+          CMD+="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }} "
           CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
-          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"environment\": \"$environment\", \"auto_inactive\": true }'"
+          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
           RESPONSE=$(eval "${CMD}")
           echo "##[info]# API Response: $RESPONSE"
 
