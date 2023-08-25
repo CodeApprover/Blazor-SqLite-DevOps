@@ -56,6 +56,7 @@ jobs:
           CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
           CMD+="/repos/\${{ github.repository }}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
           CMD+="-f description='${desc}'"
+          echo "GH_TOKEN=${{ secrets.AUTH }}" >> $GITHUB_ENV
           eval "${CMD}"
 
       - name: Update Deployment Status to Success
