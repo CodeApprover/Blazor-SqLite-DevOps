@@ -19,7 +19,7 @@ jobs:
     steps:
 
     - name: Checkout SHA Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3.5.0
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
@@ -50,13 +50,49 @@ jobs:
         echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
+    - name: Check Current Deployment Status
+      run: |
+        CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" "
+        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses/latest"
+        CURRENT_STATUS=$(eval "${CHECK_STATUS_CMD}")
+        echo "##[info]# Current Deployment Status is $CURRENT_STATUS"
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+
     - name: Update Deployment Status - Success
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. New code in ${{ env.DIRECTORY }} directory on both branches.\", "
+        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to "
+        CMD+="${{ env.DEPLOY_BRANCH }}. New code in ${{ env.DIRECTORY }} directory on both branches.\", "
         CMD+="\"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
-        eval "${CMD}"
-
+        RESPONSE=$(eval "${CMD}")
+        echo "##[info]# API Response: $RESPONSE"
       env:
         GITHUB_TOKEN: ${{ secrets.AUTH }}
+
+    - name: Check Updated Deployment Status
+      run: |
+        CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" "
+        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses/latest"
+        UPDATED_STATUS=$(eval "${CHECK_STATUS_CMD}")
+        echo "##[info]# Updated Deployment Status is $UPDATED_STATUS"
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+
+    - name: Verify Deployment Status Update
+      run: |
+        if [[ -z "$UPDATED_STATUS" ]]; then
+            echo "##[error]# Updated status is not properly populated."
+            exit 50
+        fi
+        if [[ -z "$CURRENT_STATUS" ]]; then
+            echo "##[error]# Current status was not updated correctly."
+            exit 51
+        fi
+        if [[ "$UPDATED_STATUS" != "$CURRENT_STATUS" ]]; then
+            echo "##[error]# Deployment status was not updated correctly."
+            exit 52
+        else
+            echo "##[info]# Deployment status updated successfully."
+        fi
