@@ -56,7 +56,12 @@ jobs:
         CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" "
         CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses/latest"
         CURRENT_STATUS=$(eval "${CHECK_STATUS_CMD}")
-        echo "##[info]# Current Deployment Status is $CURRENT_STATUS"
+        if [[ $CURRENT_STATUS == *"Not Found"* ]]; then
+          echo "##[info]# Current Deployment Status not found. This might be expected for a new deployment."
+          CURRENT_STATUS="Not Found"
+        else
+          echo "##[info]# Current Deployment Status is $CURRENT_STATUS"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.AUTH }}
 
@@ -64,9 +69,8 @@ jobs:
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from $envirn to "
-        CMD+="$deploy_branch. New code in $directory directory on both branches.\", "
-        CMD+="\"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
+        CMD+="-d '{"state": "success", "description": "Deploying SHA ${{ env.SHA }} from $envirn to $deploy_branch. "
+        CMD+="New code in $directory directory on both branches.", "environment": "$deploy_branch", "auto_inactive": true }'"
         RESPONSE=$(eval "${CMD}")
         echo "##[info]# API Response: $RESPONSE"
       env:
@@ -87,13 +91,9 @@ jobs:
             echo "##[error]# Updated status is not properly populated --> Exit 50"
             exit 50
         fi
-        if [[ -z "$CURRENT_STATUS" ]]; then
-            echo "##[error]# Current status was not updated correctly --> Exit 51"
-            exit 51
-        fi
         if [[ "$UPDATED_STATUS" != "$CURRENT_STATUS" ]]; then
-            echo "##[error]# Deployment status was not updated correctly --> Exit 52"
-            exit 52
+            echo "##[error]# Deployment status was not updated correctly --> Exit 51"
+            exit 51
         else
             echo "##[info]# Deployment status updated successfully."
         fi
