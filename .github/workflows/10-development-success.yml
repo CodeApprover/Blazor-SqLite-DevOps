@@ -1,5 +1,5 @@
 ---
-name: "Deployment Success"
+name: "Set Deployment Success"
 
 on:
   repository_dispatch:
@@ -19,22 +19,13 @@ jobs:
     #if: (github.actor != ${{ github.repository_owner }}) # prevent workflow
     steps:
 
-    - name: Checkout SHA Repository
-      uses: actions/checkout@v3.5.3
+    - uses: actions/checkout@v3.5.3
+    - id: set_state_in_progress
+      name: Set Deployment Status to Success
+      uses: rsotnychenko/deployment-status-update@0.2.5
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
-
-    - name: Set Environment
-      run: |
-        envirn=$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')
-        echo "ENVIRONMENT=$envirn" >> $GITHUB_ENV
-
-    - name: Publish Environment Deployment Approval
-      uses: activescott/automate-environment-deployment-approval@v1.0.1
-      with:
-        github_token: ${{ secrets.AUTH }}
-        environment_allow_list: ${{ env.ENVIRONMENT }}
-        actor_allow_list: |
-          dependabot[bot]
-          ${{ github.repository_owner }}
+        status: success
+      env:
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
