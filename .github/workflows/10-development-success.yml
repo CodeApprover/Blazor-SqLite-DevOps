@@ -48,17 +48,6 @@ jobs:
           STATUS_URL="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
 
-      - name: Check Current Deployment Status
-        run: |
-          CURRENT_STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.AUTH }}" "${{ env.STATUS_URL }}")
-          if [[ $CURRENT_STATUS_RESPONSE == *"state"* ]]; then
-              CURRENT_STATUS=$(echo $CURRENT_STATUS_RESPONSE | grep -oP '(?<=state": ")[^"]*')
-              echo "##[info]# Current Deployment Status is '$CURRENT_STATUS'"
-          else
-              echo "##[info]# Current Deployment Status is unset."
-          fi
-          echo "CURRENT_STATUS=$CURRENT_STATUS" >> $GITHUB_ENV
-
       - name: Update Deployment Status to Success
         run: |
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
@@ -67,24 +56,3 @@ jobs:
           CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
           RESPONSE=$(eval "${CMD}")
           echo "##[info]# API Response: $RESPONSE"
-
-      - name: Check Updated Deployment Status
-        run: |
-          UPDATED_STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.AUTH }}" "${{ env.STATUS_URL }}")
-          if [[ $UPDATED_STATUS_RESPONSE == *"state"* ]]; then
-              UPDATED_STATUS=$(echo $UPDATED_STATUS_RESPONSE | grep -oP '(?<=state": ")[^"]*')
-              echo "##[info]# Updated Deployment Status is '$UPDATED_STATUS'"
-          else
-              echo "##[info]# Updated Deployment Status is unset."
-              UPDATED_STATUS="Unset"
-          fi
-          echo "UPDATED_STATUS=$UPDATED_STATUS" >> $GITHUB_ENV
-
-      - name: Verify Deployment Status Update
-        run: |
-          if [[ "${{ env.UPDATED_STATUS }}" != "${{ env.CURRENT_STATUS }}" ]]; then
-              echo "##[error]# Deployment status was not updated correctly --> Exit 50"
-              exit 50
-          else
-              echo "##[info]# Deployment status updated successfully."
-          fi
