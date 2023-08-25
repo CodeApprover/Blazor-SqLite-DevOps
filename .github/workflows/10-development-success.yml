@@ -58,7 +58,7 @@ jobs:
           CMD+="-f description='${desc}'"
           eval "${CMD}"
         env:
-          GH_TOKEN: ${{ secrets.AUTTH }}
+          GH_TOKEN: ${{ secrets.AUTH }}
 
       - name: Update Deployment Status to Success
         run: |
