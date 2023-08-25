@@ -27,13 +27,14 @@ jobs:
     - name: Set SHA Commit Environment
       run: |
         branch="${{ env.SHA_BRANCH }}"
-        echo "ENVIRONMENT=${branch/code-/}" >> $GITHUB_ENV
+        envirn=${branch/code-/}
+        echo "ENVIRONMENT=${envirn}" >> $GITHUB_ENV
 
     - name: Set Next Environment
       run: |
         deploy_branch="Invalid"
         directory="Invalid"      
-        case "${{ env.SHA_BRANCH }}" in
+        case "$envirn" in
           "code-development")
             deploy_branch="code-staging"
             directory="development"
@@ -47,8 +48,8 @@ jobs:
             directory="production"
             ;;
         esac
-        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-        echo "DIRECTORY=$directory" >> $GITHUB_ENV
+        echo "DEPLOY_BRANCH=${deploy_branch}" >> $GITHUB_ENV
+        echo "DIRECTORY=${directory}" >> $GITHUB_ENV
 
     - name: Check Current Deployment Status
       run: |
@@ -63,8 +64,8 @@ jobs:
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to "
-        CMD+="${{ env.DEPLOY_BRANCH }}. New code in ${{ env.DIRECTORY }} directory on both branches.\", "
+        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from $envirn to "
+        CMD+="$deploy_branch. New code in $directory directory on both branches.\", "
         CMD+="\"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
         RESPONSE=$(eval "${CMD}")
         echo "##[info]# API Response: $RESPONSE"
@@ -83,15 +84,15 @@ jobs:
     - name: Verify Deployment Status Update
       run: |
         if [[ -z "$UPDATED_STATUS" ]]; then
-            echo "##[error]# Updated status is not properly populated."
+            echo "##[error]# Updated status is not properly populated --> Exit 50"
             exit 50
         fi
         if [[ -z "$CURRENT_STATUS" ]]; then
-            echo "##[error]# Current status was not updated correctly."
+            echo "##[error]# Current status was not updated correctly --> Exit 51"
             exit 51
         fi
         if [[ "$UPDATED_STATUS" != "$CURRENT_STATUS" ]]; then
-            echo "##[error]# Deployment status was not updated correctly."
+            echo "##[error]# Deployment status was not updated correctly --> Exit 52"
             exit 52
         else
             echo "##[info]# Deployment status updated successfully."
