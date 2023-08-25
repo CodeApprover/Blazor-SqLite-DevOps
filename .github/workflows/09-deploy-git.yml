@@ -140,7 +140,7 @@ jobs:
       if: success()
       run: |
         case "${{ env.SHA_BRANCH }}" in
-          code-development) trigger="trigger-development-success" ;;
+          code-development) trigger="trigger-deployment-success" ;;
           code-staging) trigger="trigger-staging-success" ;;
           code-production) trigger="trigger-production-success" ;;
         esac
