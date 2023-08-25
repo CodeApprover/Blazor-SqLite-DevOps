@@ -1,5 +1,4 @@
 name: "Set Deployment Success"
-# https://docs.github.com/en/webhooks/webhook-events-and-payloads#deployment
 
 on:
   repository_dispatch:
@@ -16,7 +15,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout SHA Repository
-        uses: actions/checkout@v3.5.0
+        uses: actions/checkout@v2
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
@@ -45,14 +44,25 @@ jobs:
 
       - name: Set Commit API Status URL
         run: |
-          STATUS_URL="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}"
+          REPO_OWNER=${{ github.repository_owner }}
+          REPO_NAME=${{ github.repository }}
+          STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
+
+      - name: Deploy using GitHub CLI
+        run: |
+          desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
+          desc+="New code in ${{ env.DIRECTORY }} directory on both branches."
+          CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
+          CMD+="/repos/${REPO_OWNER}/${REPO_NAME}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
+          CMD+="-f description='${desc}'"
+          $CMD
 
       - name: Update Deployment Status to Success
         run: |
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
           CMD+="${{ env.STATUS_URL }} "
-          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
+          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
           CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
           RESPONSE=$(eval "${CMD}")
           echo "##[info]# API Response: $RESPONSE"
