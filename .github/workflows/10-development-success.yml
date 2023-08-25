@@ -16,23 +16,47 @@ jobs:
     name: Publish Deployment Success
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != ${{ github.repository_owner }}) # prevent workflow
     steps:
 
     - name: Checkout SHA Repository
-      id: checkout
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v2
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
+    - name: Set SHA Commit Environment
+      run: |
+        branch="${{ env.SHA_BRANCH }}"
+        echo "ENVIRONMENT=${branch/code-/}" >> $GITHUB_ENV
+
+    - name: Set Next Environment
+      run: |
+        deploy_branch="Invalid"
+        directory="Invalid"      
+        case "${{ env.SHA_BRANCH }}" in
+          "code-development")
+            deploy_branch="code-staging"
+            directory="development"
+            ;;
+          "code-staging")
+            deploy_branch="code-production"
+            directory="staging"
+            ;;
+          "code-production")
+            deploy_branch="main"
+            directory="production"
+            ;;
+        esac
+        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
+        echo "DIRECTORY=$directory" >> $GITHUB_ENV
+
     - name: Update Deployment Status - Success
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="\"https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses\" "
-        CMD+="-d '{\"state\": \"success\",\"description\": \"${{ env.SHA }} deployed successfully.\", "
-        CMD+="\"environment\": \"${{ env.ENVIRONMENT }}\",\"auto_inactive\": true }'"
-        eval ${CMD}
+        CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
+        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. New code in ${{ env.DIRECTORY }} directory on both branches.\", "
+        CMD+="\"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
+        eval "${CMD}"
 
       env:
         GITHUB_TOKEN: ${{ secrets.AUTH }}
