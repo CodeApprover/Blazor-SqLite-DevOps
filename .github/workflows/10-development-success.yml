@@ -11,80 +11,78 @@ env:
 
 jobs:
   publish-deployment-success:
-
     name: Publish Deployment Success
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Checkout SHA Repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
 
-    - name: Checkout SHA Repository
-      uses: actions/checkout@v3.5.0
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0
+      - name: Set SHA Commit Environment
+        run: |
+          branch="${{ env.SHA_BRANCH }}"
+          environment=${branch/code-/}
+          echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    - name: Set SHA Commit Environment
-      run: |
-        branch="${{ env.SHA_BRANCH }}"
-        environment=${branch/code-/}
-        echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
+      - name: Set Next Environment
+        run: |
+          deploy_branch="Invalid"
+          directory="${{ env.ENVIRONMENT }}"
+          if [[ "${{ env.ENVIRONMENT }}" == "development" ]]; then
+            environment="staging"
+          elif [[ "${{ env.ENVIRONMENT }}" == "staging" ]]; then
+            environment="production"
+          elif [[ "${{ env.ENVIRONMENT }}" == "production" ]]; then
+            environment="main"
+          elif [[ "${{ env.ENVIRONMENT }}" == "main" ]]; then
+            environment="main"
+            directory="production"
+          fi
+          echo "DEPLOY_BRANCH=$environment" >> $GITHUB_ENV
+          echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    - name: Set Next Environment
-      run: |
-        deploy_branch="Invalid"
-        directory="${{ env.ENVIRONMENT }}"
-        if [[ "${{ env.ENVIRONMENT }}" == "development" ]]; then
-          environment="staging"
-        elif [[ "${{ env.ENVIRONMENT }}" == "staging" ]]; then
-          environment="production"
-        elif [[ "${{ env.ENVIRONMENT }}" == "production" ]]; then
-          environment="main"
-        elif [[ "${{ env.ENVIRONMENT }}" == "main" ]]; then
-          environment="main"
-          directory="production"
-        fi
-        echo "DEPLOY_BRANCH=$environment" >> $GITHUB_ENV
-        echo "DIRECTORY=$directory" >> $GITHUB_ENV
+      - name: Check Current Deployment Status
+        run: |
+          CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+          CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
+          CURRENT_STATUS=$(eval "${CHECK_STATUS_CMD}")
+          if [[ $CURRENT_STATUS == *"Not Found"* ]]; then
+            echo "##[info]# Current Deployment Status not found. This might be expected for a new deployment."
+            CURRENT_STATUS="Unset"
+          else
+            echo "##[info]# Current Deployment Status is '$CURRENT_STATUS'"
+          fi
+          echo "CURRENT_STATUS=$CURRENT_STATUS" >> $GITHUB_ENV
 
-    - name: Check Current Deployment Status
-      run: |
-        CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
-        CURRENT_STATUS=$(eval "${CHECK_STATUS_CMD}")
-        if [[ $CURRENT_STATUS == *"Not Found"* ]]; then
-          echo "##[info]# Current Deployment Status not found. This might be expected for a new deployment."
-          CURRENT_STATUS="Unset"
-        else
-          echo "##[info]# Current Deployment Status is '$CURRENT_STATUS'"
-        fi
-        echo "CURRENT_STATUS=$CURRENT_STATUS" >> $GITHUB_ENV
+      - name: Update Deployment Status to Success
+        run: |
+          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
+          CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses "
+          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
+          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"environment\": \"$environment\", \"auto_inactive\": true }'"
+          RESPONSE=$(eval "${CMD}")
+          echo "##[info]# API Response: $RESPONSE"
 
-    - name: Update Deployment Status to Success
-      run: |
-        CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
-        CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"environment\": \"${{ ENV>DEPLOY_BRANCH }}\", \"auto_inactive\": true }'"
-        RESPONSE=$(eval "${CMD}")
-        echo "##[info]# API Response: $RESPONSE"
+      - name: Check Updated Deployment Status
+        run: |
+          CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+          CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
+          UPDATED_STATUS=$(eval "${CHECK_STATUS_CMD}")
+          echo "##[info]# Updated Deployment Status is '$UPDATED_STATUS'"
+          echo "UPDATED_STATUS=$UPDATED_STATUS" >> $GITHUB_ENV
 
-    - name: Check Updated Deployment Status
-      run: |
-        CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
-        UPDATED_STATUS=$(eval "${CHECK_STATUS_CMD}")
-        echo "##[info]# Updated Deployment Status is '$UPDATED_STATUS'"
-        echo "UPDATED_STATUS=$UPDATED_STATUS" >> $GITHUB_ENV
-
-    - name: Verify Deployment Status Update
-      run: |
-        if [[ -z "${{ env.UPDATED_STATUS }}" ]]; then
-            echo "##[error]# Updated status is not properly populated --> Exit 50"
-            exit 50
-        fi
-        if [[ "${{ env.UPDATED_STATUS }}" != "${{ env.CURRENT_STATUS }}" ]]; then
-            echo "##[error]# Deployment status was not updated correctly --> Exit 51"
-            exit 51
-        else
-            echo "##[info]# Deployment status updated successfully."
-        fi
+      - name: Verify Deployment Status Update
+        run: |
+          if [[ -z "${{ env.UPDATED_STATUS }}" ]]; then
+              echo "##[error]# Updated status is not properly populated --> Exit 50"
+              exit 50
+          fi
+          if [[ "${{ env.UPDATED_STATUS }}" != "${{ env.CURRENT_STATUS }}" ]]; then
+              echo "##[error]# Deployment status was not updated correctly --> Exit 51"
+              exit 51
+          else
+              echo "##[info]# Deployment status updated successfully."
+          fi
