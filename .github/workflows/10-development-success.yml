@@ -1,4 +1,3 @@
----
 name: "Set Deployment Success"
 
 on:
@@ -54,7 +53,7 @@ jobs:
     - name: Check Current Deployment Status
       run: |
         CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" "
-        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses/latest"
+        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
         CURRENT_STATUS=$(eval "${CHECK_STATUS_CMD}")
         if [[ $CURRENT_STATUS == *"Not Found"* ]]; then
           echo "##[info]# Current Deployment Status not found. This might be expected for a new deployment."
@@ -68,7 +67,7 @@ jobs:
     - name: Update Deployment Status to Success
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses "
         CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from $envirn to $deploy_branch. "
         CMD+="New code in $directory directory on both branches.\", \"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
         RESPONSE=$(eval "${CMD}")
@@ -79,7 +78,7 @@ jobs:
     - name: Check Updated Deployment Status
       run: |
         CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" "
-        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses/latest"
+        CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses/latest"
         UPDATED_STATUS=$(eval "${CHECK_STATUS_CMD}")
         echo "##[info]# Updated Deployment Status is $UPDATED_STATUS"
       env:
