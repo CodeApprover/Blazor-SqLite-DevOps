@@ -54,9 +54,9 @@ jobs:
           desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
           desc+="New code in ${{ env.DIRECTORY }} directory on both branches."
           CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
-          CMD+="/repos/${REPO_OWNER}/${REPO_NAME}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
+          CMD+="/repos/\${{ github.repository }}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
           CMD+="-f description='${desc}'"
-          $CMD
+          eval "${CMD}"
 
       - name: Update Deployment Status to Success
         run: |
