@@ -45,9 +45,7 @@ jobs:
 
       - name: Set Commit API Status URL
         run: |
-          REPO_OWNER=${{ github.repository_owner }}
-          REPO_NAME=${{ github.repository }}
-          STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
+          STATUS_URL="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
 
       - name: Check Current Deployment Status
