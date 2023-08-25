@@ -65,12 +65,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.AUTH }}
 
-    - name: Update Deployment Status - Success
+    - name: Update Deployment Status to Success
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer $GITHUB_TOKEN\" -H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ github.event.deployment.id }}/statuses "
-        CMD+="-d '{"state": "success", "description": "Deploying SHA ${{ env.SHA }} from $envirn to $deploy_branch. "
-        CMD+="New code in $directory directory on both branches.", "environment": "$deploy_branch", "auto_inactive": true }'"
+        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from $envirn to $deploy_branch. "
+        CMD+="New code in $directory directory on both branches.\", \"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
         RESPONSE=$(eval "${CMD}")
         echo "##[info]# API Response: $RESPONSE"
       env:
