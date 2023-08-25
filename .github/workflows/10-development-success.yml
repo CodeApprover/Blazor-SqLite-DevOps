@@ -26,28 +26,24 @@ jobs:
     - name: Set SHA Commit Environment
       run: |
         branch="${{ env.SHA_BRANCH }}"
-        envirn=${branch/code-/}
-        echo "ENVIRONMENT=${envirn}" >> $GITHUB_ENV
+        environment=${branch/code-/}
+        echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
     - name: Set Next Environment
       run: |
         deploy_branch="Invalid"
-        directory="Invalid"      
-        case "${{ env.ENVIRONMENT }}" in
-          "code-development")
-            deploy_branch="code-staging"
-            directory="development"
-            ;;
-          "code-staging")
-            deploy_branch="code-production"
-            directory="staging"
-            ;;
-          "code-production")
-            deploy_branch="main"
-            directory="production"
-            ;;
-        esac
-        echo "DEPLOY_BRANCH=${deploy_branch}" >> $GITHUB_ENV
+        directory="${{ env.ENVIRONMENT }}"
+        if [[ "${{ env.ENVIRONMENT }}" == "development" ]]; then
+          environment="staging"
+        elif [[ "${{ env.ENVIRONMENT }}" == "staging" ]]; then
+          environment="production"
+        elif [[ "${{ env.ENVIRONMENT }}" == "production" ]]; then
+          environment="main"
+        elif [[ "${{ env.ENVIRONMENT }}" == "main" ]]; then
+          environment="main"
+          directory="production"
+        fi
+        echo "DEPLOY_BRANCH=$environment" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
     - name: Check Current Deployment Status
@@ -67,8 +63,8 @@ jobs:
       run: |
         CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/sha:${{ env.SHA }}/statuses "
-        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to $deploy_branch. "
-        CMD+="New code in $directory directory on both branches.\", \"environment\": \"$deploy_branch\", \"auto_inactive\": true }'"
+        CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
+        CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"environment\": \"${{ ENV>DEPLOY_BRANCH }}\", \"auto_inactive\": true }'"
         RESPONSE=$(eval "${CMD}")
         echo "##[info]# API Response: $RESPONSE"
 
