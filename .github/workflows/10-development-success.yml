@@ -43,11 +43,14 @@ jobs:
           echo "DEPLOY_BRANCH=$branch" >> $GITHUB_ENV
           echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
+      - name: Set Commit API Status URL
+        run: |
+          STATUS_URL="https://api.github.com/repos/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/statuses/${{ env.SHA }}"
+          echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
+
       - name: Check Current Deployment Status
         run: |
-          CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-          CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ env.SHA }}/statuses"
-          CURRENT_STATUS_RESPONSE=$(eval "${CHECK_STATUS_CMD}")
+          CURRENT_STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.AUTH }}" "${{ env.STATUS_URL }}")
           if [[ $CURRENT_STATUS_RESPONSE == *"state"* ]]; then
               CURRENT_STATUS=$(echo $CURRENT_STATUS_RESPONSE | grep -oP '(?<=state": ")[^"]*')
               echo "##[info]# Current Deployment Status is '$CURRENT_STATUS'"
@@ -59,7 +62,7 @@ jobs:
       - name: Update Deployment Status to Success
         run: |
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
-          CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ env.SHA }}/statuses "
+          CMD+="${{ env.STATUS_URL }} "
           CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.ENVIRONMENT }} to ${{ env.DEPLOY_BRANCH }}. "
           CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
           RESPONSE=$(eval "${CMD}")
@@ -67,9 +70,7 @@ jobs:
 
       - name: Check Updated Deployment Status
         run: |
-          CHECK_STATUS_CMD="curl -s -H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-          CHECK_STATUS_CMD+="https://api.github.com/repos/${{ github.repository }}/deployments/${{ env.SHA }}/statuses"
-          UPDATED_STATUS_RESPONSE=$(eval "${CHECK_STATUS_CMD}")
+          UPDATED_STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.AUTH }}" "${{ env.STATUS_URL }}")
           if [[ $UPDATED_STATUS_RESPONSE == *"state"* ]]; then
               UPDATED_STATUS=$(echo $UPDATED_STATUS_RESPONSE | grep -oP '(?<=state": ")[^"]*')
               echo "##[info]# Updated Deployment Status is '$UPDATED_STATUS'"
