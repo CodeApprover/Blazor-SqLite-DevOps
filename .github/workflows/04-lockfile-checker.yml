@@ -10,7 +10,7 @@ name: "Check Lock File"
 
 # Exit Codes
 # 40 - Lock file presence presists.
-# 41 - Pailed to push lock file.
+# 41 - Failed to push lock file.
 # 42 - Failed to fetch SHA branch.
 # 43 - Expected lock file does not exist.
 
