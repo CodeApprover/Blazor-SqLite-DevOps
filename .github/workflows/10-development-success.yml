@@ -1,4 +1,4 @@
-name: "Set Deployment Success"
+name: "Register Deployment Success"
 
 on:
   repository_dispatch:
@@ -49,6 +49,16 @@ jobs:
           STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
 
+
+      - name: Update Deployment Status to Success
+        run: |
+          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
+          CMD+="${{ env.STATUS_URL }} "
+          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
+          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
+          RESPONSE=$(eval "${CMD}")
+          echo "##[info]# API Response: $RESPONSE"
+
       - name: Deploy using GitHub CLI
         run: |      
           desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
@@ -59,12 +69,3 @@ jobs:
           eval "${CMD}"
         env:
           GH_TOKEN: ${{ secrets.AUTH }}
-
-      - name: Update Deployment Status to Success
-        run: |
-          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
-          CMD+="${{ env.STATUS_URL }} "
-          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
-          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
-          RESPONSE=$(eval "${CMD}")
-          echo "##[info]# API Response: $RESPONSE"
