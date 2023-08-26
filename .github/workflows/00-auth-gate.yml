@@ -36,7 +36,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: authentication
+  NEXT_WORKFLOW: verify-commit
 
 jobs:
 
@@ -53,7 +53,7 @@ jobs:
 
     - name: Sanitize Untrusted User-Controlled Details from Payload
       run: |
-        echo "##[info]## Security hardening versus injection threats."
+        echo "##[info] Security hardening versus injection threats."
 
         sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9 ]//g')
         sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9@.]//g')
@@ -66,33 +66,34 @@ jobs:
     - name: Validate Committer
       if: success()
       run: |
-        echo "##[info]## Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
+        echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
+        echo "##[info] Running on branch $branch."
 
         if [[ "$branch" == "code-development" ]]; then
-            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
         elif [[ "$branch" == "code-staging" ]]; then
-            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
         elif [[ "$branch" == "code-production" ]]; then
-            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
         elif [[ "$branch" == "main" ]]; then
-            echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
+            APPROVED_TEAM="${{ github.repository_owner }}"
         else
-            echo "##[error]## Branch name $branch is not recognised." && exit 10
+            echo "##[error] Branch name $branch is not recognised." && exit 10
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error]## APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 11
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 11
         fi
 
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
-            echo "##[error]## Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
+            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
         fi
 
     - name: Check Concurrency with Rate Limit Handling
       if: success()
       run: |
-        echo "##[info]## Awaiting non-concurrency slot..."
+        echo "##[info] Awaiting non-concurrency slot..."
         retries=0
 
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
@@ -111,23 +112,23 @@ jobs:
             if [[ "$rate_limit_remaining" -le 5 ]]; then
                 now=$(date +%s)
                 wait_seconds=$(( rate_limit_reset - now ))
-                echo "##[warn]## Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
+                echo "##[warn] Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
                 sleep "$wait_seconds"
             fi
 
             # Check if another instance is running and if so retry
             if [[ $count -eq 0 ]]; then
-                echo "##[info]## No other workflow is running - continuing."
+                echo "##[info] No other workflow is running - continuing."
                 break
             else
                 retries=$((retries+1))
-                echo "##[warn]## Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
+                echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
             fi
 
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-                echo "##[error]## Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error]## Another workflow from .github/workflows is still running. --> Exit 90"
+                echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+                echo "##[error] Another workflow from .github/workflows is still running. --> Exit 90"
                 exit 90
             fi
         done
@@ -139,7 +140,7 @@ jobs:
       if: success()
       run: |
         echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
-        echo "##[info]## Trigger: ${{ env.NEXT_WORKFLOW }}"
+        echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
 
         # Construct Payload for the request        
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
@@ -162,7 +163,7 @@ jobs:
             if [[ "$RATE_LIMIT_REMAINING" -le 5 ]]; then
                 now=$(date +%s)
                 wait_seconds=$(( $RATE_LIMIT_RESET - now ))
-                echo "##[warn]## Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
+                echo "##[warn] Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
                 sleep "$wait_seconds"
             fi
 
@@ -171,17 +172,17 @@ jobs:
             
             RESPONSE_CODE=${RESPONSE_BODY: -3} # status code
             RESPONSE_CONTENT=${RESPONSE_BODY%???}
-            echo "##[debug]## Response body: $RESPONSE_CONTENT"
+            echo "##[debug] Response body: $RESPONSE_CONTENT"
 
             if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
-                echo "##[info]## Successfully triggered workflow on attempt $((retries+1))."
+                echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
                 break
             elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error]## Curl command failed on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                [[ $CURL_EXIT_CODE -eq 3 ]] && echo "##[error]## Curl failure due to malformed URL --> Exit 25." && exit 25
+                echo "##[error] Curl command failed on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                [[ $CURL_EXIT_CODE -eq 3 ]] && echo "##[error] Curl failure due to malformed URL --> Exit 25." && exit 25
             else
-                echo "##[warn]## Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
-                echo "##[warn]## Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
+                echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
                 sleep ${{ vars.WAIT_SECONDS }}
             fi
             retries=$((retries+1))
@@ -189,8 +190,8 @@ jobs:
 
         # Check if all retries failed.
         if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-            echo "##[error]## Exhausted retries. Curl command: $CMD"
-            echo "##[error]## Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
-            echo "##[error]## Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow --> Exit 91"
+            echo "##[error] Exhausted retries. Curl command: $CMD"
+            echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
+            echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow --> Exit 91"
             exit 91
         fi
