@@ -134,12 +134,12 @@ jobs:
       run: |
         echo "##[info] Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
 
-        BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ github.sha }}\""
+        BASE="{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {"
+        SHA="\"sha\": \"$GITHUB_SHA\""
         END="}}"
 
         CMD="curl -s -X POST \
-        -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+        -H \"Authorization: ***\" \
         -H \"Accept: application/vnd.github.v3+json\" \
         -d \"${BASE}${SHA}${END}\" \
         \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
@@ -167,4 +167,3 @@ jobs:
             fi
             retries=$((retries+1))
         done
-
