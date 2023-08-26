@@ -52,12 +52,15 @@ jobs:
     - name: Sanitize Untrusted User-Controlled Details
       run: |
         echo "##[info] Security hardening versus injection threats."
+
         # Remove any commit_name character that is not alphanumeric or a hyphen
         sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
+
         # Ensure the username does not start with a hyphen
         if [[ $sanitized_commit_name == -* ]]; then
             sanitized_commit_name=${sanitized_commit_name:1}
         fi
+
         echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
 
     - name: Validate Committer
@@ -130,11 +133,10 @@ jobs:
       if: success()
       run: |
         echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
-        echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
 
         # Define CURL request with payload
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\""
+        SHA="\"sha\": \"{{ github.sha }}\""
         END="}}"
         
         CMD="curl -s -o /dev/null -X POST \
