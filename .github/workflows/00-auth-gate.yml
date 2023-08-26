@@ -82,7 +82,7 @@ jobs:
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error]## APPROVED TEAM not set for branch $branch" && exit 11
+            echo "##[error]## APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 11
         fi
 
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
