@@ -72,9 +72,9 @@ jobs:
 
           # Exit if at max retries
           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-            echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 40"
-            exit 40
+              echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+              echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 40"
+              exit 40
           fi
         done
 
@@ -88,19 +88,20 @@ jobs:
         git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
 
         if ! git push origin HEAD:${{ env.SHA_BRANCH }}; then
-        echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }} --> Exit 41"
-        exit 41
+            echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }} --> Exit 41"
+            exit 41
         fi
 
         git fetch origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
-        echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }} --> Exit 42"
-        exit 42
+            echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }} --> Exit 42"
+            exit 42
         fi
 
         if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
-        echo "##[error] Expected lock file ${{ env.LOCK_FILE }} was not detected remotely --> Exit 43"
-        exit 43
+            echo "##[error] Expected lock file ${{ env.LOCK_FILE }} was not detected remotely --> Exit 43"
+            exit 43
+        fi
 
         echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
 
