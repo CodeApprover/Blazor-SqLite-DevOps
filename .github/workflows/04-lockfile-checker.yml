@@ -9,12 +9,10 @@ name: "Check Lock File"
 # 3 - Once lock file checks pass, creates a lock and triggers the next workflow.
 
 # Exit Codes
-# 36 - Failed to push lock file.
-# 37 - Failed to fetch SAH branch.
-# 38 - Lock file presence persists.
-# 39 - Failed to push lock file.
-# 40 - Failed to fetch new remote.
-# 41 - Failed to detect pushed lock file.
+# 40 - Lock file presence presists.
+# 41 - Pailed to push lock file.
+# 42 - Failed to fetch SHA branch.
+# 43 - Expected lock file does not exist.
 
 on:
   repository_dispatch:
@@ -72,11 +70,11 @@ jobs:
               break
           fi
 
-          # Exit loop if at max retries
+          # Exit if at max retries
           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 38"
-            exit 38
+            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 40"
+            exit 40
           fi
         done
 
@@ -90,22 +88,22 @@ jobs:
         git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
 
         if ! git push origin HEAD:${{ env.SHA_BRANCH }}; then
-        echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}"
-        exit 39
+        echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }} --> Exit 41"
+        exit 41
         fi
 
         git fetch origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
-        echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}"
-        exit 40
+        echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }} --> Exit 42"
+        exit 42
         fi
 
         if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
-        echo "##[error] Lock file ${{ env.LOCK_FILE }} was not detected remotely."
-        exit 41
-        else
-        echo "##[info] Lock file ${{ env.LOCK_FILE }} successfully created and pushed."
-        fi
+        echo "##[error] Expected lock file ${{ env.LOCK_FILE }} was not detected remotely --> Exit 43"
+        exit 43
+
+        echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
+
 
     - name: Trigger Next Workflow # 05-codeql-analysis.yml | development 07-versioning.yml
       if: success()
