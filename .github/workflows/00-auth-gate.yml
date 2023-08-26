@@ -1,0 +1,179 @@
+---
+name: "User Authentication"
+
+#  ${{ github.workflow }} Overview
+#
+#  This workflow... brief description.
+#
+#  Steps authenticate-user
+#  1 - Step name: description.
+#  2 - Step name: description.
+#
+# Exit Codes
+# 10 - Branch name is not recognised.
+# 11 - Approved team not set.
+# 12 - User is not authorised.
+# 90 - Concurrency failure.
+# 91 - Failed to trigger next workflow.
+#
+
+on:
+  push:
+    branches: ["code-development", "code-production", "code-staging", "main"]
+
+env:
+  NEXT_WORKFLOW: authentication
+
+jobs:
+
+  authenticate-user:
+
+    name: Authenticate User
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # un-comment to block execution
+    #if: (github.actor != 'CodeApprover') 
+
+    steps:
+
+    - name: Sanitize Untrusted User-Controlled Details from Payload
+      run: |
+        echo "##[info]## Security hardening versus injection threats."
+
+        sanitized_commit_name=$(echo "${{ github.event.client_payload.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9 ]//g')
+        sanitized_commit_email=$(echo "${{ github.event.client_payload.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9@.]//g')
+        sanitized_commit_msg=$(echo "${{ github.event.client_payload.head_commit.message }}" | sed 's/[^a-zA-Z0-9 .,?!-]//g')
+
+        echo "COMMIT_MESSAGE=$sanitized_commit_msg" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
+
+    - name: Validate Committer
+      run: |
+        echo "##[info]## Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
+        branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
+
+        if [[ "$branch" == "code-development" ]]; then
+            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}" >> $GITHUB_ENV
+        elif [[ "$branch" == "code-staging" ]]; then
+            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}" >> $GITHUB_ENV
+        elif [[ "$branch" == "code-production" ]]; then
+            echo "APPROVED_TEAM=${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}" >> $GITHUB_ENV
+        elif [[ "$branch" == "main" ]]; then
+            echo "APPROVED_TEAM=${{ github.repository_owner }}" >> $GITHUB_ENV
+        else
+            echo "##[error]## Branch name $branch is not recognised." && exit 10
+        fi
+
+        if [[ "$APPROVED_TEAM" == "" ]]; then
+            echo "##[error]## APPROVED TEAM not set for branch $branch" && exit 11
+        fi
+
+        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
+            echo "##[error]## Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
+        fi
+
+    - name: Check Concurrency with Rate Limit Handling
+      run: |
+        echo "##[info]## Awaiting non-concurrency slot..."
+        retries=0
+
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            # Make API call and save headers to a file
+            headers_file=$(mktemp)
+            query="workflow_runs[?head_branch=='${{ env.sha_branch }}' && status=='in_progress'].id | length(@)"
+            count=$(gh api actions/workflows/deploy-git.yml/runs --query $query -i > "$headers_file")
+            
+            # Extract rate limit remaining and reset information
+            rate_limit_remaining=$(grep -i "X-RateLimit-Remaining:" "$headers_file" | awk '{print $2}' | tr -d '\r')
+            rate_limit_reset=$(grep -i "X-RateLimit-Reset:" "$headers_file" | awk '{print $2}' | tr -d '\r')           
+            rm "$headers_file"
+
+            # Check if we are close to exhausting the rate limit
+            if [[ "$rate_limit_remaining" -le 5 ]]; then
+                now=$(date +%s)
+                wait_seconds=$(( rate_limit_reset - now ))
+                echo "##[warn]## Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
+                sleep "$wait_seconds"
+            fi
+
+            # Check if another instance is running and if so retry
+            if [[ $count -le 1 ]]; then
+                echo "##[info]## No other instance is running - continuing."
+                break
+            else
+                retries=$((retries+1))
+                echo "##[warn]## Another instance is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
+                sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            fi
+
+            if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+                echo "##[error]## Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+                echo "##[error]## Another instance of ${{ github.workflow }} is still running. --> Exit 90"
+                exit 90
+            fi
+        done
+
+        echo "RATE_LIMIT_REMAINING=$rate_limit_remaining" >> $GITHUB_ENV
+        echo "RATE_LIMIT_RESET=$rate_limit_reset" >> $GITHUB_ENV
+
+    - name: Trigger Next Workflow with Rate Limit Handling
+      if: success()
+      run: |
+        echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
+        echo "##[info]## Trigger: ${{ env.NEXT_WORKFLOW }}"
+
+        # Construct Payload for the request        
+        ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
+        BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\""
+        CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
+        BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
+        PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+
+        # Construct CURL for the request
+        CMD="curl -s -o /dev/null -X POST \
+          -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+          -H \"Accept: application/vnd.github.v3+json\" \
+          -d \"${PAYLOAD}\" \
+          \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
+        retries=0          
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+
+            # Check rate limit before making the request
+            if [[ "$RATE_LIMIT_REMAINING" -le 5 ]]; then
+                now=$(date +%s)
+                wait_seconds=$(( $RATE_LIMIT_RESET - now ))
+                echo "##[warn]## Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
+                sleep "$wait_seconds"
+            fi
+
+            RESPONSE_BODY=$(eval "$CMD")
+            CURL_EXIT_CODE=$?
+            
+            RESPONSE_CODE=${RESPONSE_BODY: -3} # status code
+            RESPONSE_CONTENT=${RESPONSE_BODY%???}
+            echo "##[debug]## Response body: $RESPONSE_CONTENT"
+
+            if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
+                echo "##[info]## Successfully triggered workflow on attempt $((retries+1))."
+                break
+            elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error]## Curl command failed on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
+                [[ $CURL_EXIT_CODE -eq 3 ]] && echo "##[error]## Curl failure due to malformed URL --> Exit 25." && exit 25
+            else
+                echo "##[warn]## Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
+                echo "##[warn]## Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                sleep ${{ vars.WAIT_SECONDS }}
+            fi
+            retries=$((retries+1))
+        done
+
+        # Check if all retries failed.
+        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error]## Exhausted retries. Curl command: $CMD"
+            echo "##[error]## Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
+            echo "##[error]## Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow --> Exit 91"
+            exit 91
+        fi
