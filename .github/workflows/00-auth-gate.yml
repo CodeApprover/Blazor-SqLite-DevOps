@@ -133,10 +133,11 @@ jobs:
         echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
 
         # Define CURL request with payload
-        BASE='{"event_type":"your_event_name","client_payload":{'
-        SHA='"sha":"'"${GITHUB_SHA}"'"'
-        END='}}'
-        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST \
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\""
+        END="}}"
+        
+        CMD="curl -s -o /dev/null -X POST \
         -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
         -H \"Accept: application/vnd.github.v3+json\" \
         -d \"${BASE}${SHA}${END}\" \
