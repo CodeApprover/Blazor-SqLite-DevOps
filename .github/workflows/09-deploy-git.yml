@@ -1,21 +1,24 @@
 ---
 name: "Deploy Git"
 
-# Deploy changes from the source environment to the target environment
-# Then trigger the successful deployment workflow based on the branch.
+# This workflow deploys changes from a source environment to target environments.
+# Following the deployment, it triggers a success workflow based on the branch.
 
-# 1 -  Checkout SHA repository.
-# 2 -  Check and Remove Lock File for Payload SHA.
-# 3 -  Set Next Deployment Environment: Determines the target deployment environment based on the source branch.
-# 4 -  Set required source directory.
-# 5 -  Archive development directory.
-# 6 -  Checkout target branch.
-# 7 -  Download archived development directory.
-# 8 -  Synchronize target dir with source dir.
-# 9 -  Commit changes and push to target branch.
-# 10 - Trigger appropriate 'successful deployment' workflow.
+# Key processes include checking out the SHA repository, verifying and removing lock files, 
+# determining deployment environments, copying source files and deploying to target branches.
+
+# This workflow will:
+
+# Check out the repo at the payload SHA.
+# Identify and check for an expected lock file for the source branch.
+# Identify target branches and source directory based on source branch.
+# Copy source directory contents to a temp directory.
+# For each target branch sync source content.
+# For each target branch commit and push and mark deployment status as "success".
+# Remove the lock file and push this change [skip ci].
 
 # Exit Codes
+# 44 - Another instance still running despite retries.
 # 45 - Lock file with correct SHA not found on branch.
 # 46 - Source directory does not exist or is empty.
 
@@ -24,23 +27,51 @@ on:
     types: trigger-deploy-git
 
 env:
-  SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
-  CSPROJ: ${{ github.event.client_payload.csproj }}
+  sha: ${{ github.event.client_payload.sha }}
+  sha_branch: ${{ github.event.client_payload.sha_branch }}
 
 jobs:
-  deploy-to-environment:
+  check-concurrency:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     #if: (github.actor != 'CodeApprover')
 
     steps:
 
+    - name: Wait if Another Instance is Running # lock file system should prevent this
+      run: |
+        iteration=0
+        while [[ $iteration -lt ${{ vars.MAX_RETRIES }} ]]; do
+            query="workflow_runs[?head_branch=='${{ env.sha_branch }}' && status=='in_progress'].id | length(@)"
+            count=$(gh api actions/workflows/deploy-git.yml/runs --query $query)
+            if [[ $count -le 1 ]]; then
+                break
+            fi
+            echo "##[warn]# Another instance is running. Waiting for 5 minutes before re-checking..."
+            sleep 300
+            iteration=$((iteration+1))
+        done
+        if [[ $iteration -eq ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error] Maximum number of retries reached. Another instance of ${{ github.workflow }} is still running. --> Exit 44"
+          exit 44
+
+  deploy-to-environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: check-concurrency
+
+    steps:
+
     - name: Checkout SHA Repository
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ env.SHA }}
+        ref: ${{ env.sha }}
         fetch-depth: 0
+
+    - name: Set Git Config
+      run: |
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
 
     - name: Check and Remove Lock File for Payload SHA
       run: |
@@ -49,111 +80,114 @@ jobs:
         branch_lock_map["code-staging"]=".staging.lock"
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
-        lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
+        lock_file=${branch_lock_map[${{ env.sha_branch }}]}
         echo "##[info] Lock file set as $lock_file"
+
+        if [[ ! -f "$lock_file" ]] || [[ $(cat "$lock_file") != "${{ env.sha }}" ]]; then
+          echo "##[error] Lock file with SHA ${{ env.sha }} not found or doesn't exist on branch ${{ env.sha_branch }} --> Exit 45"
+          exit 45
+        fi
+
+    - name: Set Deployment Environments
+      run: |
+        deploy_branches=()
+        directory=""
         
+        case "${{ env.sha_branch }}" in
+          "code-development")
+            deploy_branches=("code-staging" "code-production")
+            directory="development"
+            ;;
+          "code-staging")
+            deploy_branches=("code-development" "code-production")
+            directory="staging"
+            ;;
+          "code-production")
+            deploy_branches=("code-development" "code-staging")
+            directory="production"
+            ;;
+           "main")
+            echo "##[info]# No deployment required for ${{ env.sha_branch }}"
+            ;;
+        esac
+
+        echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
+        echo "directory=$directory" >> $GITHUB_ENV
+
+    - name: Set and Copy Source Directory to Temp Dir
+      run: |
+        src_dir=${{ env.sha_branch }}
+        src_dir=${src_dir#code-}
+        dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
+
+        if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
+          echo "##[error] Source directory does not exist or is empty --> Exit 46"
+          exit 46
+        fi
+
+        rsync -av --delete $dir_path/ /tmp/temp-dir/
+
+    - name: Deploy to Target Branches
+      run: |
+        echo "##[info]# Deploying commit ${{ env.SHA }} to target branches."
+        latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+        TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
+        echo "##[info] Latest Tag = $TAG_MESSAGE"
+
+        for target_branch in code-development code-staging code-production; do
+          [[ $target_branch == "${{ env.SHA_BRANCH }}" ]] && continue
+          
+          git fetch
+          git checkout $target_branch
+
+          echo "##[info]# Populating target directory${{ env.DIRECTORY }} on $target_branch branch to mirror ${{ env.SHA_BRANCH }}"
+          rsync -av --delete /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+
+          echo "##[info]# Committing and pushing changes to target branch $target_branch"
+          git add -A
+          if ! git diff --quiet; then
+              COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag: $TAG_MESSAGE [skip ci]"
+              echo "##[info] $COMMIT_MSG"
+              git add -A
+              git commit -m "$COMMIT_MSG"
+              git push origin $target_branch
+          else
+              echo "##[warn] No changes detected. Skipping commit for $target_branch [skip ci]"
+              if git diff --staged --quiet; then
+          fi  
+
+          echo "##[info]# Updating Deployment Status to Success for commit SHA ${{ env.SHA }}"
+          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
+          CMD+="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }} "
+          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag. "
+          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
+          echo "##[info] Command: $CMD"
+
+          RESPONSE=$(eval "${CMD}")
+          echo "##[info]# API Response: $RESPONSE"
+
+          desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag. "
+          desc+="New code in ${{ env.DIRECTORY }} directory on both branches."
+          
+          CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
+          CMD+="/repos/\${{ github.repository }}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
+          CMD+="-f description='${desc}'"
+          eval "${CMD}"
+        done
+      env:
+        GH_TOKEN: ${{ secrets.AUTH }}
+
+    - name: Remove Lock File
+      run: |
         git fetch origin ${{ env.SHA_BRANCH }}
         git checkout ${{ env.SHA_BRANCH }}
 
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
 
-        if [[ $(cat "$lock_file") == "${{ env.SHA }}" ]]; then
-          echo "Lock file with SHA ${{ env.SHA }} found on branch ${{ env.SHA_BRANCH }}"
-          git rm "$lock_file"
-          git commit -m "Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
-          git push origin "${{ env.SHA_BRANCH }}"
-        else
-          echo "##[error] Lock file with SHA ${{ env.SHA }} not found on branch ${{ env.SHA_BRANCH }} --> Exit 45"
-          exit 45
-        fi
+        msg="Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
+        echo "##[info]# $msg"
 
-    - name: Set Next Deployment Environment
-      run: |
-        deploy_branch="Invalid"
-        directory="Invalid"
-        
-        case "${{ env.SHA_BRANCH }}" in
-          "code-development")
-            deploy_branch="code-staging"
-            directory="development"
-            ;;
-          "code-staging")
-            deploy_branch="code-production"
-            directory="staging"
-            ;;
-          "code-production")
-            echo "No deployment required for code-production."
-            exit 0
-            ;;
-        esac
-        echo "DEPLOY_BRANCH=$deploy_branch" >> $GITHUB_ENV
-        echo "DIRECTORY=$directory" >> $GITHUB_ENV
-
-    - name: Set Eequired Source Directory # development | staging | produciotn
-      run: |
-        src_dir=${{ env.SHA_BRANCH }}
-        src_dir=${src_dir#code-}
-        dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
-        if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
-          echo "##[error] Source directory does not exist or is empty --> Exit 46"
-          exit 46
-        fi
-        echo "SOURCE_DIR=$dir_path" >> $GITHUB_ENV
-
-    - name: Archive Required Source Directory
-      uses: actions/upload-artifact@v3.1.2
-      with:
-        name: commit-archive
-        path: ${{ env.SOURCE_DIR }}
-
-    - name: Checkout target branch
-      run: |
-        git fetch
-        git checkout ${{ env.DEPLOY_BRANCH }}
-
-    - name: Download Archived Source Directory
-      uses: actions/download-artifact@v3
-      with:
-        name: commit-archive
-        path: /tmp/temp-dir
-
-    - name: Synchronize Target Directory with Source Directory
-      run: |
-        echo "Synchronizing target dir with source dir using rsync:"
-        rsync -av --delete --checksum /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
-
-    - name: Commit Changes and Push to Target Branch 
-      run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-        git add -A
-        if git diff --staged --quiet; then
-          echo "##[warn] No changes detected. Skipping commit --> Exit 99"
-          exit 99
-        else
-          git commit -m "Migrating changes from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }} [skip ci]"
-          git push origin ${{ env.DEPLOY_BRANCH }}
-        fi
-
-    - name: Trigger Next Workflow # 10-development-success.yml | 10-staging-success.yml | 10-production-success.yml
-      if: success()
-      run: |
-        case "${{ env.SHA_BRANCH }}" in
-          code-development) trigger="trigger-deployment-success" ;;
-          code-staging) trigger="trigger-staging-success" ;;
-          code-production) trigger="trigger-production-success" ;;
-        esac
-        echo "##[info] Calling $trigger"
-
-        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\","
-        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
-        END="}}"
-
-        curl -s -o /dev/null -X POST \
-        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
-        "https://api.github.com/repos/${{ github.repository }}/dispatches"
+        git rm "$lock_file"
+        git commit -m "$msg"
+        git push origin "${{ env.SHA_BRANCH }}"
