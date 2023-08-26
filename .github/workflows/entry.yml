@@ -134,13 +134,11 @@ jobs:
       run: |
         trigger="${{ env.NEXT_WORKFLOW }}"
         BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\","
-        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
+        SHA="\"sha\": \"${{ env.SHA }}\""
         END="}}"
 
         curl -s -o /dev/null -X POST \
         -H "Authorization: Bearer ${{ secrets.AUTH }}" \
         -H "Accept: application/vnd.github.v3+json" \
-        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        -d "$BASE$SHA$END" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches"
