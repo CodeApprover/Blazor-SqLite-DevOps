@@ -135,7 +135,7 @@ jobs:
         echo "##[info] Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
 
         BASE="{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {"
-        SHA="\"sha\": \"$GITHUB_SHA\""
+        SHA="\"sha\": \"${{ github.sha }}\""
         END="}}"
 
         CMD="curl -s -X POST \
