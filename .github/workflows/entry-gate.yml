@@ -34,7 +34,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: trigger-authentication
+  NEXT_WORKFLOW: authentication
 
 jobs:
 
@@ -144,8 +144,26 @@ jobs:
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
         CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\",\"client_payload\":{\"sha\":\"${{ github.sha }}\"}}'"
 
-        echo "Executing command: $CMD"
-        RESPONSE=$(eval "$CMD")
-
-        echo "Response from the server:"
-        echo "$RESPONSE"
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            RESPONSE_CODE=$(eval "$CMD")
+            CURL_EXIT_CODE=$?
+            if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
+                echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
+                break
+            elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+            else
+                echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
+                if [[ $((retries+1)) -lt ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                    sleep ${{ vars.WAIT_SECONDS }}
+                else
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals"
+                    echo "##[error] Curl command: $CMD"
+                    echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
+                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow." && exit 91
+                fi
+            fi
+            retries=$((retries+1))
+        done
