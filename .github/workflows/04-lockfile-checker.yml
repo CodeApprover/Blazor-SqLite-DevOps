@@ -109,7 +109,7 @@ jobs:
     - name: Trigger Next Workflow # 05-codeql-analysis.yml | development 07-versioning.yml
       if: success()
       run: |
-        trigger="trigger-codeql-analysis"
+        trigger="trigger-security-analysis"
         if [ "${{ env.SHA_BRANCH }}" == "code-development" ]; then
             trigger="trigger-versioning"
         fi
