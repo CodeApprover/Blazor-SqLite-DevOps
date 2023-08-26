@@ -34,7 +34,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: verify-commit
+  NEXT_WORKFLOW: authentication
 
 jobs:
 
