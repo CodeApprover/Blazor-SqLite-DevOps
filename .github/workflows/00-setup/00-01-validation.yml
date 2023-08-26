@@ -38,7 +38,7 @@ name: "Authentication, Integrity and Validation Gateway"
 
 on:
   repository_dispatch:
-    types: trigger-authentication
+    types: authentication
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
