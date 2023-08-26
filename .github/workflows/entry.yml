@@ -34,7 +34,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: authentication
+  NEXT_WORKFLOW: trigger-authentication
 
 jobs:
 
