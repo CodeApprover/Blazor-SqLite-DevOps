@@ -132,12 +132,10 @@ jobs:
         echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
         echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
 
-        # Define CURL request body with payload
+        # Define CURL request with payload
         BASE='{"event_type":"your_event_name","client_payload":{'
-        SHA='"sha":"'"${GITHUB_SHA}"'",'
+        SHA='"sha":"'"${GITHUB_SHA}"'"'
         END='}}'
-
-        # Construct CURL command
         CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST \
         -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
         -H \"Accept: application/vnd.github.v3+json\" \
