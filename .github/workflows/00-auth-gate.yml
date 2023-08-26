@@ -146,7 +146,7 @@ jobs:
         echo "RATE_LIMIT_RESET=$rate_limit_reset" >> $GITHUB_ENV
 
       env:
-        GH_TOKEN: ${{ github.AUTH }}
+        GH_TOKEN: ${{ secrets.AUTH }}
 
     - name: Trigger Next Workflow with Rate Limit Handling
       if: success()
