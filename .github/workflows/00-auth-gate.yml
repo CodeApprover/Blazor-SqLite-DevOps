@@ -55,9 +55,9 @@ jobs:
       run: |
         echo "##[info]## Security hardening versus injection threats."
 
-        sanitized_commit_name=$(echo "${{ github.event.client_payload.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9 ]//g')
-        sanitized_commit_email=$(echo "${{ github.event.client_payload.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9@.]//g')
-        sanitized_commit_msg=$(echo "${{ github.event.client_payload.head_commit.message }}" | sed 's/[^a-zA-Z0-9 .,?!-]//g')
+        sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9 ]//g')
+        sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9@.]//g')
+        sanitized_commit_msg=$(echo "${{ github.event.head_commit.message }}" | sed 's/[^a-zA-Z0-9 .,?!-]//g')
 
         echo "COMMIT_MESSAGE=$sanitized_commit_msg" >> $GITHUB_ENV
         echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
