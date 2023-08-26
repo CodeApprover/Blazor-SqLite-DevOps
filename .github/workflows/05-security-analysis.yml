@@ -1,25 +1,20 @@
 ---
-name: "CodeQL Analysis"  # https://github.com/github/codeql
+name: "Security Analysis" 
 
-# Runs code and security analysis using the CodeQL tool.
-# Executes for the code-staging and code-production branches only.
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
 
-# 1 - Checkout Repository: Pulls the current state of the repository using the payload SHA.
-# 2 - Initialize CodeQL: Sets up the CodeQL environment for the specified languages (C# and JavaScript).
-# 3 - Setup .NET Environment: Installs the specified .NET version.
-# 4 - Retrieve Cached dotnet Dependencies: Attempts to fetch cached .NET dependencies to expedite the restoration process.
-# 5 - Restore Dependencies: Restores necessary .NET dependencies. If cache retrieval fails, it performs a fresh restore.
-# 6 - Dotnet Build: Compiles the code using the .NET framework.
-# 7 - Perform CodeQL Analysis: Executes the CodeQL tool to conduct a code and security analysis.
-# 8 - If successful, triggers SuperLiner for production code or proceeds to the versioning workflow for staging.
-
-# Exit Codes
-# 34 - Dotnet restore failed
-# 35 - Dotnet build failed
+# This workflow integrates SecurityCodeScan with GitHub's Code Scanning feature
+# SecurityCodeScan is a vulnerability patterns detector for C# and VB.NET
 
 on:
+  push:
+    branches: main
+
   repository_dispatch:
-    types: trigger-codeql-analysis
+    types: trigger-security-analysis
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -27,31 +22,18 @@ env:
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
-  codeql-analysis-codeql:
-    name: Code Analysis CodeQL
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
-    #if: (github.actor != 'CodeApprover')
 
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['csharp', 'javascript']
+  SCS:
+    runs-on: windows-latest
 
     steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v3.5.3
-        
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: ${{ matrix.language }}
+      - uses: actions/checkout@v3.6.0
+      - uses: nuget/setup-nuget@04b0c2b8d1b97922f67eca497d7cf0bf17b8ffe1
+      - uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Set up projects for analysis
+        uses: security-code-scan/security-code-scan-add-action@f8ff4f2763ed6f229eded80b1f9af82ae7f32a0d
 
       - name: Setup .NET environment
         uses: actions/setup-dotnet@v3.2.0
@@ -60,7 +42,7 @@ jobs:
 
       - name: Retrieve Cached dotnet Dependencies
         id: cache-dotnet-restore
-        uses: actions/cache@v3
+        uses: actions/cache@v3.3.1
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-dotnet-${{ env.SHA }}
@@ -76,8 +58,11 @@ jobs:
       - name: Dotnet build
         run: dotnet build --no-restore $CSPROJ  || (echo "##[error] Dotnet restore failed" && exit 35)
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+      - name: Convert sarif for uploading to GitHub
+        uses: security-code-scan/security-code-scan-results-action@cdb3d5e639054395e45bf401cba8688fcaf7a687
+
+      - name: Upload sarif
+        uses: github/codeql-action/upload-sarif@v2
 
       - name: Trigger Next Workflow # production 06-superlinter.yml | staging 07-versioning.yml
         if: success()
