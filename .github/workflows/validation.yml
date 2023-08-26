@@ -132,57 +132,49 @@ jobs:
                 exit 40
             fi
           done
-
-
-
-
-
-
-
-
-
-    - name: Report Commit Details
-      run: |
-        echo "Reporting details of the commit, GitHub environment and runner specifics."
   
-        echo "-------------------------------------------------"
-        echo "----- COMMIT DETAILS ----------------------------"
-        echo "-------------------------------------------------"
-        echo "Branch Name: ${{ env.SHA_BRANCH }}"
-        echo "Commit SHA: ${{ github.sha }}"
-        echo "Commit Message: $COMMIT_MESSAGE"
-        echo "Commit Author: $COMMIT_AUTHOR_NAME"
-        echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
-        echo "Pusher Name: ${{ github.event.pusher.name }}"
-        echo "Actor: ${{ github.actor }}"
-  
-        echo "-------------------------------------------------"
-        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
-        echo "-------------------------------------------------"
-        echo "Date: $(date)"
-        echo "Event Name: ${{ github.event_name }}"
-        echo "Ref: ${{ github.ref }}"
-        echo "Repository: ${{ github.repository }}"
-        echo "Repository Owner: ${{ github.repository_owner }}"
-        echo "Workflow Name: ${{ github.workflow }}"
-        echo "GitHub Server URL: ${{ github.server_url }}"
-        echo "GitHub API URL: ${{ github.api_url }}"
-        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
-        echo "Runner OS: ${{ runner.os }}"
-        echo "Workspace: ${{ github.workspace }}"
-        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
-        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
-  
-        echo "-------------------------------------------------"
-        echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
-        echo "-------------------------------------------------"
-        echo "Job Name: ${{ github.job }}"
-        echo "Event ID: ${{ github.run_id }}"
-        echo "Run Number: ${{ github.run_number }}"
-        echo "Runner Name: ${{ runner.name }}"
-        echo "Runner Label: ${{ runner.label }}"
-        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
-        echo "Runner Temp Directory: ${{ runner.temp }}"
-        echo "GitHub Event Before: ${{ github.event.before }}"
-        echo "GitHub Event After: ${{ github.event.after }}"
-        echo "---------------------------------------"
+      - name: Report Commit Details
+        run: |
+          echo "Reporting details of the commit, GitHub environment and runner specifics."
+
+          echo "-------------------------------------------------"
+          echo "----- COMMIT DETAILS ----------------------------"
+          echo "-------------------------------------------------"
+          echo "Branch Name: ${{ env.SHA_BRANCH }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Commit Message: $COMMIT_MESSAGE"
+          echo "Commit Author: $COMMIT_AUTHOR_NAME"
+          echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
+          echo "Pusher Name: ${{ github.event.pusher.name }}"
+          echo "Actor: ${{ github.actor }}"
+
+          echo "-------------------------------------------------"
+          echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
+          echo "-------------------------------------------------"
+          echo "Date: $(date)"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Repository Owner: ${{ github.repository_owner }}"
+          echo "Workflow Name: ${{ github.workflow }}"
+          echo "GitHub Server URL: ${{ github.server_url }}"
+          echo "GitHub API URL: ${{ github.api_url }}"
+          echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Workspace: ${{ github.workspace }}"
+          [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
+          [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
+
+          echo "-------------------------------------------------"
+          echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
+          echo "-------------------------------------------------"
+          echo "Job Name: ${{ github.job }}"
+          echo "Event ID: ${{ github.run_id }}"
+          echo "Run Number: ${{ github.run_number }}"
+          echo "Runner Name: ${{ runner.name }}"
+          echo "Runner Label: ${{ runner.label }}"
+          echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+          echo "Runner Temp Directory: ${{ runner.temp }}"
+          echo "GitHub Event Before: ${{ github.event.before }}"
+          echo "GitHub Event After: ${{ github.event.after }}"
+          echo "---------------------------------------"
