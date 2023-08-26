@@ -132,19 +132,19 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
+        echo "##[info] Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
 
         # Define CURL request with payload
-        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"{{ github.sha }}\""
+        BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ github.sha }}\""
         END="}}"
-        
+
         CMD="curl -s -o /dev/null -X POST \
         -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
         -H \"Accept: application/vnd.github.v3+json\" \
         -d \"${BASE}${SHA}${END}\" \
         \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
-        
+
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             RESPONSE_CODE=$(eval "$CMD")
@@ -159,7 +159,7 @@ jobs:
                 if [[ $((retries+1)) -lt ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
                     sleep ${{ vars.WAIT_SECONDS }}
-                else
+                else:
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals"
                     echo "##[error] Curl command: $CMD"
                     echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
@@ -168,3 +168,4 @@ jobs:
             fi
             retries=$((retries+1))
         done
+
