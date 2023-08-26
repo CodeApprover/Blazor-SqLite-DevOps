@@ -1,0 +1,168 @@
+---
+name: "Authentication Gateway"
+
+#  ${{ github.workflow }} Overview
+#
+#  Brief Description:
+#  This workflow is responsible for authenticating users based on their commit 
+#  details, ensuring that the commit author belongs to an approved team for 
+#  the specific branch they're pushing to. It also manages GitHub API rate 
+#  limits and ensures that only one instance of this workflow runs at a time 
+#  for concurrency management. If the authentication is successful, it triggers 
+#  the next workflow.
+#
+#  Steps 'authenticate-user' job:
+#  1 - Sanitize Untrusted User-Controlled Details from Payload: Cleans up 
+#      user-controlled details to prevent any potential security threats.
+#  2 - Validate Committer: Ensures the commit author is part of the approved 
+#      team for the respective branch.
+#
+# Steps 'instigate-workflows' job:
+#  3 - Check Concurrency: Ensures only this instance of any workflow is running.
+#  4 - Trigger Next Workflow: If previous steps are successful, dispatch the next workflow.
+#
+# Exit Codes:
+# 10 - Branch name is not recognised.
+# 11 - Approved team not set.
+# 12 - User is not authorised.
+# 90 - Concurrency failure.
+# 91 - Failed to trigger next workflow.
+#
+
+on:
+  push:
+    branches: ["code-development", "code-production", "code-staging", "main"]
+
+env:
+  NEXT_WORKFLOW: verify-commit
+
+jobs:
+
+  authenticate-user:
+
+    name: Authenticate User
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # un-comment to block execution
+    #if: (github.actor != 'CodeApprover') 
+
+    steps:
+
+    - name: Sanitize Untrusted User-Controlled Details
+      run: |
+        echo "##[info] Security hardening versus injection threats."
+        # Remove any commit_name character that is not alphanumeric or a hyphen
+        sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
+        # Ensure the username does not start with a hyphen
+        if [[ $sanitized_commit_name == -* ]]; then
+            sanitized_commit_name=${sanitized_commit_name:1}
+        fi
+        echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
+
+    - name: Validate Committer
+      if: success()
+      run: |
+        echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
+        branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
+        echo "##[info] Running on branch $branch."
+
+        if [[ "$branch" == "code-development" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
+        elif [[ "$branch" == "code-staging" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
+        elif [[ "$branch" == "code-production" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
+        elif [[ "$branch" == "main" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }}"
+        else
+            echo "##[error] Branch name $branch is not recognised." && exit 10
+        fi
+
+        if [[ "$APPROVED_TEAM" == "" ]]; then
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 11
+        fi
+
+        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
+            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
+        fi
+
+  instigate-workflows:
+
+    name: Instigate Workflow Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: authenticate-user
+
+    steps:
+    
+    - name: Check Concurrency
+      if: success()
+      run: |
+        echo "##[info] Requesting non-concurrent slot."
+        retries=0
+
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            # Make API call to check for any in-progress workflows in the repository using curl
+            response=$(curl -L \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/${{ github.repository }}/actions/runs)
+            count=$(echo "$response" | jq '.workflow_runs | map(select(.status == "in_progress")) | length')
+
+            # Check if another instance is running and if so retry
+            if [[ $count -eq 0 ]]; then
+                echo "##[info] No other workflow is running - continuing."
+                break
+            else
+                retries=$((retries+1))
+                if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+                    echo "##[error] Another workflow from .github/workflows is still running." && exit 90
+                fi
+                echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
+                sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            fi
+        done
+
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
+        echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
+        echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
+
+        # Define CURL request with payload
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\""
+        END="}}"
+        
+        CMD="curl -s -o /dev/null -X POST \
+        -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+        -H \"Accept: application/vnd.github.v3+json\" \
+        -d \"${BASE}${SHA}${END}\" \
+        \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
+        
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            RESPONSE_CODE=$(eval "$CMD")
+            CURL_EXIT_CODE=$?
+            if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
+                echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
+                break
+            elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+            else
+                echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
+                if [[ $((retries+1)) -lt ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                    sleep ${{ vars.WAIT_SECONDS }}
+                else
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals"
+                    echo "##[error] Curl command: $CMD"
+                    echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
+                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow." && exit 91
+                fi
+            fi
+            retries=$((retries+1))
+        done
