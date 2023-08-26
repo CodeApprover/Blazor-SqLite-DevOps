@@ -140,22 +140,23 @@ jobs:
         BASE='{"event_type":"your_event_name","client_payload":{'
         SHA='"sha":"'"${GITHUB_SHA}"'",'
         END='}}'
-        
-        # Construct CURL
-        CMD="curl -s -o /dev/null -X POST \
+
+        # Construct CURL command
+        CMD="curl -s -o /dev/null -w \"%{http_code}\" -X POST \
         -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
         -H \"Accept: application/vnd.github.v3+json\" \
         -d \"${BASE}${SHA}${END}\" \
-        \"https://api.github.com/repos/${{ github.repository }}/dispatches\""        
-
+        \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
+        echo "##[debug] Curl command: $CMD"
+        
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            RESPONSE_BODY=$(eval "$CMD")
+            RESPONSE_CODE=$(eval "$CMD")
             CURL_EXIT_CODE=$?
-            RESPONSE_CODE=${RESPONSE_BODY: -3} # http status code
-            RESPONSE_CONTENT=${RESPONSE_BODY%???}
-            echo "##[debug] Response body: $RESPONSE_CONTENT"
-
+        
+            # You no longer have a RESPONSE_CONTENT since you're only capturing the HTTP code now.
+            echo "##[debug] Response code: $RESPONSE_CODE"
+        
             if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
                 break
@@ -168,7 +169,7 @@ jobs:
             fi
             retries=$((retries+1))
         done
-
+        
         # Check if all retries failed.
         if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[error] Exhausted retries. Curl command: $CMD"
