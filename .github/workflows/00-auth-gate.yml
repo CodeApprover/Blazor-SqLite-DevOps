@@ -90,10 +90,19 @@ jobs:
             echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
         fi
 
+  instigate-workflow-runs:
+
+    name: Instigate Workflow Runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: authenticate-user
+
+    steps:
+
     - name: Check Concurrency with Rate Limit Handling
       if: success()
       run: |
-        echo "##[info] Awaiting non-concurrency slot..."
+        echo "##[info] Requesting non-concurrent slot."
         retries=0
 
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
@@ -136,6 +145,9 @@ jobs:
         echo "RATE_LIMIT_REMAINING=$rate_limit_remaining" >> $GITHUB_ENV
         echo "RATE_LIMIT_RESET=$rate_limit_reset" >> $GITHUB_ENV
 
+      env:
+        GH_TOKEN: ${{ github.AUTH }}
+
     - name: Trigger Next Workflow with Rate Limit Handling
       if: success()
       run: |
@@ -145,10 +157,7 @@ jobs:
         # Construct Payload for the request        
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
         BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\""
-        CSPROJ=", \"csproj\": \"${{ env.CSPROJ }}\""
-        BRANCH=", \"sha_branch\": \"${{ env.SHA_BRANCH }}\"}}"
-        PAYLOAD="${BASE}${SHA}${CSPROJ}${BRANCH}"
+        PAYLOAD="\"sha\": \"${{ env.SHA }}\""
 
         # Construct CURL for the request
         CMD="curl -s -o /dev/null -X POST \
