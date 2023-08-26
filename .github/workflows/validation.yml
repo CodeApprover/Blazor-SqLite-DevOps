@@ -42,15 +42,12 @@ on:
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
-  CSPROJ: ${{ github.event.client_payload.csproj }}
-
   TRIGGER: cache-dependencies # next workflow
 
 jobs:
 
   verify-commit: 
-  
+
       name: Commit Verification, Authentication and Report
       runs-on: ubuntu-latest
       timeout-minutes: 25
