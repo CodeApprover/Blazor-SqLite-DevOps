@@ -3,16 +3,30 @@ name: "User Authentication"
 
 #  ${{ github.workflow }} Overview
 #
-#  This workflow... brief description.
+#  Brief Description:
+#  This workflow is responsible for authenticating users based on their commit 
+#  details, ensuring that the commit author belongs to an approved team for 
+#  the specific branch they're pushing to. It also manages GitHub API rate 
+#  limits and ensures that only one instance of this workflow runs at a time 
+#  for concurrency management. If the authentication is successful, it triggers 
+#  the next workflow.
 #
-#  Steps authenticate-user
-#  1 - Step name: description.
-#  2 - Step name: description.
+#  Steps in 'authenticate-user' job:
+#  1 - Sanitize Untrusted User-Controlled Details from Payload: Cleans up 
+#      user-controlled details to prevent any potential security threats.
+#  2 - Validate Committer: Ensures the commit author is part of the approved 
+#      team for the respective branch.
+#  3 - Check Concurrency with Rate Limit Handling: Ensures only one instance 
+#      of this workflow runs concurrently and manages the GitHub API rate limits.
+#  4 - Trigger Next Workflow with Rate Limit Handling: If the previous steps 
+#      are successful, this step triggers the next workflow with proper handling 
+#      of API rate limits.
 #
-# Exit Codes
+# Exit Codes:
 # 10 - Branch name is not recognised.
 # 11 - Approved team not set.
 # 12 - User is not authorised.
+# 25 - Curl failure due to malformed URL.
 # 90 - Concurrency failure.
 # 91 - Failed to trigger next workflow.
 #
@@ -50,6 +64,7 @@ jobs:
         echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
 
     - name: Validate Committer
+      if: success()
       run: |
         echo "##[info]## Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
         branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
@@ -75,6 +90,7 @@ jobs:
         fi
 
     - name: Check Concurrency with Rate Limit Handling
+      if: success()
       run: |
         echo "##[info]## Awaiting non-concurrency slot..."
         retries=0
@@ -82,8 +98,9 @@ jobs:
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             # Make API call and save headers to a file
             headers_file=$(mktemp)
-            query="workflow_runs[?head_branch=='${{ env.sha_branch }}' && status=='in_progress'].id | length(@)"
-            count=$(gh api actions/workflows/deploy-git.yml/runs --query $query -i > "$headers_file")
+            # Modify the query to check for any in-progress workflows in the repository
+            query="workflow_runs[?status=='in_progress'].id | length(@)"
+            count=$(gh api actions/runs --query $query -i > "$headers_file")
             
             # Extract rate limit remaining and reset information
             rate_limit_remaining=$(grep -i "X-RateLimit-Remaining:" "$headers_file" | awk '{print $2}' | tr -d '\r')
@@ -99,18 +116,18 @@ jobs:
             fi
 
             # Check if another instance is running and if so retry
-            if [[ $count -le 1 ]]; then
-                echo "##[info]## No other instance is running - continuing."
+            if [[ $count -eq 0 ]]; then
+                echo "##[info]## No other workflow is running - continuing."
                 break
             else
                 retries=$((retries+1))
-                echo "##[warn]## Another instance is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
+                echo "##[warn]## Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
             fi
 
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                 echo "##[error]## Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error]## Another instance of ${{ github.workflow }} is still running. --> Exit 90"
+                echo "##[error]## Another workflow from .github/workflows is still running. --> Exit 90"
                 exit 90
             fi
         done
