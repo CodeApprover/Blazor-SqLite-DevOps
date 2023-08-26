@@ -1,5 +1,5 @@
 ---
-name: "User Authentication"
+name: "Authentication Gateway"
 
 #  ${{ github.workflow }} Overview
 #
@@ -101,7 +101,7 @@ jobs:
             headers_file=$(mktemp)
             # Modify the query to check for any in-progress workflows in the repository
             query="workflow_runs[?status=='in_progress'].id | length(@)"
-            count=$(gh api actions/runs --query $query -i > "$headers_file")
+            count=$(gh api actions/runs -q ".workflow_runs | map(select(.status == \"in_progress\")) | length" -i > "$headers_file")
             
             # Extract rate limit remaining and reset information
             rate_limit_remaining=$(grep -i "X-RateLimit-Remaining:" "$headers_file" | awk '{print $2}' | tr -d '\r')
