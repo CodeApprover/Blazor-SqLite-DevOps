@@ -98,33 +98,17 @@ jobs:
     needs: authenticate-user
 
     steps:
-
-    - name: Check Concurrency with Rate Limit Handling
+    
+    - name: Check Concurrency without Rate Limit Handling
       if: success()
       run: |
         echo "##[info] Requesting non-concurrent slot."
         retries=0
 
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            # Make API call and save headers to a file
-            headers_file=$(mktemp)
-            # Modify the query to check for any in-progress workflows in the repository
-            query="workflow_runs[?status=='in_progress'].id | length(@)"
-            count=$(gh api actions/runs -q ".workflow_runs | map(select(.status == \"in_progress\")) | length" -i > "$headers_file")
+            # Make API call to check for any in-progress workflows in the repository
+            count=$(gh api actions/runs -q ".workflow_runs | map(select(.status == \"in_progress\")) | length")
             
-            # Extract rate limit remaining and reset information
-            rate_limit_remaining=$(grep -i "X-RateLimit-Remaining:" "$headers_file" | awk '{print $2}' | tr -d '\r')
-            rate_limit_reset=$(grep -i "X-RateLimit-Reset:" "$headers_file" | awk '{print $2}' | tr -d '\r')           
-            rm "$headers_file"
-
-            # Check if we are close to exhausting the rate limit
-            if [[ "$rate_limit_remaining" -le 5 ]]; then
-                now=$(date +%s)
-                wait_seconds=$(( rate_limit_reset - now ))
-                echo "##[warn] Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
-                sleep "$wait_seconds"
-            fi
-
             # Check if another instance is running and if so retry
             if [[ $count -eq 0 ]]; then
                 echo "##[info] No other workflow is running - continuing."
@@ -141,14 +125,11 @@ jobs:
                 exit 90
             fi
         done
-
-        echo "RATE_LIMIT_REMAINING=$rate_limit_remaining" >> $GITHUB_ENV
-        echo "RATE_LIMIT_RESET=$rate_limit_reset" >> $GITHUB_ENV
-
+    
       env:
         GH_TOKEN: ${{ secrets.AUTH }}
 
-    - name: Trigger Next Workflow with Rate Limit Handling
+    - name: Trigger Next Workflow
       if: success()
       run: |
         echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
@@ -156,29 +137,19 @@ jobs:
 
         # Construct Payload for the request        
         ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-        BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
-        PAYLOAD="\"sha\": \"${{ env.SHA }}\""
+        PAYLOAD="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}"
 
         # Construct CURL for the request
         CMD="curl -s -o /dev/null -X POST \
           -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
           -H \"Accept: application/vnd.github.v3+json\" \
-          -d \"${PAYLOAD}\" \
+          -d \"$PAYLOAD\" \
           \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
-        retries=0          
+        retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-
-            # Check rate limit before making the request
-            if [[ "$RATE_LIMIT_REMAINING" -le 5 ]]; then
-                now=$(date +%s)
-                wait_seconds=$(( $RATE_LIMIT_RESET - now ))
-                echo "##[warn] Approaching rate limit. Waiting for $wait_seconds seconds until the rate limit resets."
-                sleep "$wait_seconds"
-            fi
-
             RESPONSE_BODY=$(eval "$CMD")
             CURL_EXIT_CODE=$?
-            
+
             RESPONSE_CODE=${RESPONSE_BODY: -3} # status code
             RESPONSE_CONTENT=${RESPONSE_BODY%???}
             echo "##[debug] Response body: $RESPONSE_CONTENT"
