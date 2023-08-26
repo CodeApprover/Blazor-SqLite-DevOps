@@ -11,16 +11,15 @@ name: "Authentication Gateway"
 #  for concurrency management. If the authentication is successful, it triggers 
 #  the next workflow.
 #
-#  Steps in 'authenticate-user' job:
+#  Steps 'authenticate-user' job:
 #  1 - Sanitize Untrusted User-Controlled Details from Payload: Cleans up 
 #      user-controlled details to prevent any potential security threats.
 #  2 - Validate Committer: Ensures the commit author is part of the approved 
 #      team for the respective branch.
-#  3 - Check Concurrency with Rate Limit Handling: Ensures only one instance 
-#      of this workflow runs concurrently and manages the GitHub API rate limits.
-#  4 - Trigger Next Workflow with Rate Limit Handling: If the previous steps 
-#      are successful, this step triggers the next workflow with proper handling 
-#      of API rate limits.
+#
+# Steps 'instigate-workflows' job:
+#  3 - Check Concurrency: Ensures only this instance of any workflow is running.
+#  4 - Trigger Next Workflow: If previous steps are successful, dispatch the next workflow.
 #
 # Exit Codes:
 # 10 - Branch name is not recognised.
@@ -90,7 +89,7 @@ jobs:
             echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
         fi
 
-  instigate-workflow-runs:
+  instigate-workflows:
 
     name: Instigate Workflow Runs
     runs-on: ubuntu-latest
@@ -137,22 +136,23 @@ jobs:
         echo "##[info]# Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
         echo "##[info] Trigger: ${{ env.NEXT_WORKFLOW }}"
 
-        # Construct Payload for the request        
-        ACCEPT_HEADER="Accept: application/vnd.github.v3+json"
-        PAYLOAD="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {\"sha\": \"${{ env.SHA }}\"}}"
-
-        # Construct CURL for the request
+        # Define CURL request body with payload
+        BASE='{"event_type":"your_event_name","client_payload":{'
+        SHA='"sha":"'"${GITHUB_SHA}"'",'
+        END='}}'
+        
+        # Construct CURL
         CMD="curl -s -o /dev/null -X POST \
-          -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
-          -H \"Accept: application/vnd.github.v3+json\" \
-          -d \"$PAYLOAD\" \
-          \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
+        -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+        -H \"Accept: application/vnd.github.v3+json\" \
+        -d \"${BASE}${SHA}${END}\" \
+        \"https://api.github.com/repos/${{ github.repository }}/dispatches\""        
+
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             RESPONSE_BODY=$(eval "$CMD")
             CURL_EXIT_CODE=$?
-
-            RESPONSE_CODE=${RESPONSE_BODY: -3} # status code
+            RESPONSE_CODE=${RESPONSE_BODY: -3} # http status code
             RESPONSE_CONTENT=${RESPONSE_BODY%???}
             echo "##[debug] Response body: $RESPONSE_CONTENT"
 
@@ -160,8 +160,7 @@ jobs:
                 echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
                 break
             elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] Curl command failed on attempt $((retries+1)) of ${{ vars.MAX_RETRIES }}."
-                [[ $CURL_EXIT_CODE -eq 3 ]] && echo "##[error] Curl failure due to malformed URL --> Exit 25." && exit 25
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
             else
                 echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
                 echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
