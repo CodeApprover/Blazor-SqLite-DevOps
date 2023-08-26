@@ -1,5 +1,5 @@
 ---
-name: "Security Analysis" 
+name: "Security Code Scan"
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
