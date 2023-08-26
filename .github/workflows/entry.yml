@@ -137,11 +137,14 @@ jobs:
         SHA="\"sha\": \"${{ github.sha }}\""
         END="}}"
 
-        CMD="curl -s -o /dev/null -X POST \
+        CMD="curl -s -X POST \
         -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
         -H \"Accept: application/vnd.github.v3+json\" \
         -d \"${BASE}${SHA}${END}\" \
         \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
 
-        echo $CMD
-        eval $CMD
+        echo "Executing command: $CMD"
+        RESPONSE=$(eval $CMD)
+
+        echo "Response from the server:"
+        echo "$RESPONSE"
