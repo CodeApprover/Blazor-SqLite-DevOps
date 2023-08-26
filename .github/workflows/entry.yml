@@ -129,41 +129,18 @@ jobs:
             fi
         done
 
-    - name: Trigger Next Workflow
+    - name: Trigger Next Workflow # 09-deploy-git.yml
       if: success()
       run: |
-        echo "##[info] Dispatching next workflow ${{ env.NEXT_WORKFLOW }}"
-
-        BASE="{\"event_type\": \"$EVENT_TYPE\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ github.sha }}\""
+        trigger="${{ env.NEXT_WORKFLOW }}"
+        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
+        SHA="\"sha\": \"${{ env.SHA }}\","
+        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
+        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
         END="}}"
 
-        CMD="curl -s -X POST \
-        -H \"Authorization: ***\" \
-        -H \"Accept: application/vnd.github.v3+json\" \
-        -d \"${BASE}${SHA}${END}\" \
-        \"https://api.github.com/repos/${{ github.repository }}/dispatches\""
-
-        retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            RESPONSE_CODE=$(eval "$CMD" -w "%{http_code}" -o /dev/null)
-            CURL_EXIT_CODE=$?
-            if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
-                echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
-                break
-            elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-            else
-                echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
-                if [[ $((retries+1)) -lt ${{ vars.MAX_RETRIES }} ]]; then
-                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                    sleep ${{ vars.WAIT_SECONDS }}
-                else
-                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals"
-                    echo "##[error] Curl command: $CMD"
-                    echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
-                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow." && exit 91
-                fi
-            fi
-            retries=$((retries+1))
-        done
+        curl -s -o /dev/null -X POST \
+        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches"
