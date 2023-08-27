@@ -20,9 +20,9 @@ on:
     types: Caching
 
 env:
-  # Pre-validated
   SHA: ${{ github.event.client_payload.sha }}
-  CSPROJ: ${{ github.event.client_payload.csproj }}
+  CSPROJ: ${{ github.event.client_payload.csproj 
+  NEXT_WORKFLOW: StyleCop-Linter
 
 jobs:
 
