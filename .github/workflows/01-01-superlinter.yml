@@ -1,12 +1,19 @@
 ---
 name: "Superlinter"  # https://github.com/super-linter/super-linter
 
-# Triggered by a repository_dispatch event "trigger-superlinter".
-# Runs in the production environment for the code-production branch only.
-
-# 1. Checks out the payload SHA repository.
-# 2. Executes SuperLinter to lint the codebase.
-# 3. If linting is successful, triggers the "trigger-versioning" workflow.
+# ${{ github.workflow }} Overview
+#
+# This workflow lints the codebase using SuperLinter.
+#
+# The super-linter job has 3 main phases:
+# 1. Environment Setup: Checks out the code and determines paths for linting configurations.
+# 2. Linting: Utilizes the SuperLinter to lint the codebase. This linter is a combination of multiple linters for different 
+#    languages and tools into one package.
+# 3. Trigger Subsequent Workflow: If linting is successful, it initiates the next workflow, "Versioning."
+#
+# Exit Codes:
+#
+# 90 - Failed to trigger the next workflow after exhausting retries.
 
 on:
   repository_dispatch:
