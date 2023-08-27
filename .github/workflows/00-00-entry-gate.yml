@@ -74,14 +74,15 @@ jobs:
             echo "##[error] Email format is invalid. Exiting" && exit 11
         fi
 
-        # Commit messages cannot contain dangerous characters such as
-        # | $ < > or * that can be used to manipulate or inject shell commands.
+        # Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands.        
+        forbidden_array=("|" "<" ">" "(" ")" "{" "}" "*")
 
-        forbidden="|$<>*"
-        commit_msg="${{ github.event.head_commit.message }}"
-        if [[ "${commit_msg}" =~ $forbidden ]]; then
-          echo "##[error] Commit message contains invalid characters. Exiting" && exit 12
-        fi
+        for char in "${forbidden_array[@]}"; do
+          echo "##[debug] Checking $char"
+          if echo "$commit_msg" | grep -q "$char"; then
+            echo "##[error] Commit message ${commit_msg} contains invalid character $char." && exit 12
+          fi
+        done
 
         echo "##[info] Sanitisation and validation completed successfully."
         echo "COMMIT_AUTHOR_NAME=${{ github.event.head_commit.author.name }}" >> $GITHUB_ENV
