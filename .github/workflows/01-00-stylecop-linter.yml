@@ -12,6 +12,7 @@ name: "StyleCop Linter"
 # Exit Codes
 # 34 - Dotnet restore failed.
 # 35 - Dotnet build failed.
+# 90 - Failed to trigger the next workflow after exhausting retries.
 
 on:
   repository_dispatch:
@@ -77,14 +78,32 @@ jobs:
         esac
         echo "##[info] Calling $trigger"
 
-        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\","
-        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
-        END="}}"
+        CMD="curl -L -X POST "
+        CMD+="-H \"Accept: application/vnd.github+json\" "
+        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\":\"$trigger\","
+        CMD+="\"client_payload\":{"
+        CMD+="\"sha\":\"${{ github.sha }}\","
+        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
 
-        curl -s -o /dev/null -X POST \
-        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
-        "https://api.github.com/repos/${{ github.repository }}/dispatches"
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            eval "$CMD"
+            CURL_EXIT_CODE=$?
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+                retries=$((retries+1))
+                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                    sleep ${{ vars.WAIT_SECONDS }}
+                else
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                fi
+            else
+                break # successful curl
+            fi    
+        done
+        echo "##[debug] CURL command: $CMD"
