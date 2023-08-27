@@ -59,7 +59,7 @@ jobs:
         # Has a maximum length of 20 characters (including hyphens).
 
         username=$(echo "${{ github.event.head_commit.author.name }}" | tr '[:upper:]' '[:lower:]')
-        if ! [[ "$user" =~ ^([a-z0-9](-?[a-z0-9]){0,38})$ ]] || [[ "$user" == -* ]]; then
+        if ! [[ "$username" =~ ^([a-z0-9](-?[a-z0-9]){0,19})$ ]] || [[ "$username" == -* ]]; then
             echo "##[error] Username contains invalid characters. Exiting" && exit 10
         fi
 
