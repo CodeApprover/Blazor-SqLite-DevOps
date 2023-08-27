@@ -260,7 +260,7 @@ jobs:
                     echo "##[error] Another workflow from .github/workflows is still running." && exit 19
                 fi
                 echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
-                sleep $((${{ vars.WAIT_MINUTES }} * 60))
+                #sleep $((${{ vars.WAIT_MINUTES }} * 60)) #TODO 
             fi
         done
 
