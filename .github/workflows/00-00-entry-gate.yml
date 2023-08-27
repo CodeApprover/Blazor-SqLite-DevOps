@@ -302,6 +302,7 @@ jobs:
                 echo "##[error] Lock file $lock_file presence persists." && exit 20
             fi
         done
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Trigger Next Workflow
       if: success()
