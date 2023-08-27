@@ -139,7 +139,6 @@ jobs:
         CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\",\"client_payload\":{\"sha\":\"${{ github.sha }}\"}}'"
 
         retries=0
-
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             eval "$CMD"
             CURL_EXIT_CODE=$?
@@ -159,3 +158,4 @@ jobs:
                 break # successful curl
             fi    
         done
+        echo "##[debug] CURL command: $CMD"
