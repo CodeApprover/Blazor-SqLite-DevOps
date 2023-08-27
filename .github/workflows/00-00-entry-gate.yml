@@ -30,14 +30,14 @@ name: Authenticate User
 #
 # 10 - Username contains invalid characters.
 # 11 - Email format is invalid.
-# 12 - Commit message contains invalid characters.
-# 13 - SHA Branch not detected remotely.
-# 14 - Approved team not set for the current branch.
-# 15 - Committer is not authorised.
-# 16 - SHA checkout failure.
-# 17 - Failure locating the .csproj file.
-# 18 - Another workflow is still running after max retries.
-# 19 - Persistent presence of lock file after max retries.
+# 12 - Commit message contains an invalid character.
+# 13 - SHA checkout failed.
+# 14 - No branches found containing the commit.
+# 15 - Multiple branches contain the commit.
+# 16 - Failure locating .csproj file within the directory.
+# 17 - Approved team is not set for the branch.
+# 18 - Committer is not authorized.
+# 19 - Another workflow from .github/workflows is still running.
 # 90 - Failed to trigger next workflow.
 
 on:
@@ -70,7 +70,7 @@ jobs:
 
         username=$(echo ${{ github.event.head_commit.author.name }} | tr '[:upper:]' '[:lower:]')
         if ! [[ "$username" =~ ${regex_pattern} ]] || [[ "$username" == -* ]]; then
-            echo "##[error] Username contains invalid characters. Exiting" && exit 10
+            echo "##[error] Username contains invalid characters" && exit 10
         fi
 
         # Git email address can start with a sequence of letters, numbers and special characters (like ., _, %, +, and -),
@@ -80,7 +80,7 @@ jobs:
         regex_pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
         
         if ! [[ "${{ github.event.head_commit.author.email }}" =~ ${regex_pattern} ]]; then
-            echo "##[error] Email format is invalid. Exiting" && exit 11
+            echo "##[error] Email format is invalid" && exit 11
         fi
 
         # Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands.        
@@ -109,19 +109,27 @@ jobs:
       run: |
         echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 16
+            echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 13
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
 
     - name: Validate SHA Branch
       run: |
         echo "##[info] Validating SHA branch."
-        branch=$(git branch --contains ${{ github.sha }})
-        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-            echo "##[info] Branch $branch detected in ${{ github.repository }}"
-        else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 13
+
+        echo "##[debug] Checking remote branches for the commit SHA"
+        branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
+        if [[ -z "$branch_list" ]]; then
+            echo "##[error] No branches found containing the commit in ${{ github.repository }}" && exit 14
         fi
+
+        echo "##[debug] Checking if multiple branches contain the commit SHA"
+        branch_count=$(echo $branch_list | wc -w)
+        if [[ $branch_count -gt 1 ]]; then
+            echo "##[error] Multiple branches contain the commit in ${{ github.repository }}: $branch_list" && exit 15
+        fi
+        branch=$(echo $branch_list | awk '{print $1}')
+
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
@@ -131,7 +139,7 @@ jobs:
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
         CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
         if [[ ! -f "$CSPROJ" ]]; then
-            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 17
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 16
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
@@ -150,11 +158,11 @@ jobs:
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 14
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 17
         fi
 
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
-            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 15
+            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 18
         fi
 
     - name: Report Commit Details
@@ -233,7 +241,7 @@ jobs:
                 retries=$((retries+1))
                 if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                    echo "##[error] Another workflow from .github/workflows is still running." && exit 18
+                    echo "##[error] Another workflow from .github/workflows is still running." && exit 19
                 fi
                 echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
@@ -266,7 +274,7 @@ jobs:
             fi
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                 echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error] Lock file $lock_file presence presists." && exit 19
+                echo "##[error] Lock file $lock_file presence presists." && exit 20
             fi
         done
 
