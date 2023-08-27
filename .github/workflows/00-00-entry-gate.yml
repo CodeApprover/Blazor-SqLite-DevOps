@@ -80,8 +80,7 @@ jobs:
         forbidden="|\$`<>*"
         commit_msg="${{ github.event.head_commit.message }}"
         if [[ "${commit_msg}" =~ $forbidden ]]; then
-          echo "##[error] Commit message contains invalid characters. Exiting"
-          exit 12
+          echo "##[error] Commit message contains invalid characters. Exiting" && exit 12
         fi
 
         echo "##[info] Sanitisation and validation completed successfully."
