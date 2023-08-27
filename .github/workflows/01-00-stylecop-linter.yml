@@ -1,11 +1,11 @@
 ---
-name: "StyleCop Linter"
+name: StyleCop Linter
 
 # ${{ github.workflow }} Overview
 #
 # This workflow lints code using StyleCop, ensuring code quality and consistency.
 #
-# The stylecop-linting job has 3 main phases:
+# The stylecop-lintier job has 3 main phases:
 # 1. Setup and Environment Restoration: This phase pulls the repository, sets up the required .NET environment
 #    and retrieves cached .NET dependencies if available.
 # 2. Dependency Restoration and Build: If the cache doesn't contain the dependencies, they are restored.
@@ -22,7 +22,7 @@ name: "StyleCop Linter"
 
 on:
   repository_dispatch:
-    types: StyleCop-Linter
+    types: StyleCop Linter
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -30,9 +30,9 @@ env:
 
 jobs:
 
-  stylecop-linting:
+  stylecop-linter:
 
-    name: StyleCop Linting
+    name: StyleCop Linter
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -43,7 +43,7 @@ jobs:
 
     - name: Checkout SHA Repository
       id: checkout
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
@@ -77,10 +77,12 @@ jobs:
     - name: Trigger Next Workflow # Development-Tests | Staging-Tests | Production-Tests
       if: success()
       run: |
-        case "${{ env.SHA_BRANCH }}" in
-          code-development) trigger="Development-Tests" ;;
-          code-staging) trigger="Staging-Tests" ;;
-          code-production) trigger="Production-Tests" ;;
+        branch=$(git branch --contains ${{ env.SHA }})
+        case "$branch" in
+          code-development) trigger="Development Tests" ;;
+          code-staging) trigger="Staging Tests" ;;
+          code-production) trigger="Production Tests" ;;
+          main) trigger="Production Tests" ;;
         esac
         echo "##[info] Calling $trigger"
 
@@ -106,7 +108,7 @@ jobs:
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                    echo "##[error] Failed to trigger $trigger workflow with CURL command: $CMD." && exit 90
                 fi
             else
                 break # successful curl
