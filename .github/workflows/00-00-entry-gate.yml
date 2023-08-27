@@ -9,7 +9,7 @@ name: Authenticate Uaer
 # 1. Authenticate User: Validates the authenticity of the user committing to the repository.
 # 2. Instigate Workflows: Once authenticated, this job prepares the ground for subsequent workflows.
 #
-# The process starts by sanitizing the user details, ensuring no unsanctioned inputs exist.
+# The process starts by sanitising the user details, ensuring no unsanctioned inputs exist.
 # It then validates the commit source and retrieves the commit.
 # The workflow subsequently confirms the branch details, locates specific project files, and reports on the commit's metadata.
 #
@@ -18,14 +18,18 @@ name: Authenticate Uaer
 #
 # Exit Codes:
 #
-# 10 - Branch name is not recognised.
-# 11 - Approved team variable is not set for the current branch.
-# 12 - Committer is not authorised.
-# 13 - SHA checkout failure.
-# 14 - Branch associated with SHA does not exist in the repository.
-# 15 - Failure locating the .csproj file.
-# 16 - Another workflow is still running after max retries.
-# 17 - Persistent presence of lock file after max retries.
+# 10 - Username contains invalid characters.
+# 11 - Username cannot start with a hyphen.
+# 12 - Email format is invalid.
+# 13 - Commit message contains invalid characters.
+# 14 - Branch name is not recognised.
+# 15 - Approved team variable is not set for the current branch.
+# 16 - Committer is not authorised.
+# 17 - SHA checkout failure.
+# 18 - Branch associated with SHA does not exist in the repository.
+# 19 - Failure locating the .csproj file.
+# 20 - Another workflow is still running after max retries.
+# 21 - Persistent presence of lock file after max retries.
 # 90 - Failed to trigger next workflow.
 
 on:
@@ -47,22 +51,30 @@ jobs:
 
     steps:
 
-    - name: Sanitize Untrusted User-Controlled Details
+    - name: Sanitise and Validate Untrusted User-Controlled Details
       run: |
-        echo "##[info] Security hardening versus injection threats."
-        # Username assumes alphanumeric and hyphen characters are safe
-        sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
-        if [[ $sanitized_commit_name == -* ]]; then
-            sanitized_commit_name=${sanitized_commit_name:1}
-        fi
-        # Email assumes alphanumeric characters, hyphens, underscores, periods and the @ symbol are safe
-        sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9-_.@]//g')
-        # Commit Message assumea alphanumeric, space, common punctuation and newline are safe.
-        sanitized_commit_message=$(echo "${{ github.event.head_commit.message }}" | sed 's/[^a-zA-Z0-9-_.\n ,;?!]//g')
+        echo "##[info] Starting security sanitisation and validation."
 
-        echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
-        echo "COMMIT_MESSAGE=$sanitized_commit_message" >> $GITHUB_ENV
+        if [[ ! "${{ github.event.head_commit.author.name }}" =~ ^[a-zA-Z0-9-]+$ ]]; then
+            echo "##[error] Username contains invalid characters." && exit 10
+        fi
+
+        if [[ "${{ github.event.head_commit.author.name }}" == -* ]]; then
+            echo "##[error] Username cannot start with a hyphen." && exit 11
+        fi
+
+        if ! [[ "${{ github.event.head_commit.author.email }}" =~ ^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
+            echo "##[error] Email format is invalid." && exit 12
+        fi
+
+        if [[ ! "${{ github.event.head_commit.message }}" =~ ^[a-zA-Z0-9-_.\n ,;?!]+$ ]]; then
+            echo "##[error] Commit message contains invalid characters." && exit 13
+        fi
+
+        echo "##[info] Sanitisation and validation completed successfully."
+        echo "COMMIT_AUTHOR_NAME=${{ github.event.head_commit.author.name }}" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=${{ github.event.head_commit.author.email }}" >> $GITHUB_ENV
+        echo "COMMIT_MESSAGE=${{ github.event.head_commit.message }}" >> $GITHUB_ENV
 
     - name: Validate Committer
       if: success()
@@ -80,15 +92,15 @@ jobs:
         elif [[ "$branch" == "main" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }}"
         else
-            echo "##[error] Branch name $branch is not recognised." && exit 10
+            echo "##[error] Branch name $branch is not recognised." && exit 14
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 11
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 15
         fi
 
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
-            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
+            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 16
         fi
 
     - name: Checkout SHA Repository
@@ -102,7 +114,7 @@ jobs:
       run: |
         echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 13
+            echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 17
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ env.SHA }}."
 
@@ -113,7 +125,7 @@ jobs:
         if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
             echo "##[info] Branch $branch detected in ${{ github.repository }}"
         else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 14
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 18
         fi
         echo "##[info] Successfully validated SHA branch name $branch."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
@@ -124,7 +136,7 @@ jobs:
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
         CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
         if [[ ! -f "$CSPROJ" ]]; then
-            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 15
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 19
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
@@ -205,7 +217,7 @@ jobs:
                 retries=$((retries+1))
                 if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                    echo "##[error] Another workflow from .github/workflows is still running." && exit 16
+                    echo "##[error] Another workflow from .github/workflows is still running." && exit 20
                 fi
                 echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
@@ -238,7 +250,7 @@ jobs:
             fi
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                 echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error] Lock file $lock_file presence presists." && exit 17
+                echo "##[error] Lock file $lock_file presence presists." && exit 21
             fi
         done
 
