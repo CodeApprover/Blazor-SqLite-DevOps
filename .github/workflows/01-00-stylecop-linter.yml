@@ -1,18 +1,24 @@
 ---
 name: "StyleCop Linter"
 
-# Lints C# (C Sharp) and JavaScript code for verified commits using StyleCop tool.
-# Executes for the code-development, code-staging and code-production branches.
-
-# 1 - Sets .NET environment.
-# 2 - Retrieves cached dotnet restore nuget packages.
-# 3 - Performs a build with StyleCop enabled.
-# 4 - Upon successful linting, it triggers the appropriate code-testing suite.
-
-# Exit Codes
-# 34 - Dotnet restore failed.
-# 35 - Dotnet build failed.
+# ${{ github.workflow }} Overview
+#
+# This workflow lints code using StyleCop, ensuring code quality and consistency.
+#
+# The stylecop-linting job has 3 main phases:
+# 1. Setup and Environment Restoration: This phase pulls the repository, sets up the required .NET environment
+#    and retrieves cached .NET dependencies if available.
+# 2. Dependency Restoration and Build: If the cache doesn't contain the dependencies, they are restored.
+#    The code is then built with StyleCop enabled, treating errors with severity and conducting a selective analysis.
+# 3. Trigger Subsequent Workflow: Upon successful linting and build, the next workflow (Development-Tests, 
+#    Staging-Tests, or Production-Tests) is initiated depending on the branch.
+#
+# Exit Codes:
+#
+# 34 - Dependency restoration failed.
+# 35 - Dotnet .NET build with StyleCop failed.
 # 90 - Failed to trigger the next workflow after exhausting retries.
+
 
 on:
   repository_dispatch:
