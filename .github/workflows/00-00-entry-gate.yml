@@ -63,7 +63,7 @@ jobs:
             echo "##[error] Username cannot start with a hyphen. Exiting" && exit 11
         fi
 
-        if ! [[ "${{ github.event.head_commit.author.email }}" =~ ^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
+        if ! [[ "${{ github.event.head_commit.author.email }}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
             echo "##[error] Email format is invalid. Exiting" && exit 12
         fi
 
