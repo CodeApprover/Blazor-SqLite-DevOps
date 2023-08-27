@@ -1,5 +1,5 @@
 ---
-name: "Deploy Git"
+name: Deploy Git
 
 # This workflow deploys changes from a source environment to target environments.
 # Following the deployment, it triggers a success workflow based on the branch.
@@ -24,57 +24,39 @@ name: "Deploy Git"
 
 on:
   repository_dispatch:
-    types: trigger-deploy-git
+    types: Deploy Git
 
 env:
-  sha: ${{ github.event.client_payload.sha }}
-  sha_branch: ${{ github.event.client_payload.sha_branch }}
+  SHA: ${{ github.event.client_payload.sha }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
+  NEXT_WORKFLOW: Success
 
 jobs:
-  check-concurrency:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    #if: (github.actor != 'CodeApprover')
-
-    steps:
-
-    - name: Wait if Another Instance is Running # lock file system should prevent this
-      run: |
-        iteration=0
-        while [[ $iteration -lt ${{ vars.MAX_RETRIES }} ]]; do
-            query="workflow_runs[?head_branch=='${{ env.sha_branch }}' && status=='in_progress'].id | length(@)"
-            count=$(gh api actions/workflows/deploy-git.yml/runs --query $query)
-            if [[ $count -le 1 ]]; then
-                break
-            fi
-            echo "##[warn]# Another instance is running. Waiting for 5 minutes before re-checking..."
-            sleep 300
-            iteration=$((iteration+1))
-        done
-        if [[ $iteration -eq ${{ vars.MAX_RETRIES }} ]]; then
-            echo "##[error] Maximum number of retries reached. Another instance of ${{ github.workflow }} is still running. --> Exit 44"
-          exit 44
 
   deploy-to-environment:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: check-concurrency
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
     - name: Checkout SHA Repository
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
         ref: ${{ env.sha }}
         fetch-depth: 0
 
-    - name: Set Git Config
+    - name: Configure Git User
       run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
+        git config user.name "${{ github.repository_owner}}"
+        git config user.email "${{ vars.EMAIL }}"
 
-    - name: Check and Remove Lock File for Payload SHA
+    - name: Check for Expected Payload SHA Lock File
       run: |
+        branch=$(git branch --contains ${{ env.SHA }})
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV       
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
@@ -84,8 +66,7 @@ jobs:
         echo "##[info] Lock file set as $lock_file"
 
         if [[ ! -f "$lock_file" ]] || [[ $(cat "$lock_file") != "${{ env.sha }}" ]]; then
-          echo "##[error] Lock file with SHA ${{ env.sha }} not found or doesn't exist on branch ${{ env.sha_branch }} --> Exit 45"
-          exit 45
+          echo "##[error] Expected lock file for SHA ${{ env.sha }} not found or doesn't exist" && exit 45
         fi
 
     - name: Set Deployment Environments
@@ -191,3 +172,36 @@ jobs:
         git rm "$lock_file"
         git commit -m "$msg"
         git push origin "${{ env.SHA_BRANCH }}"
+
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
+        CMD="curl -L -X POST "
+        CMD+="-H \"Accept: application/vnd.github+json\" "
+        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
+        CMD+="\"client_payload\":{"
+        CMD+="\"sha\":\"${{ github.sha }}\","
+        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
+
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            eval "$CMD"
+            CURL_EXIT_CODE=$?
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+                retries=$((retries+1))
+                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                    sleep ${{ vars.WAIT_SECONDS }}
+                else
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                fi
+            else
+                break # successful curl
+            fi    
+        done
+        echo "##[debug] CURL command: $CMD"
