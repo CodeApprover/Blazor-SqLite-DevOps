@@ -17,7 +17,7 @@ name: "Cache Dependencies"
 
 on:
   repository_dispatch:
-    types: Caching
+    types: Cache-Dependencies
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
