@@ -1,5 +1,5 @@
 ---
-name: "Check Lock File"
+name: Lockfile Checker
 
 # Manages lock files for sequential task execution within a branch.
 # Operates for the code-development, code-staging and code-production branches.
@@ -16,39 +16,47 @@ name: "Check Lock File"
 
 on:
   repository_dispatch:
-    types: trigger-lockfile-checker
+    types: Lockfile Checker
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
+  NEXT_WORKFLOW: Versioning
 
 jobs:
 
-  check-for-lock-file:
+  lockfile-checker:
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != 'CodeApprover')
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
     
     steps:
 
     - name: Checkout SHA Repository
       id: checkout
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
 
+    - name: Configure Git User
+      run: |
+        git config user.name "${{ github.repository_owner}}"
+        git config user.email "${{ vars.EMAIL }}"
+
     - name: Set Lock File Name Based on Branch
       run: |
-        branch=${{ env.SHA_BRANCH }}
+        branch=$(git branch --contains ${{ env.SHA }})
         if [[ $branch == "code-"* ]]; then
             lock_name=${branch#code-}
             echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
         elif [[ $branch == "main" ]]; then
             echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
         fi
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Check for Remote Lock File
       run: |
@@ -78,11 +86,8 @@ jobs:
           fi
         done
 
-    - name: Set Lock file
+    - name: Create Lock file
       run: |
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-
         echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
@@ -105,24 +110,35 @@ jobs:
 
         echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
 
-
-    - name: Trigger Next Workflow # 05-codeql-analysis.yml | development 07-versioning.yml
+    - name: Trigger Next Workflow
       if: success()
       run: |
-        trigger="trigger-security-analysis"
-        if [ "${{ env.SHA_BRANCH }}" == "code-development" ]; then
-            trigger="trigger-versioning"
-        fi
-        echo "##[info] Calling $trigger"
+        CMD="curl -L -X POST "
+        CMD+="-H \"Accept: application/vnd.github+json\" "
+        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
+        CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
+        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
+        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
+        CMD+="\"client_payload\":{"
+        CMD+="\"sha\":\"${{ github.sha }}\","
+        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
 
-        BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ env.SHA }}\","
-        CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-        BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
-        END="}}"
-
-        curl -s -o /dev/null -X POST \
-        -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-        -H "Accept: application/vnd.github.v3+json" \
-        -d "$BASE$SHA$CSPROJ$BRANCH$END" \
-        "https://api.github.com/repos/${{ github.repository }}/dispatches"
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            eval "$CMD"
+            CURL_EXIT_CODE=$?
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+                retries=$((retries+1))
+                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                    sleep ${{ vars.WAIT_SECONDS }}
+                else
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                fi
+            else
+                break # successful curl
+            fi    
+        done
+        echo "##[debug] CURL command: $CMD"
