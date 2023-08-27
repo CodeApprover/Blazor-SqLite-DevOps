@@ -15,11 +15,10 @@ name: "StyleCop Linter"
 
 on:
   repository_dispatch:
-    types: trigger-stylecop-linter
+    types: StyleCop-Linter
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
@@ -29,7 +28,9 @@ jobs:
     name: StyleCop Linting
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != 'CodeApprover')
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
