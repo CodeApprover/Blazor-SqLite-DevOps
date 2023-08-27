@@ -55,20 +55,24 @@ jobs:
       run: |
         echo "##[info] Starting security sanitisation and validation."
 
-        if [[ ! "${{ github.event.head_commit.author.name }}" =~ ^[a-zA-Z0-9-]+$ ]]; then
-            echo "##[error] Username contains invalid characters. Exiting" && exit 10
+        if [[ ! "${{ github.event.head_commit.author.name }}" =~ "^[a-zA-Z0-9-]+$" ]]; then
+            echo "##[error] Username contains invalid characters. Exiting"
+            exit 10
         fi
 
         if [[ "${{ github.event.head_commit.author.name }}" == -* ]]; then
-            echo "##[error] Username cannot start with a hyphen. Exiting" && exit 11
+            echo "##[error] Username cannot start with a hyphen. Exiting"
+            exit 11
         fi
 
-        if ! [[ "${{ github.event.head_commit.author.email }}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
-            echo "##[error] Email format is invalid. Exiting" && exit 12
+        if ! [[ "${{ github.event.head_commit.author.email }}" =~ "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$" ]]; then
+            echo "##[error] Email format is invalid. Exiting"
+            exit 12
         fi
 
-        if [[ ! "${{ github.event.head_commit.message }}" =~ ^[a-zA-Z0-9-_.\n ,;?!]+ ]]; then
-            echo "##[error] Commit message contains invalid characters. Exiting" && exit 13
+        if [[ ! "${{ github.event.head_commit.message }}" =~ "^[a-zA-Z0-9-_.\n ,;?!]+" ]]; then
+            echo "##[error] Commit message contains invalid characters. Exiting"
+            exit 13
         fi
 
         echo "##[info] Sanitisation and validation completed successfully."
