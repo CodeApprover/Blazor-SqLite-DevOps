@@ -59,7 +59,7 @@ jobs:
         # Has a maximum length of 20 characters (including hyphens).
 
         username=$(echo "${{ github.event.head_commit.author.name }}" | tr '[:upper:]' '[:lower:]')
-        if ! [[ "$username" =~ ^([a-z0-9](-?[a-z0-9]){0,19})$ ]] || [[ "$username" == -* ]]; then
+        if ! [[ "$username" =~ "^([a-z0-9](-?[a-z0-9]){0,19})$" ]] || [[ "$username" == -* ]]; then
             echo "##[error] Username contains invalid characters. Exiting" && exit 10
         fi
 
@@ -73,7 +73,7 @@ jobs:
         fi
 
         # Commit messages cannot contain dangerous characters such as
-        # shell control characters & symbols like | & ; ( ) $ ` * ? { }
+        # shell control characters & symbols like | & ; ( ) $ ` * ? { } < >
         # that can be used to manipulate or inject shell commands.
         # Allowed characters include uppercase and lowercase letters,
         # digits, hyphens, underscores, periods and newlines.
