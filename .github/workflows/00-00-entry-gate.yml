@@ -147,18 +147,18 @@ jobs:
     - name: Validate Committer
       run: |
         echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
-        if [[ "$branch" == "code-development" ]]; then
+        if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
-        elif [[ "$branch" == "code-staging" ]]; then
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
-        elif [[ "$branch" == "code-production" ]]; then
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
-        elif [[ "$branch" == "main" ]]; then
+        elif [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }}"
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 17
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch ${{ env.SHA_BRANCH }}" && exit 17
         fi
 
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
@@ -254,7 +254,7 @@ jobs:
         if [[ ${{ env.SHA_BRANCH }} == "code-"* ]]; then
             branch=${{ env.SHA_BRANCH }}
             lock_file=${branch#code-}.lock
-        elif [[ $branch == "main" ]]; then
+        elif [[ ${{ env.SHA_BRANCH }} == "main" ]]; then
             lock_file=.main.lock
         fi
         retries=0
