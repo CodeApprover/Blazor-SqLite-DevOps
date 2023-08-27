@@ -1,5 +1,5 @@
 ---
-name: "Security Code Scan"
+name: Security Scan
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -14,7 +14,7 @@ on:
     branches: main
 
   repository_dispatch:
-    types: trigger-security-analysis
+    types: Security Scan
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -23,8 +23,13 @@ env:
 
 jobs:
 
-  SCS:
-    runs-on: windows-latest
+  security-code-scan:
+    name: Security Code Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
