@@ -75,15 +75,12 @@ jobs:
         fi
 
         # Commit messages cannot contain dangerous characters such as
-        # shell control characters & symbols like | & ; ( ) $ ` * ? { } < >
-        # that can be used to manipulate or inject shell commands.
-        # Allowed characters include uppercase and lowercase letters,
-        # digits, hyphens, underscores, periods and newlines.
-        regex_pattern="^[a-zA-Z0-9-_.[:space:],;?!&]+$"
+        # | $ ` < > * that can be used to manipulate or inject shell commands.
 
         commit_msg="${{ github.event.head_commit.message }}"
-        if [[ ! "${commit_msg}" =~ ${regex_pattern} ]]; then
-            echo "##[error] Commit message contains invalid characters. Exiting" && exit 12
+        if [[ "${commit_msg}" =~ [|\$`<>*] ]]; then
+          echo "##[error] Commit message contains invalid characters. Exiting"
+          exit 12
         fi
 
         echo "##[info] Sanitisation and validation completed successfully."
