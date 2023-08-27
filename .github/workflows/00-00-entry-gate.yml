@@ -21,14 +21,13 @@ name: Authenticate User
 # 10 - Username contains invalid characters.
 # 11 - Email format is invalid.
 # 12 - Commit message contains invalid characters.
-# 13 - Branch name is not recognised.
-# 14 - Approved team variable is not set for the current branch.
+# 13 - SHA Branch not detected remotely.
+# 14 - Approved team not set for the current branch.
 # 15 - Committer is not authorised.
 # 16 - SHA checkout failure.
-# 17 - Branch associated with SHA does not exist in the repository.
-# 18 - Failure locating the .csproj file.
-# 19 - Another workflow is still running after max retries.
-# 20 - Persistent presence of lock file after max retries.
+# 17 - Failure locating the .csproj file.
+# 18 - Another workflow is still running after max retries.
+# 19 - Persistent presence of lock file after max retries.
 # 90 - Failed to trigger next workflow.
 
 on:
@@ -93,8 +92,15 @@ jobs:
       if: success()
       run: |
         echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
-        branch=$(git branch --contains ${{ env.SHA }})
-        echo "##[info] Running on branch $branch."
+        echo "##[info] Validating SHA branch."
+        branch=$(git branch --contains ${{ github.sha }})
+        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            echo "##[info] Branch $branch detected in ${{ github.repository }}"
+        else
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 13
+        fi
+        echo "##[info] Successfully validated SHA branch name $branch."
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
         if [[ "$branch" == "code-development" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
@@ -104,8 +110,6 @@ jobs:
             APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
         elif [[ "$branch" == "main" ]]; then
             APPROVED_TEAM="${{ github.repository_owner }}"
-        else
-            echo "##[error] Branch name $branch is not recognised." && exit 13
         fi
 
         if [[ "$APPROVED_TEAM" == "" ]]; then
@@ -127,21 +131,9 @@ jobs:
       run: |
         echo "##[info] Validating SHA checkout."
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-            echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 16
+            echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 16
         fi
-        echo "##[info] Successfully validated SHA checkout for ${{ env.SHA }}."
-
-    - name: Validate SHA Branch
-      run: |
-        echo "##[info] Validating SHA branch name."
-        branch=$(git branch --contains ${{ env.SHA }})
-        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-            echo "##[info] Branch $branch detected in ${{ github.repository }}"
-        else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 17
-        fi
-        echo "##[info] Successfully validated SHA branch name $branch."
-        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+        echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
 
     - name: Validate .csproj
       run: |
@@ -149,7 +141,7 @@ jobs:
         DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
         CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
         if [[ ! -f "$CSPROJ" ]]; then
-            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 18
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 17
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
@@ -230,7 +222,7 @@ jobs:
                 retries=$((retries+1))
                 if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                    echo "##[error] Another workflow from .github/workflows is still running." && exit 19
+                    echo "##[error] Another workflow from .github/workflows is still running." && exit 18
                 fi
                 echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
@@ -250,7 +242,7 @@ jobs:
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             git fetch origin ${{ env.SHA_BRANCH }} 
             git checkout ${{ env.SHA_BRANCH }}    
-            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }}  --)
+            commits_before_sha=$(git rev-list ${{ github.sha }}~1..${{ env.SHA_BRANCH }}  --)
             if git ls-tree -r $commits_before_sha | grep "$lock_file"; then
                 retries=$((retries+1))
                 locked_sha=$(cat "$lock_file")
@@ -263,7 +255,7 @@ jobs:
             fi
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                 echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error] Lock file $lock_file presence presists." && exit 20
+                echo "##[error] Lock file $lock_file presence presists." && exit 19
             fi
         done
 
