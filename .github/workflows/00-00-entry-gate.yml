@@ -3,29 +3,21 @@ name: "Authentication Gateway"
 
 # ${{ github.workflow }} Overview
 #
-# This workflow serves as the initial gateway for any push events on the defined branches. It ensures
-# that the commit is from an approved user, checks the integrity of the commit, and, if successful,
-# triggers the subsequent workflow. Security measures have been taken into account to sanitize user
-# input, and retry mechanisms are in place for API calls and checks.
+# This GitHub Actions workflow serves as an authentication gateway for all commits pushed to the specified branches.
 #
-# Steps for 'authenticate-user' Job:
-# 1  - Sanitize the details that are potentially controlled by an untrusted user.
-# 2  - Validate if the commit is made by an authorized user for the branch it's pushed to.
+# The workflow consists of two main jobs:
+# 1. Authenticate User: Validates the authenticity of the user committing to the repository.
+# 2. Instigate Workflow Runs: Once authenticated, this job prepares the ground for subsequent workflows.
 #
-# Steps for 'validate-commit' job:
-# 3  - Checkout the repository at the SHA of the current commit.
-# 4  - Validate that the SHA checkout was successful.
-# 5  - Confirm the branch associated with the SHA exists.
-# 6  - Locate the .csproj file within the directory associated with the branch name.
-# 7  - Sanitize user-controlled commit details to avoid potential security risks.
-# 8  - Report various details about the commit, GitHub environment, and runner specifics.
+# The process starts by sanitizing the user details, ensuring no unsanctioned inputs exist.
+# It then validates the commit source and retrieves the commit.
+# The workflow subsequently confirms the branch details, locates specific project files, and reports on the commit's metadata.
 #
-# Steps for 'instigate-workflows' Job:
-# 9  - Ensure that no other workflows are running concurrently to prevent collisions.
-# 10 - Check for an existing lock file in the repository to prevent overwrites.
-# 11 - If all previous steps are successful, use an API call to trigger the next workflow.
+# The second job then checks for any existing workflows and possible lock files that could cause issues with concurrency.
+# If all goes well, an API call triggers the next workflow.
 #
 # Exit Codes:
+#
 # 10 - Branch name is not recognised.
 # 11 - Approved team variable is not set for the current branch.
 # 12 - Committer is not authorised.
@@ -58,19 +50,25 @@ jobs:
     - name: Sanitize Untrusted User-Controlled Details
       run: |
         echo "##[info] Security hardening versus injection threats."
-        # Remove non-alphanumeric non-hyphen characters from commit username
+        # Username assumes alphanumeric and hyphen characters are safe
         sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
-        # Ensure commit username does not start with a hyphen
         if [[ $sanitized_commit_name == -* ]]; then
             sanitized_commit_name=${sanitized_commit_name:1}
         fi
+        # Email assumes alphanumeric characters, hyphens, underscores, periods and the @ symbol are safe
+        sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9-_.@]//g')
+        # Commit Message assumea alphanumeric, space, common punctuation and newline are safe.
+        sanitized_commit_message=$(echo "${{ github.event.head_commit.message }}" | sed 's/[^a-zA-Z0-9-_.\n ,;?!]//g')
+
         echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
+        echo "COMMIT_MESSAGE=$sanitized_commit_message" >> $GITHUB_ENV
 
     - name: Validate Committer
       if: success()
       run: |
         echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
-        branch=$(echo "${{ github.ref }}" | sed "s#refs/heads/##")
+        branch=$(git branch --contains ${{ env.SHA }})
         echo "##[info] Running on branch $branch."
 
         if [[ "$branch" == "code-development" ]]; then
@@ -92,14 +90,6 @@ jobs:
         if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
             echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
         fi
-
-  validate-commit:
-    name: Validate Commit
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: authenticate-user
-
-    steps:
 
     - name: Checkout SHA Repository
       id: checkout-sha
@@ -138,23 +128,6 @@ jobs:
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
-
-    - name: Sanitize Untrusted User-Controlled Details
-      run: |
-        echo "##[info] Security hardening versus injection threats."
-        # Username assumes alphanumeric and hyphen characters are safe
-        sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
-        if [[ $sanitized_commit_name == -* ]]; then
-            sanitized_commit_name=${sanitized_commit_name:1}
-        fi
-        # Email assumes alphanumeric characters, hyphens, underscores, periods and the @ symbol are safe
-        sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9-_.@]//g')
-        # Commit Message assumea alphanumeric, space, common punctuation and newline are safe.
-        sanitized_commit_message=$(echo "${{ github.event.head_commit.message }}" | sed 's/[^a-zA-Z0-9-_.\n ,;?!]//g')
-
-        echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
-        echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
-        echo "COMMIT_MESSAGE=$sanitized_commit_message" >> $GITHUB_ENV
 
     - name: Report Commit Details
       run: |
@@ -277,7 +250,10 @@ jobs:
         CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
         CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\",\"client_payload\":{\"sha\":\"${{ github.sha }}\"}}'"
+        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
+        CMD+="\"client_payload\":{"
+        CMD+="\"sha\":\"${{ github.sha }}\","
+        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
