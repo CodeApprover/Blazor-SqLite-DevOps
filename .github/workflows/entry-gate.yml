@@ -100,7 +100,6 @@ jobs:
     steps:
     
     - name: Check Concurrency
-      if: success()
       run: |
         echo "##[info] Requesting non-concurrent slot."
         retries=0
@@ -132,12 +131,7 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        BASE="{\"event_type\": \"${{ env.NEXT_WORKFLOW }}\", \"client_payload\": {"
-        SHA="\"sha\": \"${{ github.sha }}\""
-        END="}}"
-
-        CMD="curl -L "
-        CMD+="-X POST "
+        CMD="curl -L -X POST "
         CMD+="-H \"Accept: application/vnd.github+json\" "
         CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
         CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
@@ -145,25 +139,23 @@ jobs:
         CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\",\"client_payload\":{\"sha\":\"${{ github.sha }}\"}}'"
 
         retries=0
+
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            RESPONSE_CODE=$(eval "$CMD")
+            eval "$CMD"
             CURL_EXIT_CODE=$?
-            if [[ $RESPONSE_CODE -ge 200 && $RESPONSE_CODE -le 299 ]]; then
-                echo "##[info] Successfully triggered workflow on attempt $((retries+1))."
-                break
-            elif [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                 echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-            else
-                echo "##[warn] Attempt $((retries+1)) of ${{ vars.MAX_RETRIES }} failed with response code $RESPONSE_CODE"
-                if [[ $((retries+1)) -lt ${{ vars.MAX_RETRIES }} ]]; then
+                retries=$((retries+1))
+                # If we have not hit the maximum retries yet, wait and then retry
+                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
-                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals"
-                    echo "##[error] Curl command: $CMD"
-                    echo "##[error] Completed ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} seconds"
-                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow." && exit 91
+                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD."
+                    exit 90
                 fi
-            fi
-            retries=$((retries+1))
+            else
+                break # successful curl
+            fi    
         done
