@@ -1,45 +1,51 @@
 ---
 name: "Authentication Gateway"
 
-#  ${{ github.workflow }} Overview
+# ${{ github.workflow }} Overview
 #
-#  Brief Description:
-#  This workflow is responsible for authenticating users based on their commit 
-#  details, ensuring that the commit author belongs to an approved team for 
-#  the specific branch they're pushing to. It also manages GitHub API rate 
-#  limits and ensures that only one instance of this workflow runs at a time 
-#  for concurrency management. If the authentication is successful, it triggers 
-#  the next workflow.
+# This workflow serves as the initial gateway for any push events on the defined branches. It ensures
+# that the commit is from an approved user, checks the integrity of the commit, and, if successful,
+# triggers the subsequent workflow. Security measures have been taken into account to sanitize user
+# input, and retry mechanisms are in place for API calls and checks.
 #
-#  Steps 'authenticate-user' job:
-#  1 - Sanitize Untrusted User-Controlled Details from Payload: Cleans up 
-#      user-controlled details to prevent any potential security threats.
-#  2 - Validate Committer: Ensures the commit author is part of the approved 
-#      team for the respective branch.
+# Steps for 'authenticate-user' Job:
+# 1  - Sanitize the details that are potentially controlled by an untrusted user.
+# 2  - Validate if the commit is made by an authorized user for the branch it's pushed to.
 #
-# Steps 'instigate-workflows' job:
-#  3 - Check Concurrency: Ensures only this instance of any workflow is running.
-#  4 - Trigger Next Workflow: If previous steps are successful, dispatch the next workflow.
+# Steps for 'validate-commit' job:
+# 3  - Checkout the repository at the SHA of the current commit.
+# 4  - Validate that the SHA checkout was successful.
+# 5  - Confirm the branch associated with the SHA exists.
+# 6  - Locate the .csproj file within the directory associated with the branch name.
+# 7  - Sanitize user-controlled commit details to avoid potential security risks.
+# 8  - Report various details about the commit, GitHub environment, and runner specifics.
+#
+# Steps for 'instigate-workflows' Job:
+# 9  - Ensure that no other workflows are running concurrently to prevent collisions.
+# 10 - Check for an existing lock file in the repository to prevent overwrites.
+# 11 - If all previous steps are successful, use an API call to trigger the next workflow.
 #
 # Exit Codes:
 # 10 - Branch name is not recognised.
-# 11 - Approved team not set.
-# 12 - User is not authorised.
-# 90 - Concurrency failure.
-# 91 - Failed to trigger next workflow.
-#
+# 11 - Approved team variable is not set for the current branch.
+# 12 - Committer is not authorised.
+# 13 - SHA checkout failure.
+# 14 - Branch associated with SHA does not exist in the repository.
+# 15 - Failure locating the .csproj file.
+# 16 - Another workflow is still running after max retries.
+# 17 - Persistent presence of lock file after max retries.
+# 90 - Failed to trigger next workflow.
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: Authentication
+  NEXT_WORKFLOW: Caching
 
 jobs:
 
   authenticate-user:
-
     name: Authenticate User
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -52,15 +58,12 @@ jobs:
     - name: Sanitize Untrusted User-Controlled Details
       run: |
         echo "##[info] Security hardening versus injection threats."
-
-        # Remove any commit_name character that is not alphanumeric or a hyphen
+        # Remove non-alphanumeric non-hyphen characters from commit username
         sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
-
-        # Ensure the username does not start with a hyphen
+        # Ensure commit username does not start with a hyphen
         if [[ $sanitized_commit_name == -* ]]; then
             sanitized_commit_name=${sanitized_commit_name:1}
         fi
-
         echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
 
     - name: Validate Committer
@@ -90,8 +93,116 @@ jobs:
             echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 12
         fi
 
-  instigate-workflows:
+  validate-commit:
+    name: Validate Commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: authenticate-user
 
+    steps:
+
+    - name: Checkout SHA Repository
+      id: checkout-sha
+      uses: actions/checkout@v3.5.3
+      with:
+        ref: ${{ github.sha }}
+        fetch-depth: 0 # deep fetch
+
+    - name: Validate SHA
+      run: |
+        echo "##[info] Validating SHA checkout."
+        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
+            echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 13
+        fi
+        echo "##[info] Successfully validated SHA checkout for ${{ env.SHA }}."
+
+    - name: Validate SHA Branch
+      run: |
+        echo "##[info] Validating SHA branch name."
+        branch=$(git branch --contains ${{ env.SHA }})
+        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            echo "##[info] Branch $branch detected in ${{ github.repository }}"
+        else
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 14
+        fi
+        echo "##[info] Successfully validated SHA branch name $branch."
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+
+    - name: Validate .csproj
+      run: |
+        echo "##[info] Validating .csproj file."
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
+        CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
+        if [[ ! -f "$CSPROJ" ]]; then
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 15
+        fi
+        echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
+        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
+    - name: Sanitize Untrusted User-Controlled Details
+      run: |
+        echo "##[info] Security hardening versus injection threats."
+        # Username assumes alphanumeric and hyphen characters are safe
+        sanitized_commit_name=$(echo "${{ github.event.head_commit.author.name }}" | sed 's/[^a-zA-Z0-9-]//g')
+        if [[ $sanitized_commit_name == -* ]]; then
+            sanitized_commit_name=${sanitized_commit_name:1}
+        fi
+        # Email assumes alphanumeric characters, hyphens, underscores, periods and the @ symbol are safe
+        sanitized_commit_email=$(echo "${{ github.event.head_commit.author.email }}" | sed 's/[^a-zA-Z0-9-_.@]//g')
+        # Commit Message assumea alphanumeric, space, common punctuation and newline are safe.
+        sanitized_commit_message=$(echo "${{ github.event.head_commit.message }}" | sed 's/[^a-zA-Z0-9-_.\n ,;?!]//g')
+
+        echo "COMMIT_AUTHOR_NAME=$sanitized_commit_name" >> $GITHUB_ENV
+        echo "COMMIT_AUTHOR_EMAIL=$sanitized_commit_email" >> $GITHUB_ENV
+        echo "COMMIT_MESSAGE=$sanitized_commit_message" >> $GITHUB_ENV
+
+    - name: Report Commit Details
+      run: |
+        echo "Reporting details of the commit, GitHub environment and runner specifics."
+
+        echo "-------------------------------------------------"
+        echo "----- COMMIT DETAILS ----------------------------"
+        echo "-------------------------------------------------"
+        echo "Branch Name: ${{ env.SHA_BRANCH }}"
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "Commit Message: $COMMIT_MESSAGE"
+        echo "Commit Author: $COMMIT_AUTHOR_NAME"
+        echo "Committer Email: $COMMIT_AUTHOR_EMAIL"
+        echo "Pusher Name: ${{ github.event.pusher.name }}"
+        echo "Actor: ${{ github.actor }}"
+
+        echo "-------------------------------------------------"
+        echo "----- GITHUB ENVIRONMENT & WORKFLOW DETAILS -----"
+        echo "-------------------------------------------------"
+        echo "Date: $(date)"
+        echo "Event Name: ${{ github.event_name }}"
+        echo "Ref: ${{ github.ref }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Repository Owner: ${{ github.repository_owner }}"
+        echo "Workflow Name: ${{ github.workflow }}"
+        echo "GitHub Server URL: ${{ github.server_url }}"
+        echo "GitHub API URL: ${{ github.api_url }}"
+        echo "GitHub GraphQL URL: ${{ github.graphql_url }}"
+        echo "Runner OS: ${{ runner.os }}"
+        echo "Workspace: ${{ github.workspace }}"
+        [ ! -z "${{ github.base_ref }}" ] && echo "Base Ref: ${{ github.base_ref }}"
+        [ ! -z "${{ github.head_ref }}" ] && echo "Head Ref: ${{ github.head_ref }}"
+
+        echo "-------------------------------------------------"
+        echo "----- JOB, RUN AND RUNNER DETAILS ---------------"
+        echo "-------------------------------------------------"
+        echo "Job Name: ${{ github.job }}"
+        echo "Event ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+        echo "Runner Name: ${{ runner.name }}"
+        echo "Runner Label: ${{ runner.label }}"
+        echo "Runner Tool Cache: ${{ runner.tool_cache }}"
+        echo "Runner Temp Directory: ${{ runner.temp }}"
+        echo "GitHub Event Before: ${{ github.event.before }}"
+        echo "GitHub Event After: ${{ github.event.after }}"
+        echo "---------------------------------------"
+
+  instigate-workflows:
     name: Instigate Workflow Runs
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -121,10 +232,40 @@ jobs:
                 retries=$((retries+1))
                 if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                    echo "##[error] Another workflow from .github/workflows is still running." && exit 90
+                    echo "##[error] Another workflow from .github/workflows is still running." && exit 16
                 fi
                 echo "##[warn] Another workflow is running. Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            fi
+        done
+
+    - name: Check for Existant Lock File
+      run: |
+        echo "##[info] Checking for lock file."
+        branch=$(git branch --contains ${{ env.SHA }})
+        if [[ $branch == "code-"* ]]; then
+            lock_file=${branch#code-}.lock
+        elif [[ $branch == "main" ]]; then
+            lock_file=.main.lock
+        fi
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            git fetch origin $branch
+            git checkout $branch   
+            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..$branch --)
+            if git ls-tree -r $commits_before_sha | grep "$lock_file"; then
+                retries=$((retries+1))
+                locked_sha=$(cat "$lock_file")
+                echo "##[warn] Lock file $LOCK_FILE found for commit SHA $locked_sha."
+                echo "##[warn] Waiting ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_TRIES }}."
+                sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            else
+                echo "##[info] Lock file $LOCK_FILE check passed - continuing."
+                break
+            fi
+            if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+                echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
+                echo "##[error] Lock file $lock_file presence presists." && exit 17
             fi
         done
 
@@ -145,14 +286,12 @@ jobs:
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                 echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
                 retries=$((retries+1))
-                # If we have not hit the maximum retries yet, wait and then retry
                 if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
                     echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD."
-                    exit 90
+                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
                 fi
             else
                 break # successful curl
