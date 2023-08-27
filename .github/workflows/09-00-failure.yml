@@ -1,24 +1,22 @@
 ---
-name: "Commit Failure"
+name: Failure
 
 on:
   workflow_run:
     workflows:
-      - Commit Verification and Report
+      - Authenticate User
       - Cache Dependencies
       - StyleCop Linter
       - Development Tests
       - Staging Tests
       - Production Tests
-      - Check Lock File
-      - CodeQL Analysis
+      - Lockfile Checker
+      - Security Scan
       - Superlinter
       - Versioning
       - Deploy Docker
       - Deploy Git
-      - Development Success
-      - Staging Success
-      - Production Success
+      - Success
     types:
       - failure
 
@@ -28,7 +26,9 @@ jobs:
     name: Revert Failed Commit
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != 'CodeApprover')
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
     
@@ -41,9 +41,14 @@ jobs:
       run: echo "SHA=$(echo '${{ github.event.client_payload.sha }}')" >> $GITHUB_ENV
 
     - name: Checkout repository
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
-        fetch-depth: 0 # fetch entire history
+        fetch-depth: 0
+
+    - name: Configure Git User
+      run: |
+        git config user.name "${{ github.repository_owner}}"
+        git config user.email "${{ vars.EMAIL }}"
 
     - name: Extract Branch Name from SHA Commit
       run: |
@@ -74,8 +79,6 @@ jobs:
 
         # Check if the lock file contains the specific SHA
         if [[ $(cat "$lock_file") == "${{ github.event.client_payload.sha }}" ]]; then
-          git config user.name "CodeApprover"
-          git config user.email "pucfada@pm.me"
           echo "Removing lock file with SHA ${{ github.event.client_payload.sha }} found on branch ${{ env.BRANCH_NAME }}"
           git rm "$lock_file"
           if [ $? -eq 0 ]; then
