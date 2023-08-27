@@ -3,19 +3,28 @@ name: Authenticate User
 
 # ${{ github.workflow }} Overview
 #
-# This authentivcation and validation gateway acts as a protective shield, 
-# ensuring only authenticated, approved commits pass through.
+# This entry gate workflow aims to act as a protection layer for the repository.
+# It ensures that only authenticated and authorized commits pass through.
 #
-# There are two main jobs:
-# 1. Authenticate User: Validates the authenticity of the user committing to the repository.
-# 2. Instigate Workflows: Once authenticated, this job prepares the ground for subsequent workflows.
+# Event Trigger: The workflow is triggered on a push event to one of four specified branches:
+# 'code-development', 'code-staging', 'code-production' and 'main'
 #
-# The process starts by sanitising the user details, ensuring no unsanctioned inputs exist.
-# It then validates the commit source and retrieves the commit.
-# The workflow subsequently locates required .NET csproj project file and reports on the commit's metadata.
+# The Authenticate User Job validates the authenticity of the committer and the commit.
 #
-# The workflow then checks with retries to see if no lock file is present for the branch, to avoid concurrency.
-# If all goes well, an API call triggers the next workflow.
+# 1.  Sanitise and Validate Untrusted User-Controlled Details:
+#     Validates the format and content of the username, email, and commit message for security concerns.
+# 2.  Checkout SHA Repository: Checks out the code at the specified SHA.
+# 3.  Validate SHA: Ensures that the checkout operation was successful.
+# 4.  Validate .csproj: Checks the existence of a .NET project file.
+# 5.  Validate SHA Branch: Ensures the specified branch exists in the repository.
+# 6.  Validate Committer: Validates if the committer is authorized to commit on the branch they're trying to push to.
+# 7.  Report Commit Details: Logs various details about the commit, repository, runner, etc., for debugging and record purposes.
+# 8.  Instigate Workflow Runs: This job ensures no concurrency issues arise when triggering subsequent workflows.
+# 9.  Check Concurrency: This ensures that no other workflow is currently running.
+#     If another workflow is found running, it retries after a specified interval.
+# 10. Check for Existent Lock File: Ensures that no lock file is present, which might indicate another ongoing process.
+#     If a lock file is found, it retries after a specified interval.
+# 11. Trigger Next Workflow: If all the previous checks pass successfully, this step triggers the next workflow.
 #
 # Exit Codes:
 #
@@ -89,38 +98,6 @@ jobs:
         echo "COMMIT_AUTHOR_EMAIL=${{ github.event.head_commit.author.email }}" >> $GITHUB_ENV
         echo "COMMIT_MESSAGE=${{ github.event.head_commit.message }}" >> $GITHUB_ENV
 
-    - name: Validate Committer
-      if: success()
-      run: |
-        echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
-        echo "##[info] Validating SHA branch."
-        branch=$(git branch --contains ${{ github.sha }})
-        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-            echo "##[info] Branch $branch detected in ${{ github.repository }}"
-        else
-            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 13
-        fi
-        echo "##[info] Successfully validated SHA branch name $branch."
-        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
-
-        if [[ "$branch" == "code-development" ]]; then
-            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
-        elif [[ "$branch" == "code-staging" ]]; then
-            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
-        elif [[ "$branch" == "code-production" ]]; then
-            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
-        elif [[ "$branch" == "main" ]]; then
-            APPROVED_TEAM="${{ github.repository_owner }}"
-        fi
-
-        if [[ "$APPROVED_TEAM" == "" ]]; then
-            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 14
-        fi
-
-        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
-            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 15
-        fi
-
     - name: Checkout SHA Repository
       id: checkout-sha
       uses: actions/checkout@v3.6.0
@@ -146,6 +123,39 @@ jobs:
         fi
         echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
         echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
+    - name: Validate SHA Branch
+      run: |
+        echo "##[info] Validating SHA branch."
+        branch=$(git branch --contains ${{ github.sha }})
+        if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+            echo "##[info] Branch $branch detected in ${{ github.repository }}"
+        else
+            echo "##[error] Branch $branch does not exist in ${{ github.repository }}" && exit 13
+        fi
+        echo "##[info] Successfully validated SHA branch name $branch."
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+
+    - name: Validate Committer
+      run: |
+        echo "##[info] Authorising comitter ${{ env.COMMIT_AUTHOR_NAME }}."
+        if [[ "$branch" == "code-development" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.DEVELOPMENT_TEAM }}"
+        elif [[ "$branch" == "code-staging" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.STAGING_TEAM }}"
+        elif [[ "$branch" == "code-production" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }},${{ secrets.PRODUCTION_TEAM }}"
+        elif [[ "$branch" == "main" ]]; then
+            APPROVED_TEAM="${{ github.repository_owner }}"
+        fi
+
+        if [[ "$APPROVED_TEAM" == "" ]]; then
+            echo "##[error] APPROVED TEAM $APPROVED_TEAM is not set for branch $branch" && exit 14
+        fi
+
+        if ! echo "$APPROVED_TEAM" | grep -qiE "(^|,)$COMMIT_AUTHOR_NAME(,|$)"; then
+            echo "##[error] Committer $COMMIT_AUTHOR_NAME is not authorised." && exit 15
+        fi
 
     - name: Report Commit Details
       run: |
