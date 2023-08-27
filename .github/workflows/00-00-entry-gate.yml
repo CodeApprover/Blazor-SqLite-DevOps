@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 15
 
     # un-comment to block execution
-    #if: (github.actor != 'CodeApprover') 
+    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
