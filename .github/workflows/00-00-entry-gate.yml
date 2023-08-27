@@ -3,7 +3,8 @@ name: Authenticate User
 
 # ${{ github.workflow }} Overview
 #
-# This GitHub Actions workflow acts as a protective shield, ensuring only authenticated and approved commits pass through.
+# This authentivcation and validation gateway acts as a protective shield, 
+# ensuring only authenticated, approved commits pass through.
 #
 # There are two main jobs:
 # 1. Authenticate User: Validates the authenticity of the user committing to the repository.
@@ -11,9 +12,9 @@ name: Authenticate User
 #
 # The process starts by sanitising the user details, ensuring no unsanctioned inputs exist.
 # It then validates the commit source and retrieves the commit.
-# The workflow subsequently confirms the branch details, locates specific project files, and reports on the commit's metadata.
+# The workflow subsequently locates required .NET csproj project file and reports on the commit's metadata.
 #
-# The second job then checks for any existing workflows and possible lock files that could cause issues with concurrency.
+# The workflow then checks with retries to see if no lock file is present for the branch, to avoid concurrency.
 # If all goes well, an API call triggers the next workflow.
 #
 # Exit Codes:
