@@ -75,7 +75,7 @@ jobs:
         fi
 
         # Commit messages cannot contain dangerous characters such as
-        # | $ ` < > * that can be used to manipulate or inject shell commands.
+        # | $ backtick < > or * that can be used to manipulate or inject shell commands.
 
         forbidden="|\$\\`<>*"
         commit_msg="${{ github.event.head_commit.message }}"
