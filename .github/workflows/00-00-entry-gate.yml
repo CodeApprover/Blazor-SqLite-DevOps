@@ -1,5 +1,5 @@
 ---
-name: Authenticate Uaer
+name: Authenticate User
 
 # ${{ github.workflow }} Overview
 #
