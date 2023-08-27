@@ -251,17 +251,20 @@ jobs:
     - name: Check for Existant Lock File
       run: |
         echo "##[info] Checking for lock file."
-        if [[ ${{ env.SHA_BRANCH }} == "code-"* ]]; then
-            branch=${{ env.SHA_BRANCH }}
+
+        branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
+        branch=$(echo $branch_list | awk '{print $1}')
+
+        if [[ $branch == "code-"* ]]; then
             lock_file=${branch#code-}.lock
-        elif [[ ${{ env.SHA_BRANCH }} == "main" ]]; then
+        elif [[ $branch == "main" ]]; then
             lock_file=.main.lock
         fi
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            git fetch origin ${{ env.SHA_BRANCH }} 
-            git checkout ${{ env.SHA_BRANCH }}    
-            commits_before_sha=$(git rev-list ${{ github.sha }}~1..${{ env.SHA_BRANCH }}  --)
+            git fetch origin $branch 
+            git checkout $branch    
+            commits_before_sha=$(git rev-list ${{ github.sha }}~1..$branch  --)
             if git ls-tree -r $commits_before_sha | grep "$lock_file"; then
                 retries=$((retries+1))
                 locked_sha=$(cat "$lock_file")
