@@ -3,9 +3,9 @@ name: "Authentication Gateway"
 
 # ${{ github.workflow }} Overview
 #
-# This GitHub Actions workflow serves as an authentication gateway for all commits pushed to the specified branches.
+# This GitHub Actions workflow acts as a protective shield, ensuring only authenticated and approved commits pass through.
 #
-# The workflow consists of two main jobs:
+# There are two main jobs:
 # 1. Authenticate User: Validates the authenticity of the user committing to the repository.
 # 2. Instigate Workflow Runs: Once authenticated, this job prepares the ground for subsequent workflows.
 #
@@ -175,7 +175,7 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-  instigate-workflows:
+  instigate-workflow-runs:
     name: Instigate Workflow Runs
     runs-on: ubuntu-latest
     timeout-minutes: 15
