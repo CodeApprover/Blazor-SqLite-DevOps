@@ -246,7 +246,7 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.AUTH }}" \
               https://api.github.com/repos/${{ github.repository }}/actions/runs)
 
-            # Exclude the current workflow run from the list of in-progress workflows
+            echo "##[debug] Excluding the current workflow run from the list of in-progress workflows."
             others_count=$(echo "$response" | jq '.workflow_runs[] | select(.id != '${{ github.run_id }}' and .status == "in_progress")' | wc -l)
 
             echo "##[debug] Checking if another instance is running and if so, wait and retry."
@@ -269,7 +269,7 @@ jobs:
       
         echo "##[info] Checking for lock file."
         
-        # Fetch branch list that contains the given SHA
+        echo "##[debug] Getting remote branch list that contain the given SHA."
         branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
         branch=$(echo $branch_list | awk '{print $1}')
         
