@@ -1,5 +1,5 @@
 ---
-name: "Cache Dependencies"
+name: Cache Dependencies
 
 # ${{ github.workflow }} Overview
 #
@@ -17,12 +17,12 @@ name: "Cache Dependencies"
 
 on:
   repository_dispatch:
-    types: Cache-Dependencies
+    types: Cache Dependencies
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
   CSPROJ: ${{ github.event.client_payload.csproj 
-  NEXT_WORKFLOW: StyleCop-Linter
+  NEXT_WORKFLOW: StyleCop Linter
 
 jobs:
 
@@ -37,7 +37,7 @@ jobs:
     steps:
 
     - name: Checkout SHA Repository
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0
@@ -48,7 +48,7 @@ jobs:
         dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed for ${{ env.CSPROJ }}" && exit 34)
 
     - name: Cache dotnet Dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v3.3.1
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-dotnet-${{ hashFiles('${{ env.SHA }}') }}
