@@ -225,6 +225,13 @@ jobs:
     needs: authenticate-user
 
     steps:
+
+    - name: Checkout SHA Repository
+      id: checkout-sha
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ github.sha }}
+        fetch-depth: 0 # deep fetch
     
     - name: Check Concurrency
       run: |
