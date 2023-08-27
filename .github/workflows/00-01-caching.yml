@@ -13,7 +13,7 @@ name: "Cache Dependencies"
 # Exit Codes:
 #
 # 34 - .NET dependency restoration failed for the provided C# project.
-# 90 - Failed to trigger the next workflow (02-stylecop-linter.yml) after exhausting retries.
+# 90 - Failed to trigger the next workflow after exhausting retries.
 
 on:
   repository_dispatch:
@@ -55,7 +55,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dotnet-
 
-    - name: Trigger Next Workflow # 02-stylecop-linter.yml
+    - name: Trigger Next Workflow
       if: success()
       run: |
         CMD="curl -L -X POST "
