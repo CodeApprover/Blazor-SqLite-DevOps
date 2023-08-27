@@ -1,5 +1,5 @@
 ---
-name: "Authentication Gateway"
+name: Authenticate Uaer
 
 # ${{ github.workflow }} Overview
 #
@@ -7,7 +7,7 @@ name: "Authentication Gateway"
 #
 # There are two main jobs:
 # 1. Authenticate User: Validates the authenticity of the user committing to the repository.
-# 2. Instigate Workflow Runs: Once authenticated, this job prepares the ground for subsequent workflows.
+# 2. Instigate Workflows: Once authenticated, this job prepares the ground for subsequent workflows.
 #
 # The process starts by sanitizing the user details, ensuring no unsanctioned inputs exist.
 # It then validates the commit source and retrieves the commit.
@@ -33,7 +33,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: Caching
+  NEXT_WORKFLOW: Cache Dependencies
 
 jobs:
 
@@ -93,7 +93,7 @@ jobs:
 
     - name: Checkout SHA Repository
       id: checkout-sha
-      uses: actions/checkout@v3.5.3
+      uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0 # deep fetch
@@ -175,7 +175,7 @@ jobs:
         echo "GitHub Event After: ${{ github.event.after }}"
         echo "---------------------------------------"
 
-  instigate-workflow-runs:
+  instigate-workflows:
     name: Instigate Workflow Runs
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -215,17 +215,17 @@ jobs:
     - name: Check for Existant Lock File
       run: |
         echo "##[info] Checking for lock file."
-        branch=$(git branch --contains ${{ env.SHA }})
-        if [[ $branch == "code-"* ]]; then
+        if [[ ${{ env.SHA_BRANCH }} == "code-"* ]]; then
+            branch=${{ env.SHA_BRANCH }}
             lock_file=${branch#code-}.lock
         elif [[ $branch == "main" ]]; then
             lock_file=.main.lock
         fi
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            git fetch origin $branch
-            git checkout $branch   
-            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..$branch --)
+            git fetch origin ${{ env.SHA_BRANCH }} 
+            git checkout ${{ env.SHA_BRANCH }}    
+            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }}  --)
             if git ls-tree -r $commits_before_sha | grep "$lock_file"; then
                 retries=$((retries+1))
                 locked_sha=$(cat "$lock_file")
