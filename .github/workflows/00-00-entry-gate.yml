@@ -77,8 +77,9 @@ jobs:
         # Commit messages cannot contain dangerous characters such as
         # | $ ` < > * that can be used to manipulate or inject shell commands.
 
+        forbidden="|\$`<>*"
         commit_msg="${{ github.event.head_commit.message }}"
-        if [[ "${commit_msg}" =~ [|\$`<>*] ]]; then
+        if [[ "${commit_msg}" =~ $forbidden ]]; then
           echo "##[error] Commit message contains invalid characters. Exiting"
           exit 12
         fi
