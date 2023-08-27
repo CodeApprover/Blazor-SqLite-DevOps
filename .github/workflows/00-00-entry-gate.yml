@@ -268,7 +268,7 @@ jobs:
       run: |
       
         echo "##[info] Checking for lock file."
-        
+
         echo "##[debug] Getting remote branch list that contain the given SHA."
         branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
         branch=$(echo $branch_list | awk '{print $1}')
@@ -278,11 +278,11 @@ jobs:
         elif [[ $branch == "main" ]]; then
             lock_file=.main.lock
         fi
-        
+
         retries=0
         git fetch origin $branch 
         git checkout $branch
-        
+
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
             commits_before_sha=$(git rev-list ${{ github.sha }}~1..$branch  --)
             
@@ -307,6 +307,11 @@ jobs:
       if: success()
       run: |
       
+        echo "##[info]## Triggering ${{ env.NEXT_WORKFLOW }}"
+
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
+        CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
+
         CMD=$(echo "curl -L -X POST" \
         "-H \"Accept: application/vnd.github+json\"" \
         "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
@@ -315,7 +320,7 @@ jobs:
         "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ github.sha }}\"," \
-        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+        "\"csproj\":\"$CSPROJ\"}'")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
