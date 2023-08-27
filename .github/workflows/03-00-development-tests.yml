@@ -1,11 +1,19 @@
 ---
 name: "Development Tests"
 
-# Runs a development environment test suite matrix that includies Nunit and XUnit unit tests."
-# Executes for the "code-development" branch only.
-
-# 1 - Utilizes the Nunit and Xunit test frameworks for running unit tests.
-# 2 - Once the tests pass successfully, triggers the lock file checker workflow.
+# ${{ github.workflow }} Overview
+#
+# This GitHub Actions workflow is dedicated to conducting unit tests in the development environment.
+#
+# The development-tests job performs these main phases:
+# 1. Environment Setup: Checks out the specified SHA of the repository.
+# 2. Dependency Installation: Depending on the test framework specified (Nunit or Xunit), it installs the required dependencies.
+# 3. Unit Testing: Executes unit tests based on the test framework selected. Results are stored in a corresponding trx file.
+#
+# After the tests are successfully executed, the trigger-next-workflow job is activated, which:
+# 1. Triggers the next workflow, specifically "04-lockfile-checker.yml", if all tests have passed.
+#
+# If the unit tests fail, this workflow will not proceed to the trigger-next-workflow job.
 
 on:
   repository_dispatch:
