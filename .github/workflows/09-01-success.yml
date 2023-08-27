@@ -1,30 +1,37 @@
-name: "Register Deployment Success"
+name: Success
 
 on:
   repository_dispatch:
-    types: trigger-deployment-success
+    types: Success
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
+  CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
+
   publish-deployment-success:
     name: Publish Deployment Success
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # un-comment to block execution
+    #if: (github.actor != ${{ github.repository_owner }})
+    
     steps:
+
       - name: Checkout SHA Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.6.0
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
 
       - name: Set SHA Commit Environment
         run: |
-          branch="${{ env.SHA_BRANCH }}"
+          branch=$(git branch --contains ${{ env.SHA }})
           environment=${branch/code-/}
           echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
+          echo "SHA_BRANCH=$branch" >> $GITHUB_ENV          
 
       - name: Set Next Branch
         run: |
@@ -48,7 +55,6 @@ jobs:
           REPO_NAME=${{ github.repository }}
           STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
           echo "STATUS_URL=$STATUS_URL" >> $GITHUB_ENV
-
 
       - name: Update Deployment Status to Success
         run: |
