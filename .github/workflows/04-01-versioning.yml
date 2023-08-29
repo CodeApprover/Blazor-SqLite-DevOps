@@ -81,7 +81,7 @@ jobs:
         patch=$(echo $version  | cut -d. -f3)
         
         # Increment for required environment
-        branch=$(git branch --contains ${{ env.SHA }})
+        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
         case "$branch" in
           "code-production")
             major=$((major + 1))
