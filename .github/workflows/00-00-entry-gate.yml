@@ -87,13 +87,13 @@ jobs:
 
         # Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands.        
         forbidden_array=("|" "<" ">" "(" ")" "{" "}" "*")
+        pattern="[$(printf "%s" "${forbidden_array[*]}" | sed 's/[]\\-^$/&/g')]"
+        echo "##[debug] Using pattern $pattern"
 
-        for char in "${forbidden_array[@]}"; do
-          echo "##[debug] Checking $char"
-          if echo "$commit_msg" | grep -q "$char"; then
-            echo "##[error] Commit message ${commit_msg} contains invalid character $char." && exit 12
-          fi
-        done
+        # Check if the commit_msg matches the pattern
+        if echo "$commit_msg" | grep -qE "$pattern"; then
+            echo "##[error] Commit message ${commit_msg} contains invalid characters." && exit 12
+        fi
 
         echo "##[info] Sanitisation and validation completed successfully."
         echo "COMMIT_AUTHOR_NAME=${{ github.event.head_commit.author.name }}" >> $GITHUB_ENV
