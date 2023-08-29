@@ -1,31 +1,13 @@
 ---
 name: StyleCop Linter
 
-# ${{ github.workflow }} Overview
-#
-# This workflow lints code using StyleCop, ensuring code quality and consistency.
-#
-# The stylecop-lintier job has 3 main phases:
-# 1. Setup and Environment Restoration: This phase pulls the repository, sets up the required .NET environment
-#    and retrieves cached .NET dependencies if available.
-# 2. Dependency Restoration and Build: If the cache doesn't contain the dependencies, they are restored.
-#    The code is then built with StyleCop enabled, treating errors with severity and conducting a selective analysis.
-# 3. Trigger Subsequent Workflow: Upon successful linting and build, the next workflow (Development-Tests, 
-#    Staging-Tests, or Production-Tests) is initiated depending on the branch.
-#
-# Exit Codes:
-#
-# 34 - Dependency restoration failed.
-# 35 - Dotnet .NET build with StyleCop failed.
-# 90 - Failed to trigger the next workflow after exhausting retries.
-
-
 on:
   repository_dispatch:
     types: StyleCop Linter
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
@@ -35,9 +17,6 @@ jobs:
     name: StyleCop Linter
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
@@ -77,11 +56,8 @@ jobs:
     - name: Trigger Next Workflow # Development-Tests | Staging-Tests | Production-Tests
       if: success()
       run: |
-      
-        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
-        echo "##[debug] $branch"
-
-        case "$branch" in
+  
+        case "${{ env.SHA_BRANCH }}" in
           "development") trigger="Development Tests" ;;
           "staging") trigger="Staging Tests" ;;
           "production") trigger="Production Tests" ;;
@@ -97,24 +73,26 @@ jobs:
         "-d '{\"event_type\":\"$trigger\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            eval "$CMD"
-            CURL_EXIT_CODE=$?
-            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-                retries=$((retries+1))
-                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                    sleep ${{ vars.WAIT_SECONDS }}
-                else
-                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger $trigger workflow with CURL command: $CMD." && exit 90
-                fi
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+            retries=$((retries+1))
+            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+              sleep ${{ vars.WAIT_SECONDS }}
             else
-                break # successful curl
-            fi    
+              echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+              echo "##[error] Failed to trigger $trigger workflow with CURL command: $CMD." && exit 90
+            fi
+          else
+            echo "##[debug] Successful curl"
+            break
+          fi    
         done
         echo "##[debug] CURL command: $CMD"
