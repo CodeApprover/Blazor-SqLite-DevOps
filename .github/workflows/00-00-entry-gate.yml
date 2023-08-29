@@ -87,8 +87,10 @@ jobs:
 
         echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."
         forbidden_chars="|*[]<(){]}>S"
+        commit_msg="${{ github.event.head_commit.message }}"
         for (( i=0; i<${#forbidden_chars}; i++ )); do
             char="${forbidden_chars:$i:1}"  # Extract each character one by one
+            echo "##[debug] "
             if [[ $commit_msg == *"$char"* ]]; then
                 echo "##[error] Commit message ${commit_msg} contains invalid character $char." && exit 12
             fi
