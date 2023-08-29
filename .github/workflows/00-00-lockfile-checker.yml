@@ -1,37 +1,20 @@
 ---
 name: Lockfile Checker
 
-# Manages lock files for sequential task execution within a branch.
-# Operates for the code-development, code-staging and code-production branches.
-
-# 1 - Creates a lock file if none exists.
-# 2 - Checks and waits for an existing lock file to be released.
-# 3 - Once lock file checks pass, creates a lock and triggers the next workflow.
-
-# Exit Codes
-# 40 - Lock file presence presists.
-# 41 - Failed to push lock file.
-# 42 - Failed to fetch SHA branch.
-# 43 - Expected lock file does not exist.
-
 on:
-  repository_dispatch:
-    types: Lockfile Checker
+  push:
+    branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  SHA: ${{ github.event.client_payload.sha }}
-  CSPROJ: ${{ github.event.client_payload.csproj }}
-  NEXT_WORKFLOW: Versioning
+  NEXT_WORKFLOW: Authenticate User
 
 jobs:
 
   lockfile-checker:
-
+    name: Lockfile Checker
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
+    if: (github.actor != ${{ github.repository_owner }}) # ignore DevOps
     
     steps:
 
@@ -39,7 +22,7 @@ jobs:
       id: checkout
       uses: actions/checkout@v3.6.0
       with:
-        ref: ${{ env.SHA }}
+        ref: ${{ github.sha }}
         fetch-depth: 0
 
     - name: Configure Git User
@@ -51,7 +34,7 @@ jobs:
     - name: Set Lock File Name Based on Branch
       run: |
       
-        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##')
+        branch=$(git name-rev ${{ github.sha }} | sed 's#.*/##')
         if [[ $branch == "code-"* ]]; then
             lock_name=${branch#code-}
             echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
@@ -69,7 +52,7 @@ jobs:
           git checkout ${{ env.SHA_BRANCH }}
 
           # Check for lock file          
-          commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }} --)
+          commits_before_sha=$(git rev-list ${{ github.sha }}~1..${{ env.SHA_BRANCH }} --)
           if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
               retries=$((retries+1))
               locked_sha=$(cat "${{ env.LOCK_FILE }}")
@@ -81,7 +64,6 @@ jobs:
               break
           fi
 
-          # Exit if at max retries
           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
               echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
               echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists --> Exit 40"
@@ -92,12 +74,12 @@ jobs:
     - name: Create Lock file
       run: |
       
-        echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
+        echo "${{ github.sha }}" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
-        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
+        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ github.sha }} [skip ci]."
 
         if ! git push origin HEAD:${{ env.SHA_BRANCH }}; then
-            echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }} --> Exit 41"
+            echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ github.sha }} --> Exit 41"
             exit 41
         fi
 
@@ -112,21 +94,24 @@ jobs:
             exit 43
         fi
 
-        echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
+        echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ github.sha }}"
 
     - name: Trigger Next Workflow
       if: success()
       run: |
       
-        CMD=$(echo "curl -L -X POST" \
-        "-H \"Accept: application/vnd.github+json\"" \
-        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-        "-d '{\"event_type\":\"$trigger\"," \
-        "\"client_payload\":{" \
-        "\"sha\":\"${{ env.SHA }}\"," \
-        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+        CMD=(
+          curl -L -X POST
+          -H "Accept: application/vnd.github+json"
+          -H "Authorization: Bearer ${{ secrets.AUTH }}"
+          -H "X-GitHub-Api-Version: 2022-11-28"
+          "https://api.github.com/repos/${{ github.repository }}/dispatches"
+          -d "{
+            \"event_type\":\"$trigger\",
+            \"client_payload\": {
+              \"sha\":\"${{ github.sha }}\",
+              \"sha_branch\":\"${{ env.SHA_BRANCH }}\"
+            }}")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
