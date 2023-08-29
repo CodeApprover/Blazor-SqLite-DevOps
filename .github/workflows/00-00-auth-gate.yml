@@ -99,6 +99,18 @@ jobs:
         echo "##[info] Successfully validated SHA branch name $branch for commit SHA ${{ env.SHA }}."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
+    - name: Validate .csproj
+      run: |
+      
+        echo "##[info] Validating .csproj file."
+        DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
+        CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
+        if [[ ! -f "$CSPROJ" ]]; then
+            echo "##[error] Failure locating .csproj file within the directory $DIR_PATH" && exit 16
+        fi
+        echo "##[info] Successfully validated dotnet .csproj file $CSPROJ."
+        echo "CSPROJ=$CSPROJ" >> $GITHUB_ENV
+
     - name: Check for Pre-Existent .lock File in History
       run: |
   
@@ -147,7 +159,6 @@ jobs:
         
         echo "##[info] Lock file $LOCK_FILE created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
 
-
     - name: Trigger Next Workflow
       if: success()
       run: |
@@ -162,7 +173,8 @@ jobs:
             \"event_type\":\"$trigger\",
             \"client_payload\": {
               \"sha\":\"${{ env.SHA }}\",
-              \"sha_branch\":\"${{ env.SHA_BRANCH }}\"
+              \"sha_branch\":\"${{ env.SHA_BRANCH }}\",
+              \"csproj\":\"${{ env.CSPROJ }}\"
             }}")
 
         retries=0
@@ -180,7 +192,8 @@ jobs:
               echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
             fi
           else
-            break # successful curl
+            echo "##[debug] Successful curl"
+            break
           fi    
         done
         echo "##[debug] CURL command: $CMD"
