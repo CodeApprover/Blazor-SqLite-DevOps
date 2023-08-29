@@ -57,7 +57,7 @@ jobs:
         echo "##[info] Sanitisation and validation completed successfully."
 
     - name: Checkout SHA Repository
-      id: checkout
+      id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
@@ -71,7 +71,7 @@ jobs:
             echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 23
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
-        echo "SHA=${{ github.sha }}" >> $GITHUB.ENV
+
 
     - name: Configure Git User
       run: |
