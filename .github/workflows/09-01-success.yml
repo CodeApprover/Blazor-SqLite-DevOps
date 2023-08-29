@@ -26,15 +26,17 @@ jobs:
           ref: ${{ env.SHA }}
           fetch-depth: 0
 
-      - name: Set SHA Commit Environment
+      - name: Set Branch and Environment
         run: |
-          branch=$(git branch --contains ${{ env.SHA }})
+        
+          branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
           environment=${branch/code-/}
           echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
           echo "SHA_BRANCH=$branch" >> $GITHUB_ENV          
 
       - name: Set Next Branch
         run: |
+        
           directory="${{ env.ENVIRONMENT }}"
           if [[ "${{ env.ENVIRONMENT }}" == "development" ]]; then
               branch="code-staging"
@@ -51,6 +53,7 @@ jobs:
 
       - name: Set Commit API Status URL
         run: |
+        
           REPO_OWNER=${{ github.repository_owner }}
           REPO_NAME=${{ github.repository }}
           STATUS_URL="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${{ env.SHA }}"
@@ -58,6 +61,7 @@ jobs:
 
       - name: Update Deployment Status to Success
         run: |
+        
           CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
           CMD+="${{ env.STATUS_URL }} "
           CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
@@ -66,7 +70,8 @@ jobs:
           echo "##[info]# API Response: $RESPONSE"
 
       - name: Deploy using GitHub CLI
-        run: |      
+        run: |
+        
           desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to ${{ env.DEPLOY_BRANCH }}. "
           desc+="New code in ${{ env.DIRECTORY }} directory on both branches."
           CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
