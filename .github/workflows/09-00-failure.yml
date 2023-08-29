@@ -35,7 +35,7 @@ jobs:
     steps: 
 
     - name: Extract SHA that triggered failure
-      run: echo "SHA=${{ github.event.workflow_run.sha }}" >> $GITHUB_ENV
+      run: echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
 
     - name: Checkout repository
       uses: actions/checkout@v3.6.0
