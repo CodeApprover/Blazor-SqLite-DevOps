@@ -1,12 +1,12 @@
 ---
-name: Lockfile Checker
+name: Authentication Gateway
 
 on:
   push:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: Authentication
+  NEXT_WORKFLOW: Cache Dependencies
 
 jobs:
 
