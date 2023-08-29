@@ -109,7 +109,7 @@ jobs:
             echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}" && exit 26
         fi
         
-        echo "##[debug] Define the lock file based on the branch ${ env.SHA_BRANCH }}"
+        echo "##[debug] Define the lock file based on the branch ${{ env.SHA_BRANCH }}"
         branch=${{ env.SHA_BRANCH }}
         if [[ $branch == "code-"* ]]; then
             LOCK_FILE=.${branch#code-}.lock
