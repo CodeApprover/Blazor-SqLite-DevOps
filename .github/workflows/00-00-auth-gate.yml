@@ -102,7 +102,7 @@ jobs:
     - name: Check for Pre-Existent .lock File in History
       run: |
   
-        echo "##[info] Checking for pre-existent lock file in the commit immediately before SHA."
+        echo "##[info] Checking for pre-existent lock file in the commit immediately before SHA ${{ env.SHA }}."
 
         echo "##[debug] Fetching branch ${{ env.SHA_BRANCH }}"
         if ! git fetch origin ${{ env.SHA_BRANCH }}; then
@@ -125,27 +125,27 @@ jobs:
         fi
         
         echo "##[debug] Adding and committing the new lock file $LOCK_FILE for SHA ${{ env.SHA }}"
-        echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
-        git add "${{ env.LOCK_FILE }}"
-        git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
+        echo "${{ env.SHA }}" > "$LOCK_FILE"
+        git add "LOCK_FILE"
+        git commit -m "Adding $LOCK_FILE for ${{ env.SHA }} [skip ci]."
         
-        echo "##[debug] Pushing the lock file."
+        echo "##[debug] Pushing the lock file $LOCK_FILE."
         if ! git push origin HEAD:${{ env.SHA_BRANCH }}; then
-            echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}" && exit 28
+            echo "##[error] Failed to push $LOCK_FILE for ${{ env.SHA }}" && exit 28
         fi
         
-        echo "##[debug] Fetching again to ensure the commit went through."
+        echo "##[debug] Fetching again to ensure $LOCK_FILE commit went through."
         git fetch origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
             echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}" && exit 29
         fi
         
-        echo "##[debug] Checking that the lock file is present in the remote."
-        if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
-            echo "##[error] Expected lock file ${{ env.LOCK_FILE }} was not detected remotely" && exit 30
+        echo "##[debug] Checking that lock file @$LOCK_FILE is present in the remote."
+        if ! git ls-tree HEAD -- $LOCK_FILE; then
+            echo "##[error] Expected lock file $LOCK_FILE was not detected remotely" && exit 30
         fi
         
-        echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
+        echo "##[info] Lock file $LOCK_FILE created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
 
 
     - name: Trigger Next Workflow
