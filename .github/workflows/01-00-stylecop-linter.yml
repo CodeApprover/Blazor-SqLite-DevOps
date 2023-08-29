@@ -82,10 +82,10 @@ jobs:
         echo "##[debug] $branch"
 
         case "$branch" in
-          code-development) trigger="Development Tests" ;;
-          code-staging) trigger="Staging Tests" ;;
-          code-production) trigger="Production Tests" ;;
-          main) trigger="Production Tests" ;;
+          "development") trigger="Development Tests" ;;
+          "staging") trigger="Staging Tests" ;;
+          "production") trigger="Production Tests" ;;
+          "main") trigger="Production Tests" ;;
         esac
         echo "##[info] Calling $trigger"
 
