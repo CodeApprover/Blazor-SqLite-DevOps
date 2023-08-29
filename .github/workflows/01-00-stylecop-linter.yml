@@ -78,7 +78,7 @@ jobs:
       if: success()
       run: |
       
-        branch=$(git branch --contains ${{ env.SHA }})
+        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
         case "$branch" in
           code-development) trigger="Development Tests" ;;
           code-staging) trigger="Staging Tests" ;;
