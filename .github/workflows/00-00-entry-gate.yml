@@ -116,6 +116,7 @@ jobs:
             echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 13
         fi
         echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}."
+        echo "SHA=${{ github.sha }}" >> $GITHUB.ENV
 
     - name: Validate SHA Branch
       run: |
@@ -123,7 +124,7 @@ jobs:
         echo "##[info] Validating SHA branch."
 
         echo "##[debug] Checking remote branches for the commit SHA"
-        branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
+        branch_list=$(git branch -r --contains ${{ env.SHA }} | sed 's/origin\///' | xargs)
         if [[ -z "$branch_list" ]]; then
             echo "##[error] No branches found containing the commit in ${{ github.repository }}" && exit 14
         fi
@@ -233,7 +234,22 @@ jobs:
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0 # deep fetch
-    
+
+    - name: Validate Checkout
+      run: |
+      
+        if ! git checkout ${{ github.sha }}; then
+            echo "##[error] Failed to checkout ${{ env.SHA_BRANCH }}." && exit 1
+        fi
+
+    - name: Extract SHA_BRANCH
+      run: |
+  
+        echo "##[debug] Determining branch name for the commit SHA."
+        branch_list=$(git branch -r --contains ${{ env.SHA }} | sed 's/origin\///' | xargs)
+        branch=$(echo $branch_list | awk '{print $1}')
+        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
+
     - name: Check Concurrency
       run: |
       
@@ -265,45 +281,38 @@ jobs:
             fi
         done
 
-    - name: Check for Existant Lock File
+    - name: Check for Existent Lock File
       run: |
       
         echo "##[info] Checking for lock file."
 
-        echo "##[debug] Getting remote branch list that contain the given SHA."
-        branch_list=$(git branch -r --contains ${{ github.sha }} | sed 's/origin\///' | xargs)
-        branch=$(echo $branch_list | awk '{print $1}')
-        
-        if [[ $branch == "code-"* ]]; then
-            lock_file=${branch#code-}.lock
-        elif [[ $branch == "main" ]]; then
-            lock_file=.main.lock
+        retries=0
+        git fetch origin ${{ env.SHA_BRANCH }}
+        if ! git fetch origin ${{ env.SHA_BRANCH }}; then
+            echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}." && exit 1
         fi
 
-        retries=0
-        git fetch origin $branch 
-        git checkout $branch
-
+        git checkout ${{ env.SHA_BRANCH }}
+    
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            commits_before_sha=$(git rev-list ${{ github.sha }}~1..$branch  --)
+            commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }}  --)
             
-            if git ls-tree -r $commits_before_sha | grep "$lock_file"; then
+            if git ls-tree -r $commits_before_sha | grep ".lock"; then
                 retries=$((retries+1))
-                locked_sha=$(cat "$lock_file")
-                echo "##[warn] Lock file $lock_file found for commit SHA $locked_sha."
+                locked_sha=$(git show $commits_before_sha:*.lock) 
+                echo "##[warn] Lock file found for commit SHA $locked_sha."
                 echo "##[warn] Waiting ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_RETRIES }}."
                 sleep $((${{ vars.WAIT_MINUTES }} * 60))
             else
-                echo "##[info] Lock file $lock_file check passed - continuing."
+                echo "##[info] Lock file check passed - continuing."
                 break
             fi
             
             if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
                 echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-                echo "##[error] Lock file $lock_file presence persists." && exit 20
+                echo "##[error] Lock file presence persists." && exit 20
             fi
         done
-        echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Trigger Next Workflow
       if: success()
