@@ -51,7 +51,7 @@ jobs:
     - name: Set Lock File Name Based on Branch
       run: |
       
-        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
+        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##')
         if [[ $branch == "code-"* ]]; then
             lock_name=${branch#code-}
             echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
