@@ -335,7 +335,7 @@ jobs:
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
                 fi
             else
                 break # successful curl
