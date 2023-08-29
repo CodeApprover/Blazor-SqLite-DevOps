@@ -79,6 +79,8 @@ jobs:
       run: |
       
         branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
+        echo "##[debug] $branch"
+
         case "$branch" in
           code-development) trigger="Development Tests" ;;
           code-staging) trigger="Staging Tests" ;;
