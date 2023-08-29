@@ -85,13 +85,14 @@ jobs:
             echo "##[error] Email format is invalid" && exit 11
         fi
 
-        echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."
+        echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."       
         forbidden_array=("|" "<" ">" "(" ")" "{" "}" "*" "]")
-        echo "##[debug] Constructing pattern without the ] character and then appending it."
-        pattern="[$(printf "%s" "${forbidden_array[@]}" | tr -d ']' | sed 's/[]\\-^$/\\&/g')\\]]"   
-        echo "##[debug] Using pattern $pattern"
+        escaped_chars=$(printf "%s" "${forbidden_array[@]}" | tr -d ']' | sed 's/[]\\-^$/\\&/g')
+        pattern="[$escaped_chars\\]"
         
+        echo "##[debug] Using pattern $pattern"
         echo "##[debug] Checking if the commit_msg contains the pattern."
+        
         if echo "$commit_msg" | grep -qE "$pattern"; then
             echo "##[error] Commit message ${commit_msg} contains invalid characters." && exit 12
         fi
