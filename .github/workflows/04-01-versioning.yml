@@ -83,16 +83,21 @@ jobs:
         # Increment for required environment
         branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
         case "$branch" in
-          "code-production")
+          "main")
+            major=$(major)
+            minor=0
+            patch=0
+            ;;
+          "production")
             major=$((major + 1))
             minor=0
             patch=0
             ;;
-          "code-staging")
+          "staging")
             minor=$((minor + 1))
             patch=0
             ;;
-          "code-development")
+          "development")
             patch=$((patch + 1))
             ;;
         esac
