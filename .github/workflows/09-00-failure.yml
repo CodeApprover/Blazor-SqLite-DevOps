@@ -35,7 +35,23 @@ jobs:
     steps: 
 
     - name: Extract SHA that triggered failure
-      run: echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+      run: |
+      
+        echo "##[info] Searching for .lock files in the repository."
+        lockfile_path=$(find . -name "*.lock" | head -n 1)
+        if [[ ! -z "$lockfile_path" ]]; then
+            echo "##[debug] Validating SHA1 as 40 alpha-numeric characters."
+            if [[ ${#sha} -eq 40 && $sha =~ ^[0-9a-fA-F]+$ ]]; then
+                echo "SHA=$(cat "$lockfile_path")" >> $GITHUB_ENV
+            echo "SHA=$sha" >> $GITHUB_ENV
+            else
+                echo "##[error] Content of .lock file is not a valid SHA: $sha"
+                exit 60
+            fi
+        else
+            echo "##[warn] Expected .lock file was not found."
+            exit 61
+        fi
 
     - name: Checkout repository
       uses: actions/checkout@v3.6.0
