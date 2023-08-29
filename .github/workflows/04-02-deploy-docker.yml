@@ -74,7 +74,7 @@ jobs:
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }} > /dev/null; then
             echo "Docker image already exists! Skipping Docker push."
         else
-            branch=$(git branch --contains ${{ env.SHA }})
+            branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
             docker_file=$(find ./$(echo "$branch" | sed 's/^code-//') -name "Dockerfile" | head -n 1)
             if [[ ! -f "$docker_file" ]]; then
                 echo "##[error] Dockerfile not found for ${{ env.SHA }} --> Exit 48"
