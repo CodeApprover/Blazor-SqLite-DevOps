@@ -76,27 +76,27 @@ jobs:
     - name: Configure Git User
       run: |
       
-        echo "##[info] Configuring git user account."
+        echo "##[info] Configuring git user account for ${{ env.SHA }}"
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
 
     - name: Validate Commit as Unique to Existent Remote SHA Branch
       run: |
       
-        echo "##[info] Validating SHA branch."
+        echo "##[info] Validating SHA branch for ${{ env.SHA }}"
         branch_list=$(git branch -r --contains ${{ env.SHA }} | sed 's/origin\///' | xargs)
         if [[ -z "$branch_list" ]]; then
           echo "##[error] No branches found containing the commit in ${{ github.repository }}" && exit 24
         fi
 
-        echo "##[debug] Checking if multiple branches contain the commit SHA"
+        echo "##[debug] Checking if multiple branches contain the commit SHA ${{ env.SHA }}"
         branch_count=$(echo $branch_list | wc -w)
         if [[ $branch_count -gt 1 ]]; then
-          echo "##[error] Multiple branches contain the commit in ${{ github.repository }}: $branch_list" && exit 25
+          echo "##[error] Multiple branches contain commit SHA ${{ env.SHA }} in ${{ github.repository }}: $branch_list" && exit 25
         fi
         branch=$(echo $branch_list | awk '{print $1}')
 
-        echo "##[info] Successfully validated SHA branch name $branch."
+        echo "##[info] Successfully validated SHA branch name $branch for commit SHA ${{ env.SHA }}."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
     - name: Set Lock File Name Based on Branch
