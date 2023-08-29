@@ -44,11 +44,13 @@ jobs:
 
     - name: Configure Git User
       run: |
+      
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
 
     - name: Set Lock File Name Based on Branch
       run: |
+      
         branch=$(git branch --contains ${{ env.SHA }})
         if [[ $branch == "code-"* ]]; then
             lock_name=${branch#code-}
@@ -60,6 +62,7 @@ jobs:
 
     - name: Check for Remote Lock File
       run: |
+      
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
           git fetch origin ${{ env.SHA_BRANCH }}
@@ -88,6 +91,7 @@ jobs:
 
     - name: Create Lock file
       run: |
+      
         echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
@@ -113,15 +117,16 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        CMD="curl -L -X POST "
-        CMD+="-H \"Accept: application/vnd.github+json\" "
-        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
-        CMD+="\"client_payload\":{"
-        CMD+="\"sha\":\"${{ github.sha }}\","
-        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
+      
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"$trigger\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
@@ -135,7 +140,7 @@ jobs:
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
                 fi
             else
                 break # successful curl
