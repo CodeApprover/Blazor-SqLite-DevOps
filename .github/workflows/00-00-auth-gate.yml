@@ -126,7 +126,7 @@ jobs:
         
         echo "##[debug] Adding and committing the new lock file $LOCK_FILE for SHA ${{ env.SHA }}"
         echo "${{ env.SHA }}" > "$LOCK_FILE"
-        git add "LOCK_FILE"
+        git add "$LOCK_FILE"
         git commit -m "Adding $LOCK_FILE for ${{ env.SHA }} [skip ci]."
         
         echo "##[debug] Pushing the lock file $LOCK_FILE."
