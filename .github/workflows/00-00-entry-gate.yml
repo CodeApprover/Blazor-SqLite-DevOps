@@ -86,10 +86,10 @@ jobs:
         fi
 
         echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."
-        forbidden_array=("|" "*" "[" "<" "(" "{" "]" ">" ")" "}")
-        for char in "${forbidden_array[@]}"; do
-            escaped_char=$(printf '%s' "$char" | sed 's/[][\\.*^$/]/\\&/g')
-            if echo "$1" | grep -q "$escaped_char"; then
+        forbidden_chars="|*[]<(){]}>S"
+        for (( i=0; i<${#forbidden_chars}; i++ )); do
+            char="${forbidden_chars:$i:1}"  # Extract each character one by one
+            if [[ $commit_msg == *"$char"* ]]; then
                 echo "##[error] Commit message ${commit_msg} contains invalid character $char." && exit 12
             fi
         done
