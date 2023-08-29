@@ -66,7 +66,7 @@ jobs:
     - name: Validate SHA Checkout
       run: |
       
-        echo "##[info] Validating SHA checkout."
+        echo "##[info] Validating checkout for SHA ${{ github.sha }}"
         if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
             echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 23
         fi
@@ -99,68 +99,60 @@ jobs:
         echo "##[info] Successfully validated SHA branch name $branch for commit SHA ${{ env.SHA }}."
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV
 
-    - name: Set Lock File Name Based on Branch
-      run: |
-  
-        echo "##[debug] Checking for pre-existent .lock file"
-        branch=${{ env.SHA_BRANCH }}
-        if [[ $branch == "code-"* ]]; then
-          lock_name=${branch#code-}
-          echo "LOCK_FILE=.$lock_name.lock" >> $GITHUB_ENV
-        elif [[ $branch == "main" ]]; then
-          echo "LOCK_FILE=.main.lock" >> $GITHUB_ENV
-        fi
-
-    - name: Check for Remote Lock File
-      run: |
-  
-        echo "##[debug] Checking for pre-existent .lock file"
-
-        retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-          if ! git fetch origin ${{ env.SHA_BRANCH }}; then
-            echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}." && exit 26
-          fi
-          sha=${{ env.SHA }}
-          echo "SHA value: $sha"
-          commits_before_sha=$(git rev-list $sha~1..${{ env.SHA_BRANCH }} --)
-          if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
-            retries=$((retries+1))
-            locked_sha=$(cat "${{ env.LOCK_FILE }}")
-            echo "##[warn] Lock file ${{ env.LOCK_FILE }} found for commit SHA $locked_sha."
-            echo "##[warn] Waiting ${{ vars.WAIT_MINUTES }} minutes before retry $retries of ${{ vars.MAX_TRIES }}."
-            sleep $((${{ vars.WAIT_MINUTES }} * 60))
-          else
-            echo "##[info] Lock file ${{ env.LOCK_FILE }} check passed - continuing."
-            break
-          fi
-
-          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-            echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-            echo "##[error] Lock file ${{ env.LOCK_FILE }} presence presists" && exit 27
-          fi
-        done
-
-    - name: Create Lock file
+    - name: Check for Pre-Existent .lock File in History
       run: |
       
+        echo "##[info] Checking for pre-existent lock file."
+        branch=${{ env.SHA_BRANCH }}
+        if [[ $branch == "code-"* ]]; then
+          LOCK_FILE=.${branch#code-}.lock
+        elif [[ $branch == "main" ]]; then
+          LOCK_FILE=.main.lock
+        fi
+    
+        retries=0
+        max_retries=${{ vars.MAX_RETRIES }}
+        wait_interval=$((${{ vars.WAIT_MINUTES }} * 60))
+    
+        while [[ $retries -lt $max_retries ]]; do
+            if ! git fetch origin ${{ env.SHA_BRANCH }}; then
+                echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}" && exit 26
+            fi
+    
+            echo "##[debug] Checking for lock file in the repository history before the SHA ${{ env.SHA }}."
+            if git log ${{ env.SHA }}^ -- $LOCK_FILE &> /dev/null; then
+                retries=$((retries+1))
+                echo "##[warn] Lock file $LOCK_FILE was found in the history before commit SHA ${{ env.SHA }}."
+                echo "##[warn] Waiting for ${{ vars.WAIT_MINUTES }} minutes before retry $retries of $max_retries."
+                sleep $wait_interval
+            else
+                echo "##[info] Lock file $LOCK_FILE does not exist in the history before commit SHA ${{ env.SHA }} - proceeding."
+                break
+            fi
+    
+            if [[ $retries -eq $max_retries ]]; then
+                echo "##[error] Reached $max_retries max retries at ${{ vars.WAIT_MINUTES }}-minute intervals."
+                echo "##[error] Lock file $LOCK_FILE presence persists in history before ${{ env.SHA }}" && exit 27
+            fi
+        done
+          
         echo "${{ env.SHA }}" > "${{ env.LOCK_FILE }}"
         git add "${{ env.LOCK_FILE }}"
         git commit -m "Adding ${{ env.LOCK_FILE }} for ${{ env.SHA }} [skip ci]."
-
+  
         if ! git push origin HEAD:${{ env.SHA_BRANCH }}; then
           echo "##[error] Failed to push ${{ env.LOCK_FILE }} for ${{ env.SHA }}" && exit 28
         fi
-
+  
         git fetch origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
           echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}" && exit 29
         fi
-
+  
         if ! git ls-tree HEAD -- ${{ env.LOCK_FILE }}; then
           echo "##[error] Expected lock file ${{ env.LOCK_FILE }} was not detected remotely" && exit 30
         fi
-
+  
         echo "##[info] Lock file ${{ env.LOCK_FILE }} created and pushed to ${{ env.SHA_BRANCH }} for commit SHA ${{ env.SHA }}"
 
     - name: Trigger Next Workflow
