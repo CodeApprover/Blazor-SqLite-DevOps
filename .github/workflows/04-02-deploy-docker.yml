@@ -51,16 +51,17 @@ jobs:
 
     - name: Enable Docker Experimental Features
       run: |
+      
         echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
         sudo systemctl restart docker
         docker version
 
     - name: Determine next version tag
       run: |
+      
         git fetch --tags
         if [ -z "$(git tag)" ]; then
-            echo "##[error] No tags found --> Exit 47"
-            exit 47
+            echo "##[error] No tags found for ${{ github.repository }}" && 47
         fi
         latest_tag=$(git tag | sort -V | tail -n 1)     
         echo "##[info] Latest Tag = $latest_tag"
@@ -68,6 +69,7 @@ jobs:
 
     - name: Build and Push Docker image
       run: |
+      
         docker_repo=$(echo "$(basename "${{ github.workspace }}")" | tr 'A-Z' 'a-z')
         if docker manifest inspect ${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }} > /dev/null; then
             echo "Docker image already exists! Skipping Docker push."
@@ -89,15 +91,16 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
-        CMD="curl -L -X POST "
-        CMD+="-H \"Accept: application/vnd.github+json\" "
-        CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-        CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
-        CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-        CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
-        CMD+="\"client_payload\":{"
-        CMD+="\"sha\":\"${{ github.sha }}\","
-        CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
+      
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"$trigger\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
@@ -111,7 +114,7 @@ jobs:
                     sleep ${{ vars.WAIT_SECONDS }}
                 else
                     echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
+                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
                 fi
             else
                 break # successful curl
