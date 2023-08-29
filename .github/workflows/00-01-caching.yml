@@ -1,26 +1,13 @@
 ---
 name: Cache Dependencies
 
-# ${{ github.workflow }} Overview
-#
-# This GitHub Actions workflow is dedicated to caching .NET dependencies, ensuring a smoother and faster build process.
-#
-# The cache-dependencies job has two main phases:
-# 1. Prepare and Cache .NET Dependencies: This phase pulls the repository, restores the .NET dependencies 
-#    for a given C# project file (CSPROJ), and caches these dependencies for future use.
-# 2. Trigger Subsequent Workflow: If the caching process succeeds, this phase initiates the next workflow.
-#
-# Exit Codes:
-#
-# 34 - .NET dependency restoration failed for the provided C# project.
-# 90 - Failed to trigger the next workflow after exhausting retries.
-
 on:
   repository_dispatch:
     types: Cache Dependencies
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   NEXT_WORKFLOW: StyleCop Linter
 
@@ -30,9 +17,6 @@ jobs:
     name: Cache Dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
