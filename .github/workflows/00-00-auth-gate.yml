@@ -121,9 +121,9 @@ jobs:
           if ! git fetch origin ${{ env.SHA_BRANCH }}; then
             echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}." && exit 26
           fi
-          git checkout ${{ env.SHA_BRANCH }}
-
-          commits_before_sha=$(git rev-list ${{ env.SHA }}~1..${{ env.SHA_BRANCH }} --)
+          sha=${{ env.SHA }}
+          echo "SHA value: $sha"
+          commits_before_sha=$(git rev-list $sha~1..${{ env.SHA_BRANCH }} --)
           if git ls-tree -r $commits_before_sha | grep "${{ env.LOCK_FILE }}"; then
             retries=$((retries+1))
             locked_sha=$(cat "${{ env.LOCK_FILE }}")
@@ -137,7 +137,7 @@ jobs:
 
           if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[error] Reached (${{ vars.MAX_RETRIES }}) max retries at ${{ vars.WAIT_MINUTES }} intervals."
-            echo "##[error] Lock file ${ env.LOCK_FILE }} presence presists" && exit 27
+            echo "##[error] Lock file ${{ env.LOCK_FILE }} presence presists" && exit 27
           fi
         done
 
