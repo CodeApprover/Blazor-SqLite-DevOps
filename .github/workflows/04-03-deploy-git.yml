@@ -58,7 +58,7 @@ jobs:
     - name: Check for Expected Payload SHA Lock File
       run: |
       
-        branch=$(git branch --contains ${{ env.SHA }})
+        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
         echo "SHA_BRANCH=$branch" >> $GITHUB_ENV       
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
