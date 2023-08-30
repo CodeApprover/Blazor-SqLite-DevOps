@@ -1,33 +1,13 @@
 ---
 name: Deploy Git
 
-# This workflow deploys changes from a source environment to target environments.
-# Following the deployment, it triggers a success workflow based on the branch.
-
-# Key processes include checking out the SHA repository, verifying and removing lock files, 
-# determining deployment environments, copying source files and deploying to target branches.
-
-# This workflow will:
-
-# Check out the repo at the payload SHA.
-# Identify and check for an expected lock file for the source branch.
-# Identify target branches and source directory based on source branch.
-# Copy source directory contents to a temp directory.
-# For each target branch sync source content.
-# For each target branch commit and push and mark deployment status as "success".
-# Remove the lock file and push this change [skip ci].
-
-# Exit Codes
-# 44 - Another instance still running despite retries.
-# 45 - Lock file with correct SHA not found on branch.
-# 46 - Source directory does not exist or is empty.
-
 on:
   repository_dispatch:
     types: Deploy Git
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   GH_TOKEN: ${{ secrets.AUTH }}
   NEXT_WORKFLOW: Success
@@ -37,9 +17,6 @@ jobs:
   deploy-to-environment:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
@@ -188,9 +165,10 @@ jobs:
         "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
         "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-        "-d '{\"event_type\":\"$trigger\"," \
+        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
