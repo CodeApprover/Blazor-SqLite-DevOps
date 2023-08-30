@@ -1,21 +1,6 @@
 ---
 name: Versioning
 
-# Sets a version number for the SHA commint using SemVer 2.0 notation.
-# Triggered by a repository_dispatch event "trigger-versioning".
-# Executes for the code-development, code-staging and code-production branches.
-
-# 1 - Checks out the repo using the SHA provided by the dispatch payload.
-# 2 - Determines the latest version tag, and increments based on branch name (production, staging, or development).
-# 3 - Cleans up redundant versioning tags, retaining only the latest 12.
-# 4 - Tags the repo with the new version and pushes the tag.
-# 5 - If successful, triggers the "trigger-deploy-docker" workflow.
-
-# Exit codes:
-# 42 - Error no tags to fetch.
-# 43 - Failed to push tag deletion.
-# 44 - Failed to push new tag.
-
 on:
   repository_dispatch:
     types: Versioning
@@ -29,9 +14,6 @@ jobs:
   version-and-tag:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
 
