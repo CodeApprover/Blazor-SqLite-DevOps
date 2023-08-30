@@ -23,7 +23,7 @@ jobs:
     - name: Checkout SHA Repository
       uses: actions/checkout@v3.6.0
       with:
-        ref: ${{ env.sha }}
+        ref: ${{ env.SHA }}
         fetch-depth: 0
 
     - name: Configure Git User
@@ -32,7 +32,7 @@ jobs:
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
 
-    - name: Search for and Check Lock File
+    - name: Search for Lock File holding Commit SHA
       run: |
   
         declare -A branch_lock_map
