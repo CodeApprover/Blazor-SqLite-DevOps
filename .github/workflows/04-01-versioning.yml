@@ -64,23 +64,23 @@ jobs:
         patch=$(echo $version  | cut -d. -f3)
         
         # Increment for required environment
-        branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
+        branch=${{ env.SHA_BRANCH }}
         case "$branch" in
           "main")
             major=$(major)
             minor=0
             patch=0
             ;;
-          "production")
+          "code-production")
             major=$((major + 1))
             minor=0
             patch=0
             ;;
-          "staging")
+          "code-staging")
             minor=$((minor + 1))
             patch=0
             ;;
-          "development")
+          "code-development")
             patch=$((patch + 1))
             ;;
         esac
