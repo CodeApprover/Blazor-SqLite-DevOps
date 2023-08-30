@@ -40,11 +40,11 @@ jobs:
         branch_lock_map["code-staging"]=".staging.lock"
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
-        lock_file=${branch_lock_map[${{ env.sha_branch }}]}
+        lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
 
         if [[ ! -f "$lock_file" ]] || [[ $(cat "$lock_file") != "${{ env.sha }}" ]]; then
-          echo "##[error] Expected lock file for SHA ${{ env.sha }} not found or doesn't exist" && exit 45
+          echo "##[error] Expected lock file $lock_file for SHA ${{ env.SHA }} not found or doesn't exist" && exit 45
         fi
 
     - name: Set Deployment Environments
@@ -53,7 +53,7 @@ jobs:
         deploy_branches=()
         directory=""
         
-        case "${{ env.sha_branch }}" in
+        case "${{ env.SHA_BRANCH }}" in
           "code-development")
             deploy_branches=("code-staging" "code-production")
             directory="development"
@@ -67,7 +67,7 @@ jobs:
             directory="production"
             ;;
            "main")
-            echo "##[info] No deployment required for ${{ env.sha_branch }}"
+            echo "##[info] No deployment required for ${{ env.SHA_BRANCH }}"
             ;;
         esac
 
@@ -77,7 +77,7 @@ jobs:
     - name: Set and Copy Source Directory to Temp Dir
       run: |
       
-        src_dir=${{ env.sha_branch }}
+        src_dir=${{ env.SHA_BRANCH }}
         src_dir=${src_dir#code-}
         dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
 
