@@ -6,6 +6,7 @@ on:
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
@@ -14,9 +15,6 @@ jobs:
     name: Publish Deployment Success
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
     
     steps:
 
@@ -26,14 +24,13 @@ jobs:
           ref: ${{ env.SHA }}
           fetch-depth: 0
 
-      - name: Set Branch and Environment
+      - name: Set DevOps Environment
         run: |
         
-          branch=$(git name-rev ${{ env.SHA }} | sed 's#.*/##' | sed 's#.*-##')
+          branch=${{ env.SHA_BRANCH }}
           environment=${branch/code-/}
           echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
-          echo "SHA_BRANCH=$branch" >> $GITHUB_ENV          
-
+     
       - name: Set Next Branch
         run: |
         
