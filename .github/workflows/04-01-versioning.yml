@@ -7,6 +7,7 @@ on:
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   NEXT_WORKFLOW: Deploy Docker
 
@@ -104,6 +105,7 @@ jobs:
         "-d '{\"event_type\":\"$trigger\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_branch }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
