@@ -9,7 +9,7 @@ env:
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
-  NEXT_WORKFLOW: Lockfile-Checker
+  NEXT_WORKFLOW: Versioning
 
 jobs:
 
