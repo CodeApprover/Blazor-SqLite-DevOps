@@ -53,7 +53,7 @@ jobs:
         fi
     
         echo "##[info] Lock file $lock_file with correct SHA found"
-        echo "LOCK_FILE=$lock_file" >> $GITHUB.ENV
+        echo "LOCK_FILE=$lock_file" >> $GITHUB_ENV
 
     - name: Set Deployment Environments
       run: |
