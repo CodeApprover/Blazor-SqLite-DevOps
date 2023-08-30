@@ -58,9 +58,9 @@ jobs:
       run: |
   
         case "${{ env.SHA_BRANCH }}" in
-          "development") trigger="Development Tests" ;;
-          "staging") trigger="Staging Tests" ;;
-          "production") trigger="Production Tests" ;;
+          "code-development") trigger="Development Tests" ;;
+          "code-staging") trigger="Staging Tests" ;;
+          "code-production") trigger="Production Tests" ;;
           "main") trigger="Production Tests" ;;
         esac
         echo "##[info] Calling $trigger"
