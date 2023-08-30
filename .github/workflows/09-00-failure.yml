@@ -4,7 +4,7 @@ name: Failure
 on:
   workflow_run:
     workflows:
-      - Authenticate User
+      - Authentication Gate
       - Cache Dependencies
       - StyleCop Linter
       - Development Tests
