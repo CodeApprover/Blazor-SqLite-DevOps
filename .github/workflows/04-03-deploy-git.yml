@@ -44,12 +44,13 @@ jobs:
         echo "##[info] Lock file set as $lock_file"
     
         echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"
-        commits_after_sha=$(git log --format="%H" ${{ env.SHA }}..HEAD)
+        git fetch --all --tags
+        commit=$(git log --format="%H" ${{ env.SHA }}..HEAD)
 
         echo "##[debug] Initialising flag found lock file with correct SHA."
         found_lockfile_with_correct_sha=false
 
-        for commit in $commits_after_sha; do
+        for commit in $commits; do
           echo "##[debug] Checking if the lockfile $lock_file exists in commit $commit."
           if git show $commit:$lock_file &> /dev/null; then
             echo "##[debug] Getting the SHA from the lock file in the current commit."
