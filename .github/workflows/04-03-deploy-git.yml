@@ -42,10 +42,16 @@ jobs:
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
-    
-        if [[ ! -f "$lock_file" ]]; then
-            echo "##[error] Lock file $lock_file not found" && exit 45
-        fi
+
+        echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"
+        commits_after_sha=$(git log --format="%H" ${{ env.SHA }}..HEAD)
+        
+        for commit in $commits_after_sha; do
+            echo "##[debug] Checking if the lockfile $lock_file file exists."
+            if ! git show $commit:$LOCK_FILE &> /dev/null; then
+                echo "##[error] No lock file $lock_file found in commits after SHA ${{ env.SHA }}." && exit 44
+            fi
+        done     
     
         lock_sha=$(cat "$lock_file")
         if [[ "$lock_sha" != "${{ env.SHA }}" ]]; then
