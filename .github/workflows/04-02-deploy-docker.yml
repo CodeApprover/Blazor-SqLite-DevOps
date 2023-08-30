@@ -1,28 +1,13 @@
 ---
 name: Deploy Docker
 
-# Builds and pushes a Docker image of the commit SHA repository, if it doesn't exist.
-# Executes for the code-development, code-staging and code-production branches.
-
-# 1 - Checkout: Fetch the payload SHA commit.
-# 2 - Docker Login: Authenticate with Docker Hub.
-# 3 - Enable Features: Turn on Docker's experimental features.
-# 4 - Get Version Tag: Identify the latest semantic version tag from git tags.
-# 5 - Docker Build & Push: Check for existing Docker image, build and push if not found.
-# 6 - Trigger Workflow: If successful, initiate another GitHub workflow (09-deploy-git.yml).
-
-# Exit Codes
-# 47 - No tags found.
-# 48 - Dockerfile not found.
-# 49 - Dockerfile build failed.
-# 50 - Dockerfile push failed.
-
 on:
   repository_dispatch:
     types: Deploy Docker
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   NEXT_WORKFLOW: Deploy Git
 
@@ -31,9 +16,6 @@ jobs:
   save-docker-image:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     steps:
     
@@ -97,9 +79,10 @@ jobs:
         "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
         "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
         "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-        "-d '{\"event_type\":\"$trigger\"," \
+        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
