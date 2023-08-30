@@ -1,39 +1,22 @@
 ---
 name: Development Tests
 
-# ${{ github.workflow }} Overview
-#
-# This GitHub Actions workflow is dedicated to conducting unit tests in the development environment.
-#
-# The development-tests job performs these main phases:
-# 1. Environment Setup: Checks out the specified SHA of the repository.
-# 2. Dependency Installation: Depending on the test framework specified (Nunit or Xunit), it installs the required dependencies.
-# 3. Unit Testing: Executes unit tests based on the test framework selected. Results are stored in a corresponding trx file.
-#
-# After the tests are successfully executed, the trigger-next-workflow job is activated, which:
-# 1. Triggers the next workflow, specifically "04-lockfile-checker.yml", if all tests have passed.
-#
-# If the unit tests fail, this workflow will not proceed to the trigger-next-workflow job.
-
 on:
   repository_dispatch:
     types: Development Tests
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   NEXT_WORKFLOW: Lockfile-Checker
 
 jobs:
 
   development-tests:
-
     name: Unit Tests (${{ matrix.test_framework }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
 
     strategy:
       matrix:
@@ -75,6 +58,13 @@ jobs:
         CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
         CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
         eval "$CMD"
+
+  trigger-next-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: development-tests
+
+    steps:
 
     - name: Trigger Next Workflow
       if: success()
