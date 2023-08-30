@@ -32,9 +32,9 @@ jobs:
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
 
-    - name: Check for Expected Payload SHA Lock File
+    - name: Search for and Check Lock File
       run: |
-      
+  
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
@@ -42,10 +42,18 @@ jobs:
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
-
-        if [[ ! -f "$lock_file" ]] || [[ $(cat "$lock_file") != "${{ env.sha }}" ]]; then
-          echo "##[error] Expected lock file $lock_file for SHA ${{ env.SHA }} not found or doesn't exist" && exit 45
+    
+        if [[ ! -f "$lock_file" ]]; then
+            echo "##[error] Lock file $lock_file not found" && exit 45
         fi
+    
+        lock_sha=$(cat "$lock_file")
+        if [[ "$lock_sha" != "${{ env.SHA }}" ]]; then
+            echo "##[error] SHA in lock file ($lock_sha) does not match expected SHA (${{ env.SHA }})" && exit 45
+        fi
+    
+        echo "##[info] Lock file $lock_file with correct SHA found"
+        echo "LOCK_FILE=$lock_file" >> $GITHUB.ENV
 
     - name: Set Deployment Environments
       run: |
@@ -139,18 +147,10 @@ jobs:
 
     - name: Remove Lock File
       run: |
-      
-        git fetch origin ${{ env.SHA_BRANCH }}
-        git checkout ${{ env.SHA_BRANCH }}
-
-        echo "##[debug] Resetting config for new branch"
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
 
         msg="Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
         echo "##[debug] Commit Message: $msg"
-
-        git rm "$lock_file"
+        git rm "${{ env.LOCK_FILE }}"
         git commit -m "$msg"
         git push origin "${{ env.SHA_BRANCH }}"
 
