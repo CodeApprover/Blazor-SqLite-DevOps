@@ -14,7 +14,7 @@ env:
 
 jobs:
 
-  deploy-to-environment:
+  deploy-git-branches:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,7 +34,7 @@ jobs:
 
     - name: Search for Lock File holding Commit SHA
       run: |
-  
+    
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
@@ -42,24 +42,33 @@ jobs:
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
-
+    
         echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"
         commits_after_sha=$(git log --format="%H" ${{ env.SHA }}..HEAD)
-        
+
+        echo "##[debug] Initialising flag found lock file with correct SHA."
+        found_lockfile_with_correct_sha=false
+
         for commit in $commits_after_sha; do
-            echo "##[debug] Checking if the lockfile $lock_file file exists."
-            if ! git show $commit:$LOCK_FILE &> /dev/null; then
-                echo "##[error] No lock file $lock_file found in commits after SHA ${{ env.SHA }}." && exit 44
+          echo "##[debug] Checking if the lockfile $lock_file exists in commit $commit."
+          if git show $commit:$lock_file &> /dev/null; then
+            echo "##[debug] Getting the SHA from the lock file in the current commit."
+            lock_sha_in_commit=$(git show $commit:$lock_file)    
+            echo "##[debug] Comparing the SHA from the lock file with the expected SHA."
+            if [[ "$lock_sha_in_commit" == "${{ env.SHA }}" ]]; then
+              found_lockfile_with_correct_sha=true
+              echo "##[info] Lock file $lock_file with correct SHA found in commit $commit."
+              break
             fi
-        done     
-    
-        lock_sha=$(cat "$lock_file")
-        if [[ "$lock_sha" != "${{ env.SHA }}" ]]; then
-            echo "##[error] SHA in lock file ($lock_sha) does not match expected SHA (${{ env.SHA }})" && exit 45
+          fi
+        done 
+
+        echo "##[debug] Checking if the correct lock file was NOT found."
+        if [[ $found_lockfile_with_correct_sha == false ]]; then
+            echo "##[error] No $lock_file with expected SHA (${{ env.SHA }}) was found in the commits after the payload SHA." && exit 46
         fi
-    
-        echo "##[info] Lock file $lock_file with correct SHA found"
         echo "LOCK_FILE=$lock_file" >> $GITHUB_ENV
+
 
     - name: Set Deployment Environments
       run: |
