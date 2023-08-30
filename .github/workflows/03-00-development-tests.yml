@@ -78,6 +78,7 @@ jobs:
         "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
