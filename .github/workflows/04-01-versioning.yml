@@ -105,7 +105,7 @@ jobs:
         "-d '{\"event_type\":\"$trigger\"," \
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
-        "\"sha_branch\":\"${{ env.SHA_branch }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
