@@ -46,7 +46,7 @@ jobs:
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
-        git fetch --all --tags
+        git fetch --all
         git pull origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
           echo "##[error] Failed to pull from repository." && exit 41
@@ -123,7 +123,7 @@ jobs:
         for target_branch in code-development code-staging code-production; do
           [[ $target_branch == "${{ env.SHA_BRANCH }}" ]] && continue
           
-          git fetch
+          git fetch --all
           git checkout $target_branch
 
           echo "##[info] Populating target directory${{ env.DIRECTORY }} on $target_branch branch to mirror ${{ env.SHA_BRANCH }}"
@@ -138,52 +138,50 @@ jobs:
               git commit -m "$COMMIT_MSG"
               git push origin $target_branch
           else
-              echo "##[warn] No changes detected. Skipping commit for $target_branch [skip ci]"
-              if git diff --staged --quiet; then
+              echo "##[error] No changes detected. Skipping commit for $target_branch [skip ci]" && exit 45
           fi  
 
           echo "##[info] Updating Deployment Status to Success for commit SHA ${{ env.SHA }}"
-          CMD="curl -X POST -H \"Authorization: Bearer ${{ secrets.AUTH }}\" -H \"Accept: application/vnd.github.v3+json\" "
-          CMD+="https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }} "
-          CMD+="-d '{\"state\": \"success\", \"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag. "
-          CMD+="New code in ${{ env.DIRECTORY }} directory on both branches.\", \"context\": \"deployment\"}'"
-          echo "##[info] Command: $CMD"
+          CMD=$(echo "curl -L -X POST" \
+            "-H 'Authorization: Bearer ${{ secrets.AUTH }}'" \
+            "-H 'Accept: application/vnd.github.v3+json'" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}" \
+            "-d '{\"state\": \"success\"," \
+            "\"description\": \"Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} " \
+            "to $target_branch based on tag $latest_tag." \
+            " New code in ${{ env.DIRECTORY }} directory on both branches.\"," \
+            "\"context\": \"deployment\"}'")
+          echo "##[debug] Command: $CMD"
 
-          RESPONSE=$(eval "${CMD}")
-          echo "##[info] API Response: $RESPONSE"
+          RESPONSE=$(eval "$CMD")
+          echo "##[debug] API Response: $RESPONSE"
 
           desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag. "
           desc+="New code in ${{ env.DIRECTORY }} directory on both branches."
           
-          CMD="gh api --method POST -H \"Accept: application/vnd.github+json\" -H \"X-GitHub-Api-Version: 2022-11-28\" "
-          CMD+="/repos/\${{ github.repository }}/deployments -f ref='${{ env.SHA_BRANCH }}' -f payload='{ \"deploy\": \"migrate\" }' "
-          CMD+="-f description='${desc}'"
-          eval "${CMD}"
+          CMD=$(echo "gh api --method POST" \
+            "-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28'" \
+            "/repos/${{ github.repository }}/deployments" \
+            "-f ref='${{ env.SHA_BRANCH }}'" \
+            "-f payload='{\"action\": \"deploy\", \"target_branch\": \"$target_branch\"}'" \
+            "-f description='$desc'")
+          eval "$CMD"
         done
-
-    - name: Remove Lock File
-      run: |
-
-        msg="Removed lock file to deploy SHA ${{ env.SHA }} [skip ci]"
-        echo "##[debug] Commit Message: $msg"
-        git rm "${{ env.LOCK_FILE }}"
-        git commit -m "$msg"
-        git push origin "${{ env.SHA_BRANCH }}"
 
     - name: Trigger Next Workflow
       if: success()
       run: |
       
         CMD=$(echo "curl -L -X POST" \
-        "-H \"Accept: application/vnd.github+json\"" \
-        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-        "\"client_payload\":{" \
-        "\"sha\":\"${{ env.SHA }}\"," \
-        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+          "-H \"Accept: application/vnd.github+json\"" \
+          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+          "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+          "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+          "\"client_payload\":{" \
+          "\"sha\":\"${{ env.SHA }}\"," \
+          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
