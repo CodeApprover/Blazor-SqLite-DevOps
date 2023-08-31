@@ -66,12 +66,15 @@ if [[ ! -z "$development" ]]; then
     ! [[ -d "$production" ]] && echo "Production directory found at: $production" && exit 70
     ! [[ -d "$staging" ]] && echo "Staging directory found at: $staging" && exit 71
     ! [[ -d "$scripts" ]] && echo "Scripts directory found at: $scripts" && exit 72
+else
+    ls -la ../
+    echo "Development directory not found." && exit 73
 fi
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
     ls .la ./
-    echo "Required directories not found." && exit 73
+    echo "Required directories not found." && exit 74
 fi
 
 # Find all files in the scripts directory except execute-workflow.sh
