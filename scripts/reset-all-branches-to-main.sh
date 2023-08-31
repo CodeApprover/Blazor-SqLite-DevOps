@@ -1,5 +1,13 @@
 #!/bin/bash
+
 # set -x
+# git add reset-all-branches-to-main.sh && git commit -m "adding scripts [skip ci]" && git push && git pull && git status
+
+# Ensure this script is executed from the scripts directory
+current_dir=$(pwd)
+if [[ "$current_dir" != *"/scripts" ]]; then
+    echo "Error: Please execute this script from the 'scripts' directory." && exit 70
+fi
 
 # WARNING message
 echo "CAUTION:"
@@ -19,8 +27,7 @@ read -p "Do you wish to proceed? (y/n): " -r
 # Check for the user's response
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
-    echo "Exiting without making changes."
-    exit 1
+    echo "Exiting without making changes." && exit 71
 fi
 
 # Configure git user
@@ -63,40 +70,33 @@ if [[ ! -z "$development" ]]; then
     scripts="$parent_dir/scripts"
     
     # Check if the directories exist
-    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 70
-    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 71
-    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 72
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 72
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 73
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 74
 else
     ls -la ../
-    echo "Development directory not found." && exit 73
+    echo "Development directory not found." && exit 75
 fi
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
     ls .la ./
-    echo "Required directories not found." && exit 74
+    echo "Required directories not found." && exit 76
 fi
 
 # Find all files in the scripts directory except execute-workflow.sh
 files_to_remove=$(find "$scripts" -type f | grep -v 'execute-workflow.sh$')
 
 # Check if file list is not empty
-if [[ -n "$files_to_remove" ]]; then
-    # Remove each file
-    echo "Removing the following files from git:"
-    for file in $files_to_remove; do
-        echo "Removing $file"
-        git rm "$file"
-    done
-else
-    echo "Expected script dir files not found" && exit 75
+if ! [[ -n "$files_to_remove" ]]; then
+    echo "Expected script dir files not found" && exit 77
 fi
 
 # Set up code-development
 git checkout -b code-development main
 git rm -r "$production"
 git rm -r "$staging"
-git rm "$files_to_remove"
+for file in $files_to_remove; do git rm "$file"; done
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
 git checkout main
@@ -104,7 +104,7 @@ git checkout main
 # Set up code-staging
 git checkout -b code-staging main
 git rm -r "$production"
-git rm "$files_to_remove"
+for file in $files_to_remove; do git rm "$file"; done
 git commit -m "Setup new code-staging branch. [skip ci]"
 git push -u --set-upstream origin code-staging
 git checkout main
@@ -112,7 +112,7 @@ git checkout main
 # Set up code-production
 git checkout -b code-production main
 git rm -r "$development"
-git rm "$files_to_remove"
+for file in $files_to_remove; do git rm "$file"; done
 git commit -m "Setup new code-production branch. [skip ci]"
 git push -u --set-upstream origin code-production
 
