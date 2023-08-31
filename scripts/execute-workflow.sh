@@ -55,11 +55,13 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Checkout and update branch
+git fetch --all
 git checkout $branch
+git pull
 
 # Commit and push to test workflows
 for num in $(seq 1 $num_commits); do
-    echo "$num" >> workflow.driver
+  echo "$num" >> workflow.driver
     git add workflow.driver
     git commit -m "running dev push to test workflows #$num"
     git push
