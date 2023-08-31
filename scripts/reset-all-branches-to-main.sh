@@ -54,36 +54,39 @@ done
 development=$(find ../ -type d -name "development")
 staging=$(find ../ -type d -name "staging")
 production=$(find ../ -type d -name "production")
+
+# Find all files in the scripts directory except execute-workflow.sh
 scripts=$(find ../ -type d -name "scripts")
+files_to_remove=$(find "$scripts" -type f ! -name 'execute-workflow.sh')
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
     echo "Required directories not found. Exiting."
-    ls -la .
+    ls -la ../
     exit 1
 fi
 
 # Set up code-development
 git checkout -b code-development main
-git rm -r $production
-git rm -r $staging
-git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git rm -r "$production"
+git rm -r "$staging"
+git rm "$files_to_remove"
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
 git checkout main
 
 # Set up code-staging
 git checkout -b code-staging main
-git rm -r $production
-git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git rm -r "$production"
+git rm "$files_to_remove"
 git commit -m "Setup new code-staging branch. [skip ci]"
 git push -u --set-upstream origin code-staging
 git checkout main
 
 # Set up code-production
-git checkout -b code-development main
-git rm -r $development
-git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git checkout -b code-production main
+git rm -r "$development"
+git rm "$files_to_remove"
 git commit -m "Setup new code-production branch. [skip ci]"
 git push -u --set-upstream origin code-production
 
