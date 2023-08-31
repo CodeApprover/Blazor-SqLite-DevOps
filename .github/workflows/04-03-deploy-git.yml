@@ -51,10 +51,9 @@ jobs:
         if [ $? -ne 0 ]; then
           echo "##[error] Failed to pull from repository." && exit 41
         fi
-        echo "##[debug] $(cat .development.lock)"
-        current_commit=$(git rev-parse HEAD)
+        echo "##[debug] lockfile $lock_file contents: $(cat .development.lock)"
         newer_commits=5
-        commits_to_check=$(git log --format="%H" $current_commit..HEAD~${newer_commits})
+        commits_to_check=$(git log -n ${newer_commits} --format="%H")
         echo "##[debug] Commits to check: $commits_to_check"
         commit_with_lockfile=""        
         for commit in $commits_to_check; do
