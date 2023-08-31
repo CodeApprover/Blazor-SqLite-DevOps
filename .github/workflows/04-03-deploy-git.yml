@@ -51,9 +51,11 @@ jobs:
         if [ $? -ne 0 ]; then
           echo "##[error] Failed to pull from repository." && exit 41
         fi
+        echo "##[debug] $(cat .development.lock)"
         current_commit=$(git rev-parse HEAD)
         newer_commits=5
         commits_to_check=$(git log --format="%H" $current_commit..HEAD~${newer_commits})
+        echo "##[debug] Commits to check: $commits_to_check"
         commit_with_lockfile=""        
         for commit in $commits_to_check; do
           if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
