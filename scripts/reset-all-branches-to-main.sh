@@ -1,6 +1,5 @@
 #!/bin/bash
-
-set -x
+# set -x
 
 # WARNING message
 echo "CAUTION:"
@@ -50,17 +49,29 @@ for remote_branch in "${branches[@]}"; do
   fi
 done
 
-# Set directories for branches
-development=$(find ../ -type d -name "development")
-staging=$(find ../ -type d -name "staging")
-production=$(find ../ -type d -name "production")
-scripts=$(find ../ -type d -name "scripts")
+# Find the development directory
+development=$(find ../ -type d -name "development" | head -n 1)
+
+# If the development directory is found
+if [[ ! -z "$development" ]]; then
+    # Extract the parent directory of the development directory
+    parent_dir=$(dirname "$development")
+    
+    # Use the parent directory to locate the other directories
+    production="$parent_dir/production"
+    staging="$parent_dir/staging"
+    scripts="$parent_dir/scripts"
+    
+    # Check if the directories exist
+    ! [[ -d "$production" ]] && echo "Production directory found at: $production" && exit 70
+    ! [[ -d "$staging" ]] && echo "Staging directory found at: $staging" && exit 71
+    ! [[ -d "$scripts" ]] && echo "Scripts directory found at: $scripts" && exit 72
+fi
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
-    echo "Required directories not found. Exiting."
-    ls -la ../
-    exit 10
+    ls .la ./
+    echo "Required directories not found." && exit 73
 fi
 
 # Find all files in the scripts directory except execute-workflow.sh
