@@ -54,6 +54,7 @@ done
 development=$(find ../ -type d -name "development")
 staging=$(find ../ -type d -name "staging")
 production=$(find ../ -type d -name "production")
+scripts=$(find ../ -type d -name "scripts")
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
@@ -63,7 +64,6 @@ if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]
 fi
 
 # Find all files in the scripts directory except execute-workflow.sh
-scripts=$(find ../ -type d -name "scripts")
 files_to_remove=$(find "$scripts" -type f ! -name 'execute-workflow.sh')
 
 # Check if restricted script files exist, exit if not
