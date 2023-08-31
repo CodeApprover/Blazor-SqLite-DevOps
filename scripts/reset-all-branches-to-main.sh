@@ -42,7 +42,7 @@ git checkout main
 
 # Setup fresh branch code-staging from main
 git checkout -b code-staging
-git rm -r development production scripts
+git rm -r production scripts
 find ./ -type f -name '*lock*' | xargs git rm
 git commit -m "Setup code-staging branch with only the staging directory. [skip ci]"
 git push -u --set-upstream origin code-staging
@@ -50,7 +50,7 @@ git checkout main
 
 # Setup fresh branch code-production from main
 git checkout -b code-production
-git rm -r staging development scripts
+git rm -r development scripts
 find ./ -type f -name '*lock*' | xargs git rm
 git commit -m "Setup code-production branch with only the production directory. [skip ci]"
 git push -u --set-upstream origin code-production
