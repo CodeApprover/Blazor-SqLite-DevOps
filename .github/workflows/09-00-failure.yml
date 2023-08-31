@@ -95,6 +95,27 @@ jobs:
         git commit -m "Reverted commit ${{ github.event.workflow_run.head_sha }} due to failed workflow."
         git push origin ${{ env.BRANCH_NAME }}
 
+    - name: Delete Latest Tag if Necessary
+      run: |
+      
+        # Check if the failed workflow is one of the specified workflows
+        if [[ "${{ github.event.workflow_run.name }}" == "Versioning" || "${{ github.event.workflow_run.name }}" == "Deploy Docker" || "${{ github.event.workflow_run.name }}" == "Deploy Git" || "${{ github.event.workflow_run.name }}" == "Success" ]]; then
+          
+          # Identify the latest tag
+          latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
+          
+          # Check if the tag is associated with the latest commit
+          tag_commit_sha=$(git rev-list -n 1 $latest_tag)
+          latest_commit_sha=$(git rev-parse HEAD)
+          
+          if [[ "$tag_commit_sha" == "$latest_commit_sha" ]]; then
+            # Delete the tag locally
+            git tag -d $latest_tag
+            # Delete the tag remotely
+            git push origin :refs/tags/$latest_tag
+          fi
+        fi
+
     - name: Notify Developer of Revert by Creating an Issue
       run: |
       
