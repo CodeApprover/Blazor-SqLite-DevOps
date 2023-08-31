@@ -32,9 +32,10 @@ jobs:
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
 
-    - name: Search for Lock File holding Commit SHA
+    - name: Reset Lock File holding Commit SHA
       run: |
-    
+  
+        echo "##[info] Searching for Lock File holding Commit SHA."
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
@@ -43,34 +44,47 @@ jobs:
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         echo "##[info] Lock file set as $lock_file"
     
-        echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"
+        echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"      
         git fetch --all --tags
-        commit=$(git log --format="%H" ${{ env.SHA }}..HEAD)
+        git pull
+        
+        current_commit=$(git rev-parse HEAD)
+        newer_commits=5
+        commits_to_check=$(git log --format="%H" $current_commit..HEAD~${newer_commits})
 
-        echo "##[debug] Initialising flag found lock file with correct SHA."
-        found_lockfile_with_correct_sha=false
-
-        for commit in $commits; do
-          echo "##[debug] Checking if the lockfile $lock_file exists in commit $commit."
-          if git show $commit:$lock_file &> /dev/null; then
-            echo "##[debug] Getting the SHA from the lock file in the current commit."
-            lock_sha_in_commit=$(git show $commit:$lock_file)    
-            echo "##[debug] Comparing the SHA from the lock file with the expected SHA."
-            if [[ "$lock_sha_in_commit" == "${{ env.SHA }}" ]]; then
-              found_lockfile_with_correct_sha=true
-              echo "##[info] Lock file $lock_file with correct SHA found in commit $commit."
-              break
+        commit_with_lockfile=""        
+        for commit in $commits_to_check; do
+            if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
+                commit_with_lockfile=$commit
+                break
             fi
-          fi
-        done 
-
-        echo "##[debug] Checking if the correct lock file was NOT found."
-        if [[ $found_lockfile_with_correct_sha == false ]]; then
-            echo "##[error] No $lock_file with expected SHA (${{ env.SHA }}) was found in the commits after the payload SHA." && exit 46
+        done
+        
+        if [ -z "$commit_with_lockfile" ]; then
+            echo "##[error] Lock file with correct SHA not found in the next 5 commits!" && exit 44
         fi
-        echo "LOCK_FILE=$lock_file" >> $GITHUB_ENV
+        echo "##[info] Lock file with correct SHA found in commit: $commit_with_lockfile"
 
+        echo "##[debug] Ensuring that no other lock files exist anywhere in the repository."
+        lock_files=(".production.lock" ".staging.lock" ".development.lock" ".main.lock")
 
+        for file in "${lock_files[@]}"; do
+            echo "##[debug] Excluding the lock file for the current branch from the search."
+            if [ "$file" != "$lock_file" ]; then
+                if git show "$commit_with_lockfile:$file" 2>/dev/null; then
+                    echo "##[error] Extraneous lock file $file found in commit: $commit_with_lockfile" && exit 47
+                fi
+            fi
+        done
+
+        echo "##[info] Reverting the commit that added the lock file."
+        git revert $commit_with_lockfile --no-edit
+        
+        if [ $? -ne 0 ]; then
+            echo "##[error] Failed to revert the lockfile $lock_file commit $commit_with_lockfile" && exit 48
+        fi
+        echo "##[info] Successfully reverted lockfile. Lock file reset passed."
+        
     - name: Set Deployment Environments
       run: |
       
