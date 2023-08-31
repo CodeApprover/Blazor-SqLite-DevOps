@@ -22,8 +22,9 @@ then
     exit 1
 fi
 
-# Set the root directory of the repository
-repo_root="https://github.com/CodeApprover/Blazor-SqLite-DevOps"
+# Configure git user
+git config user.name "CodeApprover"
+git config user.email "pucfada@pm.me"
 
 # Checkout and update the main branch
 git checkout main
@@ -36,23 +37,22 @@ git fetch origin
 git branch -r | grep -v '^  origin/main$' | sed 's/  origin\///' | xargs -I {} git push origin --delete {}
 
 # Function to set up a fresh branch
-setup_branch() {
+set_branch() {
     local branch_name=$1
     local path_to_delete=$2
     git checkout -b $branch_name
     git checkout main -- $path_to_delete
     git rm -r $path_to_delete
+    git rm $(find . -type f -name "execute-workflow.sh")
     git commit -m "Setup $branch_name branch with only the relevant directory. [skip ci]"
     git push -u --set-upstream origin $branch_name
     git checkout main
 }
 
-# Setup fresh branches based on main
-script_list="$repo_root/staging $repo_root/scripts/copy-branch-to-main.sh "
-script_list+="$repo_root/staging $repo_root/scripts/reset-all-branches-to-main.sh*"
-setup_branch code-development "$repo_root/staging $repo_root/production $script_list"
-setup_branch code-staging "$repo_root/production $script_list"
-setup_branch code-production "$repo_root/development $script_list"
+# Trim file lists for branches
+set_branch code-production $(find . -type d -name "development")
+set_branch code-staging $(find . -type d -name "production")
+set_branch code-development $(find . -type d -name "staging") $(find . -type d -name "production")
 
 # Clean up stashes
 git stash clear
