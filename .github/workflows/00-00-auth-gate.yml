@@ -6,7 +6,7 @@ on:
     branches: ["code-development", "code-production", "code-staging", "main"]
 
 env:
-  NEXT_WORKFLOW: Cache Dependencies
+  NEXT_WORKFLOW: Deploy Git # Cache Dependencies
 
 jobs:
 
