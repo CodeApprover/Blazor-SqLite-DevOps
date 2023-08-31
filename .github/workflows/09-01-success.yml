@@ -75,6 +75,9 @@ jobs:
           git push origin "${{ env.SHA_BRANCH }}"
         fi
 
+    - name: Install jq
+      run: sudo apt-get install jq
+
     - name: Notify Relevant Teams and Committer
       run: |
       
@@ -106,13 +109,17 @@ jobs:
 
         # Define isuue content
         create_issue() {
-          local title=$1
-          local body=$2
+          local title="$1"
+          local body="$2"
+          payload=$(jq -n \
+            --arg title "$title" \
+            --arg body "$body" \
+            '{title: $title, body: $body}')
           CURL_CMD="curl -X POST"
           CURL_CMD+=" -H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\""
           CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
           CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/issues"
-          CURL_CMD+=" -d \"{\\\"title\\\":\\\"$title\\\",\\\"body\\\":\\\"$body\\\"}\""
+          CURL_CMD+=" -d '$payload'"
           eval "$CURL_CMD"
         }
 
