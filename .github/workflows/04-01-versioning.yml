@@ -53,17 +53,17 @@ jobs:
     - name: Increment SemVer 2.0 Versioning
       run: |
       
-        # Get the latest tag based on SemVer
-        latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+        echo "##[debug] Getting the latest tag based on SemVer 2.0"
+        latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
         echo "##[info] Latest Tag = $latest_tag"
 
-        # Strip 'v' and SemVer split
+        echo "##[debug] Striping prefix 'v' and SemVer splitting into major, minor and patch."
         version=$(echo $latest_tag | sed 's/^v//')
         major=$(echo $version  | cut -d. -f1)
         minor=$(echo $version  | cut -d. -f2)
         patch=$(echo $version  | cut -d. -f3)
         
-        # Increment for required environment
+        echo "##[debug] Incrementing SemVer for required environment."
         branch=${{ env.SHA_BRANCH }}
         case "$branch" in
           "main")
