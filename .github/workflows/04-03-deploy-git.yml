@@ -10,7 +10,7 @@ env:
   SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   GH_TOKEN: ${{ secrets.AUTH }}
-  NEXT_WORKFLOW: Success
+  NEXT_WORKFLOW: Deployment Success
 
 jobs:
 
