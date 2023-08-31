@@ -47,7 +47,7 @@ jobs:
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
         git fetch --all --tags
-        git pull
+        git pull origin ${{ env.SHA_BRANCH }}
         if [ $? -ne 0 ]; then
           echo "##[error] Failed to pull from repository." && exit 41
         fi
