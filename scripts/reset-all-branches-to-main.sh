@@ -33,21 +33,24 @@ git checkout main
 git stash
 git pull
 
-# Delete local branches that are not main
-local_branches=$(git branch | grep -v '^* main$')
-if [ -n "$local_branches" ]; then
-  echo "Deleting local branches: $local_branches"
-  echo "$local_branches" | xargs git branch -D
-fi
+# Set branch names
+branches=("code-production" "code-development" "code-staging")
 
 # Delete local branches that are not main
-remote_branches=$(git branch -r | grep -v 'origin/main$' | sed 's/origin\///')
-for remote_branch in $remote_branches; do
-  if ! git branch -r --list "origin/$remote_branch" > /dev/null; then
-    echo "Remote branch '$remote_branch' exists but not locally. Deleting remote branch."
+for branch in "${branches[@]}"; do
+  if git show-ref --quiet "refs/heads/$branch"; then
+    git branch -D "$branch"
+  fi
+done
+
+# Delete remote branches that are not main
+remote_branches=("code-production" "code-development" "code-staging")
+for remote_branch in "${remote_branches[@]}"; do
+  if git show-ref --quiet "refs/remotes/origin/$remote_branch"; then
     git push origin --delete "$remote_branch"
   fi
 done
+
 
 # Function to set up a fresh branch
 set_branch() {
