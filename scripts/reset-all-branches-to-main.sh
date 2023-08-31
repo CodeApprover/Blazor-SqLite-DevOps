@@ -7,7 +7,7 @@ echo "CAUTION:"
 echo "This script will perform the following operations:"
 echo "1. Checkout and update the main branch."
 echo "2. DELETE all local and remote branches except 'main'."
-echo "3. Create and setup fresh branches named 'code-development', 'code-staging', and 'code-production' based on 'main'."
+echo "3. Create and setup fresh branches named 'code-development', 'code-staging' and 'code-production' based on 'main'."
 echo ""
 echo "Consequences:"
 echo "- Any unmerged changes in deleted branches will be LOST FOREVER."
@@ -34,7 +34,7 @@ git stash
 git pull
 
 # Set branch names
-branches=("code-production" "code-development" "code-staging")
+branches=("code-development" "code-staging" "code-production")
 
 # Delete local branches
 for branch in "${branches[@]}"; do
@@ -55,15 +55,22 @@ development=$(find ../ -type d -name "development")
 staging=$(find ../ -type d -name "staging")
 production=$(find ../ -type d -name "production")
 
-# Find all files in the scripts directory except execute-workflow.sh
-scripts=$(find ../ -type d -name "scripts")
-files_to_remove=$(find "$scripts" -type f ! -name 'execute-workflow.sh')
-
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
     echo "Required directories not found. Exiting."
     ls -la ../
-    exit 1
+    exit 10
+fi
+
+# Find all files in the scripts directory except execute-workflow.sh
+scripts=$(find ../ -type d -name "scripts")
+files_to_remove=$(find "$scripts" -type f ! -name 'execute-workflow.sh')
+
+# Check if restricted script files exist, exit if not
+if [[ -z "$files_to_remove" ]]; then
+    echo "Required script files not found. Exiting."
+    ls -la "$scripts"
+    exit 11
 fi
 
 # Set up code-development
