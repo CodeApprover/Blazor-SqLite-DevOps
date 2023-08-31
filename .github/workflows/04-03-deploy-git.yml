@@ -31,59 +31,45 @@ jobs:
       
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
+        if [ $? -ne 0 ]; then
+          echo "##[error] Failed to configure Git user." && exit 40
+        fi
+        echo "##[debug] Git user configured successfully."
 
     - name: Reset Lock File holding Commit SHA
       run: |
-  
-        echo "##[info] Searching for Lock File holding Commit SHA."
+      
+        echo "##[debug] Beginning reset of lock file holding commit SHA."
         declare -A branch_lock_map
         branch_lock_map["code-production"]=".production.lock"
         branch_lock_map["code-staging"]=".staging.lock"
         branch_lock_map["code-development"]=".development.lock"
         branch_lock_map["main"]=".main.lock"
         lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
-        echo "##[info] Lock file set as $lock_file"
-    
-        echo "##[debug] Getting the commit SHAs after the payload SHA ${{ env.SHA }}"      
         git fetch --all --tags
         git pull
-        
+        if [ $? -ne 0 ]; then
+          echo "##[error] Failed to pull from repository." && exit 41
+        fi
         current_commit=$(git rev-parse HEAD)
         newer_commits=5
         commits_to_check=$(git log --format="%H" $current_commit..HEAD~${newer_commits})
-
         commit_with_lockfile=""        
         for commit in $commits_to_check; do
-            if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
-                commit_with_lockfile=$commit
-                break
-            fi
+          if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
+            commit_with_lockfile=$commit
+            break
+          fi
         done
-        
         if [ -z "$commit_with_lockfile" ]; then
-            echo "##[error] Lock file with correct SHA not found in the next 5 commits!" && exit 44
+          echo "##[error] Lock file with correct SHA not found in the next 5 commits!" && exit 42
         fi
-        echo "##[info] Lock file with correct SHA found in commit: $commit_with_lockfile"
-
-        echo "##[debug] Ensuring that no other lock files exist anywhere in the repository."
-        lock_files=(".production.lock" ".staging.lock" ".development.lock" ".main.lock")
-
-        for file in "${lock_files[@]}"; do
-            echo "##[debug] Excluding the lock file for the current branch from the search."
-            if [ "$file" != "$lock_file" ]; then
-                if git show "$commit_with_lockfile:$file" 2>/dev/null; then
-                    echo "##[error] Extraneous lock file $file found in commit: $commit_with_lockfile" && exit 47
-                fi
-            fi
-        done
-
-        echo "##[info] Reverting the commit that added the lock file."
+        echo "##[debug] Reverting the commit that added the lock file."
         git revert $commit_with_lockfile --no-edit
-        
         if [ $? -ne 0 ]; then
-            echo "##[error] Failed to revert the lockfile $lock_file commit $commit_with_lockfile" && exit 48
+          echo "##[error] Failed to revert the lockfile $lock_file commit $commit_with_lockfile" && exit 43
         fi
-        echo "##[info] Successfully reverted lockfile. Lock file reset passed."
+        echo "##[info] Successfully reverted lockfile."
         
     - name: Set Deployment Environments
       run: |
@@ -120,8 +106,7 @@ jobs:
         dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
 
         if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
-          echo "##[error] Source directory does not exist or is empty --> Exit 46"
-          exit 46
+          echo "##[error] Source directory does not exist or is empty" && exit 44
         fi
 
         rsync -av --delete $dir_path/ /tmp/temp-dir/
