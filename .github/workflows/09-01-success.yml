@@ -17,53 +17,102 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout SHA Repository
-        uses: actions/checkout@v3.6.0
-        with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
+    - name: Checkout SHA Repository
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
 
-      - name: Set DevOps Environment
-        run: |
-          
+    - name: Update Deployment Status
+      run: |
+  
+        latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
+        desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} with tag $latest_tag."
+
+        CMD_STATUS=$(echo "curl -L -X POST" \
+          "-H 'Authorization: Bearer ${{ secrets.AUTH }}'" \
+          "-H 'Accept: application/vnd.github.v3+json'" \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}" \
+          "-d '{\"state\": \"success\"," \
+          "\"description\": \"$desc\"," \
+          "\"context\": \"deployment/${{ env.SHA_BRANCH }}\"}'")
+
+        RESPONSE_STATUS=$(eval "$CMD_STATUS")
+        echo "##[debug] Status API Response: $RESPONSE_STATUS"
+
+        CMD_DEPLOY=$(echo "gh api --method POST" \
+          "-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28'" \
+          "/repos/${{ github.repository }}/deployments" \
+          "-f ref='${{ env.SHA_BRANCH }}'" \
+          "-f payload='{\"action\": \"deploy\", \"target_branch\": \"${{ env.SHA_BRANCH }}\"}'" \
+          "-f description='$desc'")
+
+        RESPONSE_DEPLOY=$(eval "$CMD_DEPLOY")
+        echo "##[debug] Deployment API Response: $RESPONSE_DEPLOY"
+
+    - name: Find and Delete Lock File
+      run: |
+      
+        echo "##[debug] Determining lock file name based on branch ${{ env.SHA_BRANCH }}."
+        if [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
+          lock_file_name="main.lock"
+        else
           branch=${{ env.SHA_BRANCH }}
-          directory=${branch/code-/}
-          if [[ "$environment" == "development" ]]; then
-              branch="code-staging"
-          elif [[ "$environment" == "staging" ]]; then
-              branch="code-production"
-          elif [[ "$environment" == "production" ]]; then
-              branch="main"
-          elif [[ "$environment" == "main" ]]; then
-              branch="main"
-              directory="production"
-          fi
-          echo "DEPLOY_BRANCH=$branch" >> $GITHUB_ENV
-          echo "DIRECTORY=$directory" >> $GITHUB_ENV
+          lock_file_name=".$(echo $branch | sed s#code-#).lock"
+        fi
+        echo "##[debug] lock file name: $lock_file_name."
 
-      - name: Update Deployment Status
-        run: |
+        echo "##[debug] Searching for lock file $lock_file_name"
+        lock_file_path=$(find . -name "$lock_file_name" | head -n 1)
 
-          latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
-          desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} based on tag $latest_tag."
+        echo "##[debug] If found and content matches env.SHA deleting lock file"
+        if [[ -n "$lock_file_path" && $(cat "$lock_file_path") == "${{ env.SHA }}" ]]; then
+          git config user.name "${{ github.repository_owner}}"
+          git config user.email "${{ vars.EMAIL }}"
+          git rm "$lock_file_path"
+          git commit -m "Remove $lock_file_name [skip ci]"
+          git push origin "${{ env.SHA_BRANCH }}"
+        fi
 
-          CMD_STATUS=$(echo "curl -L -X POST" \
-                       "-H 'Authorization: Bearer ${{ secrets.AUTH }}'" \
-                       "-H 'Accept: application/vnd.github.v3+json'" \
-                       "https://api.github.com/repos/${{ github.repository }}/statuses/${{ env.SHA }}" \
-                       "-d '{\"state\": \"success\"," \
-                       "\"description\": \"$desc\"," \
-                       "\"context\": \"deployment/${{ env.SHA_BRANCH }}\"}'")
-
-          RESPONSE_STATUS=$(eval "$CMD_STATUS")
-          echo "##[debug] Status API Response: $RESPONSE_STATUS"
-
-          CMD_DEPLOY=$(echo "gh api --method POST" \
-                       "-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28'" \
-                       "/repos/${{ github.repository }}/deployments" \
-                       "-f ref='${{ env.SHA_BRANCH }}'" \
-                       "-f payload='{\"action\": \"deploy\", \"target_branch\": \"${{ env.SHA_BRANCH }}\"}'" \
-                       "-f description='$desc'")
-
-          RESPONSE_DEPLOY=$(eval "$CMD_DEPLOY")
-          echo "##[debug] Deployment API Response: $RESPONSE_DEPLOY"
+    - name: Notify Relevant Teams and Committer
+      run: |
+      
+        # Fetch the name of the original committer of the commit
+        ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }})
+        
+        # Fetch the commit message of the commit
+        COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
+    
+        # Determine the relevant team to notify based on SHA_BRANCH
+        if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
+          TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
+          ADDITIONAL_MESSAGE="The code-staging branch has received an update."
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
+          TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }}"
+          ADDITIONAL_MESSAGE="The code-production branch has received an update."
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]]; then
+          TEAM_TO_NOTIFY="${{ github.repository_owner }}"
+          ADDITIONAL_MESSAGE=""
+        fi
+    
+        # Construct the notification message
+        MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
+        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and @$TEAM_TO_NOTIFY, 
+          \n\nCommit `${{ env.SHA }}` has been successfully deployed to ${{ env.SHA_BRANCH }}.
+          \n\nCommit Message: $COMMIT_MESSAGE
+          \n\n$ADDITIONAL_MESSAGE
+          \n\nThank you for your contribution!")
+    
+        # Create an issue in the repository with the constructed title and body to notify
+        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
+    
+        create_issue() {
+          local title=$1
+          local body=$2
+          CURL_CMD="curl -X POST"
+          CURL_CMD+=" -H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\""
+          CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
+          CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/issues"
+          CURL_CMD+=" -d \"{\\\"title\\\":\\\"$title\\\",\\\"body\\\":\\\"$body\\\"}\""
+          eval "$CURL_CMD"
+        }
