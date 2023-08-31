@@ -129,7 +129,7 @@ jobs:
       
          if [[ "${{ env.SHA_BRANCH }}" != "main" ]]; then
              echo "##[info] Deploying commit ${{ env.SHA }} to target branches."
-             latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+             latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
              TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
              echo "##[info] Latest Tag = $TAG_MESSAGE"
         
@@ -139,9 +139,8 @@ jobs:
                  git fetch origin
                  git checkout $target_branch
                  rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
-                 git add -A
                  
-                 if ! git diff --quiet; then
+                 if git add -A; then
                      COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag: $TAG_MESSAGE [skip ci]"
                      echo "##[debug] $COMMIT_MSG"
                      git commit -m "$COMMIT_MSG"
