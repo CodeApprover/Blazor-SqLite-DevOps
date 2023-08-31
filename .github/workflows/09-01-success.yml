@@ -58,7 +58,7 @@ jobs:
           lock_file_name="main.lock"
         else
           branch=${{ env.SHA_BRANCH }}
-          lock_file_name=".$(echo $branch | sed 's#code-##').lock"
+          lock_file_name=".$(echo $branch | sed 's/code-//').lock"
 
         fi
         echo "##[debug] lock file name: $lock_file_name."
@@ -103,10 +103,8 @@ jobs:
           \n\nCommit Message: $COMMIT_MESSAGE
           \n\n$ADDITIONAL_MESSAGE
           \n\nThank you for your contribution!")
-    
-        # Create an issue in the repository with the constructed title and body to notify
-        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
-    
+
+        # Define isuue content
         create_issue() {
           local title=$1
           local body=$2
@@ -117,3 +115,6 @@ jobs:
           CURL_CMD+=" -d \"{\\\"title\\\":\\\"$title\\\",\\\"body\\\":\\\"$body\\\"}\""
           eval "$CURL_CMD"
         }
+
+        # Create issue in the repository with the constructed title and body
+        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
