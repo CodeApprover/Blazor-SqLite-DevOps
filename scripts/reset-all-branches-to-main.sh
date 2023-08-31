@@ -51,30 +51,36 @@ for remote_branch in "${remote_branches[@]}"; do
   fi
 done
 
-
-# Function to set up a fresh branch
-set_branch() {
-    local branch_name=$1
-    local path_to_delete=$2
-    git checkout -b $branch_name main
-    git rm -r $path_to_delete
-    git rm $(find . -type f -path "*/scripts/*" -not -name 'execute-workflow.sh')
-    git commit -m "Setup $branch_name branch with only the relevant directory. [skip ci]"
-    git push -u --set-upstream origin $branch_name
-    git checkout main
-}
-
-# Trim file lists for branches
+# Set directories for branches
 development=$(find . -type d -name "development")
 staging=$(find . -type d -name "staging")
 production=$(find . -type d -name "production")
+scripts=$(find . -type d -name "scripts")
 
-set_branch code-production "$development"
-set_branch code-staging "$production"
-set_branch code-development "$production $staging"
+# Set up code-development
+git checkout -b code-development main
+git rm -r $production
+git rm -r $staging
+git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git commit -m "Setup new code-development branch. [skip ci]"
+git push -u --set-upstream origin code-development
+git checkout main
 
-# Clean up stashes
+# Set up code-staging
+git checkout -b code-staging main
+git rm -r $production
+git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git commit -m "Setup new code-staging branch. [skip ci]"
+git push -u --set-upstream origin code-staging
+git checkout main
+
+# Set up code-production
+git checkout -b code-development main
+git rm -r $development
+git rm $(find "$scripts" -type f -not -name 'execute-workflow.sh')
+git commit -m "Setup new code-production branch. [skip ci]"
+git push -u --set-upstream origin code-production
+
+# Clean up stashes and switch back to main branch
 git stash clear
-
-# Switch back to main branch
 git checkout main
