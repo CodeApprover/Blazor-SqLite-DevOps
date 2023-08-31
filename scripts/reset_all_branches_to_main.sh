@@ -31,7 +31,6 @@ git pull
 git branch | grep -v '^* main$' | xargs git branch -D
 git fetch origin
 git branch -r | grep -v '^  origin/main$' | sed 's/  origin\///' | xargs -I {} git push origin --delete {}
-git stash list | awk -F":" '{print $1}' | xargs -I {} git stash drop {}
 
 # Setup fresh branch code-development from main
 git checkout -b code-development
@@ -55,4 +54,10 @@ git rm -r staging development
 find ./ -type f -name '*lock*' | xargs git rm
 git commit -m "Setup code-production branch with only the production directory. [skip ci]"
 git push -u --set-upstream origin code-production
+git checkout main
+
+# Clean up stashes
+git stash clear
+
+# Switch back to main branch
 git checkout main
