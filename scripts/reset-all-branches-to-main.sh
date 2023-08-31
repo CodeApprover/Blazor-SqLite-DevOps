@@ -23,7 +23,7 @@ then
 fi
 
 # Set the root directory of the repository
-repo_root="github.repository"
+repo_root="CodeApprover/Blazor-SqLite-DevOps"
 
 # Checkout and update the main branch
 git checkout main
