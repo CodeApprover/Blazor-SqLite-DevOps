@@ -34,25 +34,22 @@ git branch -r | grep -v '^  origin/main$' | sed 's/  origin\///' | xargs -I {} g
 
 # Setup fresh branch code-development from main
 git checkout -b code-development
-git rm -r staging production scripts
-find ./ -type f -name '*lock*' | xargs git rm
-git commit -m "Setup code-development branch with only the development directory. [skip ci]"
+git checkout main -- .
+git commit -m "Setup code-development branch with the contents from main. [skip ci]"
 git push -u --set-upstream origin code-development
 git checkout main
 
 # Setup fresh branch code-staging from main
 git checkout -b code-staging
-git rm -r development production scripts
-find ./ -type f -name '*lock*' | xargs git rm
-git commit -m "Setup code-staging branch with only the staging directory. [skip ci]"
+git checkout main -- .
+git commit -m "Setup code-staging branch with the contents from main. [skip ci]"
 git push -u --set-upstream origin code-staging
 git checkout main
 
 # Setup fresh branch code-production from main
 git checkout -b code-production
-git rm -r staging development scripts
-find ./ -type f -name '*lock*' | xargs git rm
-git commit -m "Setup code-production branch with only the production directory. [skip ci]"
+git checkout main -- .
+git commit -m "Setup code-production branch with the contents from main. [skip ci]"
 git push -u --set-upstream origin code-production
 git checkout main
 
