@@ -19,3 +19,6 @@ tests/Nunit_Player_Unit_Tests/.vs/
 development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.DotSettings.user
 development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.sln.DotSettings.user
 development/Blazor-SqLite-Golf-Club/Dockerfile.original
+
+.history/
+.vs/

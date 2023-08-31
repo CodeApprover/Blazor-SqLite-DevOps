@@ -1,48 +1,26 @@
 ---
-name: "Staging Tests"
-# Staging Environment (code-staging) Test Suite
+name: Staging Tests
 
 on:
   repository_dispatch:
-    types: "trigger-staging-tests"
+    types: Staging Tests
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
-  SHA_BRANCH: ${{ github.event.client_payload.branch_name }}
+  SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
+  NEXT_WORKFLOW: Versioning
 
 jobs:
-
-  staging-test-suite:
-
+  staging-tests:
     name: Staging Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != 'CodeApprover')
 
     steps:
-
-    - name: Checkout SHA Repository
-      id: checkout-sha
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0 # Fetch all
-
-    - name: Handle checkout outcome
-      run: |
-        if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-          echo "##[error] Error during checkout of SHA $${{ env.SHA }} on branch ${{ env.SHA_BRANCH }}"
-          exit 1
-        else
-          echo "Checkout was successful"
-        fi
-
-    - name: Report
-      run: |
-        echo "##[debug] Checking initial state"
-        date
-        echo "SHA=${{ env.SHA }}"
-        echo "Environment=${{ env.SHA_BRANCH }}"
-        echo "Branch=${{ env.SHA_BRANCH }}"
-        echo "Committer=$(git log -1 --pretty=format:'%an')"
+      - name: Checkout SHA Repository
+        id: checkout-sha
+        uses: actions/checkout@v3.6.0
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0 # Fetch all

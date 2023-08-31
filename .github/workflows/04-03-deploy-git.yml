@@ -13,176 +13,174 @@ env:
   NEXT_WORKFLOW: Deployment Success
 
 jobs:
-
   deploy-git-branches:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
+      - name: Checkout SHA Repository
+        uses: actions/checkout@v3.6.0
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
 
-    - name: Checkout SHA Repository
-      uses: actions/checkout@v3.6.0
-      with:
-        ref: ${{ env.SHA }}
-        fetch-depth: 0
+      - name: Configure Git User
+        run: |
 
-    - name: Configure Git User
-      run: |
-      
-        git config user.name "${{ github.repository_owner}}"
-        git config user.email "${{ vars.EMAIL }}"
-        if [ $? -ne 0 ]; then
-          echo "##[error] Failed to configure Git user." && exit 40
-        fi
-        echo "##[debug] Git user configured successfully."
-
-    - name: Reset Lock File holding Commit SHA
-      run: |
-      
-        echo "##[debug] Beginning reset of lock file holding commit SHA."
-        declare -A branch_lock_map
-        branch_lock_map["code-production"]=".production.lock"
-        branch_lock_map["code-staging"]=".staging.lock"
-        branch_lock_map["code-development"]=".development.lock"
-        branch_lock_map["main"]=".main.lock"
-        lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
-        git fetch --all
-        git pull origin ${{ env.SHA_BRANCH }}
-        if [ $? -ne 0 ]; then
-          echo "##[error] Failed to pull from repository." && exit 41
-        fi
-        echo "##[debug] lockfile $lock_file contents: $(cat .development.lock)"
-        newer_commits=5
-        commits_to_check=$(git log -n ${newer_commits} --format="%H")
-        echo "##[debug] Commits to check: $commits_to_check"
-        commit_with_lockfile=""        
-        for commit in $commits_to_check; do
-          if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
-            commit_with_lockfile=$commit
-            break
+          git config user.name "${{ github.repository_owner}}"
+          git config user.email "${{ vars.EMAIL }}"
+          if [ $? -ne 0 ]; then
+            echo "##[error] Failed to configure Git user." && exit 40
           fi
-        done
-        if [ -z "$commit_with_lockfile" ]; then
-          echo "##[error] Lock file with correct SHA not found in the next 5 commits!" && exit 42
-        fi
-        echo "##[debug] Reverting the commit that added the lock file."
-        git revert $commit_with_lockfile --no-edit
-        if [ $? -ne 0 ]; then
-          echo "##[error] Failed to revert the lockfile $lock_file commit $commit_with_lockfile" && exit 43
-        fi
-        echo "##[info] Successfully reverted lockfile."
-        
-    - name: Set Deployment Environments
-      run: |
-      
-        deploy_branches=()
-        directory=""
-        
-        case "${{ env.SHA_BRANCH }}" in
-          "code-development")
-            deploy_branches=("code-staging" "code-production")
-            directory="development"
-            ;;
-          "code-staging")
-            deploy_branches=("code-development" "code-production")
-            directory="staging"
-            ;;
-          "code-production")
-            deploy_branches=("code-development" "code-staging")
-            directory="production"
-            ;;
-           "main")
-            deploy_branches=("code-development" "code-staging" "code-production")
-            directory="production"
-            ;;
-        esac
+          echo "##[debug] Git user configured successfully."
 
-        echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
-        echo "DIRECTORY=$directory" >> $GITHUB_ENV
+      - name: Reset Lock File holding Commit SHA
+        run: |
 
-    - name: Reset all branches to mirror main if push is to main
-      run: |
-      
-        if [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
-            for target_branch in code-development code-staging code-production; do
-                git fetch origin
-                git checkout $target_branch
-                git reset --hard ${{ env.SHA }}
-                git push origin $target_branch --force
-            done
-        fi
+          echo "##[debug] Beginning reset of lock file holding commit SHA."
+          declare -A branch_lock_map
+          branch_lock_map["code-production"]=".production.lock"
+          branch_lock_map["code-staging"]=".staging.lock"
+          branch_lock_map["code-development"]=".development.lock"
+          branch_lock_map["main"]=".main.lock"
+          lock_file=${branch_lock_map[${{ env.SHA_BRANCH }}]}
+          git fetch --all
+          git pull origin ${{ env.SHA_BRANCH }}
+          if [ $? -ne 0 ]; then
+            echo "##[error] Failed to pull from repository." && exit 41
+          fi
+          echo "##[debug] lockfile $lock_file contents: $(cat .development.lock)"
+          newer_commits=5
+          commits_to_check=$(git log -n ${newer_commits} --format="%H")
+          echo "##[debug] Commits to check: $commits_to_check"
+          commit_with_lockfile=""
+          for commit in $commits_to_check; do
+            if git show "$commit:$lock_file" 2>/dev/null | grep -q "${{ env.SHA }}"; then
+              commit_with_lockfile=$commit
+              break
+            fi
+          done
+          if [ -z "$commit_with_lockfile" ]; then
+            echo "##[error] Lock file with correct SHA not found in the next 5 commits!" && exit 42
+          fi
+          echo "##[debug] Reverting the commit that added the lock file."
+          git revert $commit_with_lockfile --no-edit
+          if [ $? -ne 0 ]; then
+            echo "##[error] Failed to revert the lockfile $lock_file commit $commit_with_lockfile" && exit 43
+          fi
+          echo "##[info] Successfully reverted lockfile."
 
-    - name: Set and Copy Source Directory to Temp Dir
-      run: |
-      
-         src_dir=${{ env.SHA_BRANCH }}
-         src_dir=${src_dir#code-}
-         dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
-    
-         if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
-           echo "##[error] Source directory does not exist or is empty" && exit 44
-         fi
-    
-         rsync -av --delete --exclude=.git/ $dir_path/ /tmp/temp-dir/
+      - name: Set Deployment Environments
+        run: |
 
-    - name: Deploy to Target Branches
-      run: |
-      
-         if [[ "${{ env.SHA_BRANCH }}" != "main" ]]; then
-             echo "##[info] Deploying commit ${{ env.SHA }} to target branches."
-             latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
-             TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
-             echo "##[info] Latest Tag = $TAG_MESSAGE"
-        
-             for target_branch in code-development code-staging code-production; do
-                 [[ $target_branch == "${{ env.SHA_BRANCH }}" ]] && continue
-                 
-                 git fetch origin
-                 git checkout $target_branch
-                 rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
-                 
-                 if git add -A; then
-                     COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag: $TAG_MESSAGE [skip ci]"
-                     echo "##[debug] $COMMIT_MSG"
-                     git commit -m "$COMMIT_MSG"
-                     git push origin $target_branch
-                 else
-                     echo "##[error] No changes detected. Skipping commit for $target_branch [skip ci]"
-                 fi  
-             done
-         fi
+          deploy_branches=()
+          directory=""
 
-    - name: Trigger Next Workflow
-      if: success()
-      run: |
-      
-        CMD=$(echo "curl -L -X POST" \
-          "-H \"Accept: application/vnd.github+json\"" \
-          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-          "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-          "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-          "\"client_payload\":{" \
-          "\"sha\":\"${{ env.SHA }}\"," \
-          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+          case "${{ env.SHA_BRANCH }}" in
+            "code-development")
+              deploy_branches=("code-staging" "code-production")
+              directory="development"
+              ;;
+            "code-staging")
+              deploy_branches=("code-development" "code-production")
+              directory="staging"
+              ;;
+            "code-production")
+              deploy_branches=("code-development" "code-staging")
+              directory="production"
+              ;;
+             "main")
+              deploy_branches=("code-development" "code-staging" "code-production")
+              directory="production"
+              ;;
+          esac
 
-        retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            eval "$CMD"
-            CURL_EXIT_CODE=$?
-            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-                retries=$((retries+1))
-                if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                    echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                    sleep ${{ vars.WAIT_SECONDS }}
-                else
-                    echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                    echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
-                fi
-            else
-                break # successful curl
-            fi    
-        done
-        echo "##[debug] CURL command: $CMD"
+          echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
+          echo "DIRECTORY=$directory" >> $GITHUB_ENV
+
+      - name: Reset all branches to mirror main if push is to main
+        run: |
+
+          if [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
+              for target_branch in code-development code-staging code-production; do
+                  git fetch origin
+                  git checkout $target_branch
+                  git reset --hard ${{ env.SHA }}
+                  git push origin $target_branch --force
+              done
+          fi
+
+      - name: Set and Copy Source Directory to Temp Dir
+        run: |
+
+          src_dir=${{ env.SHA_BRANCH }}
+          src_dir=${src_dir#code-}
+          dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir" -print | head -n 1)
+
+          if [[ ! -d "$dir_path" ]] || [[ ! $(ls -A "$dir_path") ]]; then
+            echo "##[error] Source directory does not exist or is empty" && exit 44
+          fi
+
+          rsync -av --delete --exclude=.git/ $dir_path/ /tmp/temp-dir/
+
+      - name: Deploy to Target Branches
+        run: |
+
+          if [[ "${{ env.SHA_BRANCH }}" != "main" ]]; then
+              echo "##[info] Deploying commit ${{ env.SHA }} to target branches."
+              latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
+              TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
+              echo "##[info] Latest Tag = $TAG_MESSAGE"
+
+              for target_branch in code-development code-staging code-production; do
+                  [[ $target_branch == "${{ env.SHA_BRANCH }}" ]] && continue
+
+                  git fetch origin
+                  git checkout $target_branch
+                  rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+
+                  if git add -A; then
+                      COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to $target_branch based on tag $latest_tag: $TAG_MESSAGE [skip ci]"
+                      echo "##[debug] $COMMIT_MSG"
+                      git commit -m "$COMMIT_MSG"
+                      git push origin $target_branch
+                  else
+                      echo "##[error] No changes detected. Skipping commit for $target_branch [skip ci]"
+                  fi
+              done
+          fi
+
+      - name: Trigger Next Workflow
+        if: success()
+        run: |
+
+          CMD=$(echo "curl -L -X POST" \
+            "-H \"Accept: application/vnd.github+json\"" \
+            "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+            "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+            "\"client_payload\":{" \
+            "\"sha\":\"${{ env.SHA }}\"," \
+            "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+            "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+          retries=0
+          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+              eval "$CMD"
+              CURL_EXIT_CODE=$?
+              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+                  echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+                  retries=$((retries+1))
+                  if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+                      echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                      sleep ${{ vars.WAIT_SECONDS }}
+                  else
+                      echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                      echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
+                  fi
+              else
+                  break # successful curl
+              fi
+          done
+          echo "##[debug] CURL command: $CMD"

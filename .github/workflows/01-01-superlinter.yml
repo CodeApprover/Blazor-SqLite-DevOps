@@ -28,8 +28,8 @@ env:
 jobs:
 
   super-linter:
-  
-    name: SuperLinter 
+
+    name: SuperLinter
     runs-on: ubuntu-latest
     timeout-minutes: 15
     #if: (github.actor != 'CodeApprover')
@@ -43,7 +43,7 @@ jobs:
 
       - name: Print JSCPD config path
         run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
-  
+
       - name: Lint code-base
         uses: super-linter/super-linter@v5
         env:
@@ -55,6 +55,7 @@ jobs:
       - name: Trigger Next Workflow
         if: success()
         run: |
+
           CMD="curl -L -X POST "
           CMD+="-H \"Accept: application/vnd.github+json\" "
           CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
@@ -81,6 +82,6 @@ jobs:
                   fi
               else
                   break # successful curl
-              fi    
+              fi
           done
           echo "##[debug] CURL command: $CMD"
