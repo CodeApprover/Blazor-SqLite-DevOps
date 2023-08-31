@@ -122,7 +122,7 @@ jobs:
            echo "##[error] Source directory does not exist or is empty" && exit 44
          fi
     
-         rsync -av --delete $dir_path/ /tmp/temp-dir/
+         rsync -av --delete --exclude=.git/ $dir_path/ /tmp/temp-dir/
 
     - name: Deploy to Target Branches
       run: |
@@ -138,7 +138,7 @@ jobs:
                  
                  git fetch origin
                  git checkout $target_branch
-                 rsync -av --delete /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+                 rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
                  git add -A
                  
                  if ! git diff --quiet; then
