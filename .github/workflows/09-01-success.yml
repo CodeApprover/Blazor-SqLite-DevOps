@@ -58,7 +58,8 @@ jobs:
           lock_file_name="main.lock"
         else
           branch=${{ env.SHA_BRANCH }}
-          lock_file_name=".$(echo $branch | sed s#code-#).lock"
+          lock_file_name=".$(echo $branch | sed 's#code-##').lock"
+
         fi
         echo "##[debug] lock file name: $lock_file_name."
 
