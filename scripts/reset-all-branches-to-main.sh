@@ -63,9 +63,9 @@ if [[ ! -z "$development" ]]; then
     scripts="$parent_dir/scripts"
     
     # Check if the directories exist
-    ! [[ -d "$production" ]] && echo "Production directory found at: $production" && exit 70
-    ! [[ -d "$staging" ]] && echo "Staging directory found at: $staging" && exit 71
-    ! [[ -d "$scripts" ]] && echo "Scripts directory found at: $scripts" && exit 72
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 70
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 71
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 72
 else
     ls -la ../
     echo "Development directory not found." && exit 73
@@ -78,13 +78,18 @@ if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]
 fi
 
 # Find all files in the scripts directory except execute-workflow.sh
-files_to_remove=$(find "$scripts" -type f ! -name 'execute-workflow.sh')
+files_to_remove=$(find "$scripts" -type f | grep -v 'execute-workflow.sh$')
 
-# Check if restricted script files exist, exit if not
-if [[ -z "$files_to_remove" ]]; then
-    echo "Required script files not found. Exiting."
-    ls -la "$scripts"
-    exit 11
+# Check if file list is not empty
+if [[ -n "$files_to_remove" ]]; then
+    # Remove each file
+    echo "Removing the following files from git:"
+    for file in $files_to_remove; do
+        echo "Removing $file"
+        git rm "$file"
+    done
+else
+    echo "Expected script dir files not found" && exit 75
 fi
 
 # Set up code-development
