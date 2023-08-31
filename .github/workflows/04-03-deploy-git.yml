@@ -92,12 +92,13 @@ jobs:
             directory="production"
             ;;
            "main")
-            echo "##[info] No deployment required for ${{ env.SHA_BRANCH }}"
+            deploy_branches=("code-development" "code-staging" "code-production")
+            directory="production"
             ;;
         esac
 
         echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
-        echo "directory=$directory" >> $GITHUB_ENV
+        echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
     - name: Reset all branches to mirror main if push is to main
       run: |
