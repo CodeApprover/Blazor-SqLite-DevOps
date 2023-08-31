@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x -e
+set -x
 
 # WARNING message
 echo "CAUTION:"
