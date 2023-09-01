@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Sanitise and Validate Untrusted User-Controlled Details
         run: |
-
+  
           echo "##[info] Starting security sanitisation and validation."
 
           echo "##[debug] Git username can start and or end with an alphanumeric character."
@@ -42,7 +42,7 @@ jobs:
           fi
 
           echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."
-          forbidden_chars="|*>)}<{(S"
+          forbidden_chars="|*]>)}<{([S"
           commit_msg="${{ github.event.head_commit.message }}"
           for (( i=0; i<${#forbidden_chars}; i++ )); do
               char="${forbidden_chars:$i:1}"  # Extract each character one by one
@@ -63,7 +63,7 @@ jobs:
 
       - name: Validate SHA Checkout
         run: |
-
+  
           echo "##[info] Validating checkout for SHA ${{ github.sha }}"
           if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
               echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 23
@@ -73,14 +73,14 @@ jobs:
 
       - name: Configure Git User
         run: |
-
+  
           echo "##[info] Configuring git user account for ${{ env.SHA }}"
           git config user.name "${{ github.repository_owner}}"
           git config user.email "${{ vars.EMAIL }}"
 
       - name: Validate Commit as Unique to Existent Remote SHA Branch
         run: |
-
+  
           echo "##[info] Validating SHA branch for ${{ env.SHA }}"
           branch_list=$(git branch -r --contains ${{ env.SHA }} | sed 's/origin\///' | xargs)
           if [[ -z "$branch_list" ]]; then
@@ -99,7 +99,7 @@ jobs:
 
       - name: Validate Dotnet .csproj File
         run: |
-
+  
           echo "##[info] Validating .csproj file."
           DIR_PATH="${{ github.workspace }}/$(echo "${{ env.SHA_BRANCH }}" | sed 's/^code-//')/${{ vars.PROJECT_NAME }}"
           CSPROJ="${DIR_PATH}/${{ vars.PROJECT_NAME }}.csproj"
@@ -111,7 +111,7 @@ jobs:
 
       - name: Check for Pre-Existent .lock File in History
         run: |
-
+  
           echo "##[info] Checking for pre-existent lock file in the commit immediately before SHA ${{ env.SHA }}."
 
           echo "##[debug] Fetching branch ${{ env.SHA_BRANCH }}"
@@ -160,7 +160,7 @@ jobs:
       - name: Trigger Next Workflow
         if: success()
         run: |
-
+  
           CMD=$(echo "curl -L -X POST" \
            "-H \"Accept: application/vnd.github+json\"" \
            "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
