@@ -13,7 +13,7 @@ jobs:
     name: Authentication Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.actor != ${{ github.repository_owner }}) # ignore DevOps
+    if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
 
     steps:
 
@@ -31,7 +31,6 @@ jobs:
       run: |
   
         echo "##[info] Starting security sanitisation and validation."
-
         echo "##[debug] Git username can start and or end with an alphanumeric character."
         echo "##[debug] Can have hyphens but not at the start or end."
         echo "##[debug] Has a maximum length of 20 characters (including hyphens)."
@@ -56,8 +55,8 @@ jobs:
         forbidden_chars="|*]>)}<{([S"
         commit_msg="${{ github.event.head_commit.message }}"
         for (( i=0; i<${#forbidden_chars}; i++ )); do
-            char="${forbidden_chars:$i:1}"  # Extract each character one by one
-            echo "##[debug] "
+            char="${forbidden_chars:$i:1}"
+            echo "##[debug] Checking for forbidden char $char"
             if [[ $commit_msg == *"$char"* ]]; then
                 echo "##[error] Commit message ${commit_msg} contains invalid character $char." && exit 22
             fi
@@ -91,7 +90,7 @@ jobs:
 
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
         if [[ "$ORIGINAL_COMMITTER" == "${{ github.repository_owner }}" ]]; then
-            echo "##[debug] Last commit was by repository owner (possibly an automated revert) - skipping further actions." && exit 0
+            echo "##[warn] Last commit was by repository owner (possibly an automated revert) - skipping further actions." && exit 0
         fi
 
         git reset HEAD --hard
@@ -111,7 +110,7 @@ jobs:
         COMMITTER_EMAIL=$(git log --pretty=format:%ae | grep -v "github.com" | head -n 1)
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ github.sha }})
 
-        # Construct notification title and body
+        echo "##[debug] Constructing notification title and body."
         MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
         MESSAGE_BODY=$(echo "@${{ github.repository_owner }},
           Branch: $BRANCH_NAME
@@ -135,9 +134,11 @@ jobs:
             -d "$payload"
         }
 
-        # Create issue in the repository with the constructed title and body
+        echo "##[debug] Creating issue in the repository with constructed title and body"
+        echo "##[debug] Message Title: $MESSAGE_TITLE"
+        echo "##[debug] Message Body: $MESSAGE_BODY"
         create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
-        echo "##[debug] Last commit was reverted." && exit 0
+        echo "##[error] Last commit was reverted." && exit 0
 
     - name: "Checkout SHA Repository"
       id: checkout-sha
@@ -191,13 +192,12 @@ jobs:
       run: |
   
         echo "##[info] Checking for pre-existent lock file in the commit immediately before SHA ${{ env.SHA }}."
-
         echo "##[debug] Fetching branch ${{ env.SHA_BRANCH }}"
         if ! git fetch origin ${{ env.SHA_BRANCH }}; then
             echo "##[error] Failed to fetch ${{ env.SHA_BRANCH }}" && exit 26
         fi
 
-        echo "##[debug] Define the lock file based on the branch ${{ env.SHA_BRANCH }}"
+        echo "##[debug] Defining lock file name based on branch ${{ env.SHA_BRANCH }}"
         branch=${{ env.SHA_BRANCH }}
         if [[ $branch == "code-"* ]]; then
             LOCK_FILE=.${branch#code-}.lock
@@ -205,7 +205,7 @@ jobs:
             LOCK_FILE=.main.lock
         fi
 
-        echo "##[debug] Check the lock file's presence in the commit immediately before SHA ${{ env.SHA }}"
+        echo "##[debug] Checking the lock file's presence in the commit immediately before SHA ${{ env.SHA }}"
         if git show ${{ env.SHA }}^:$LOCK_FILE &> /dev/null; then
             echo "##[error] Lock file $LOCK_FILE was found in the commit immediately before SHA ${{ env.SHA }}." && exit 27
         else
