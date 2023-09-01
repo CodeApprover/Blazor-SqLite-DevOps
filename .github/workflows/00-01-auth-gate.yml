@@ -2,8 +2,8 @@
 name: Authentication Gate
 
 on:
-  push:
-    branches: ["code-development", "code-production", "code-staging", "main"]
+  repository_dispatch:
+    types: Authentication Gate
 
 env:
   NEXT_WORKFLOW: Deploy Git # Cache Dependencies
