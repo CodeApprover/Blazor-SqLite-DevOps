@@ -91,7 +91,7 @@ jobs:
         elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
           TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }}"
           ADDITIONAL_MESSAGE="The code-production branch has received an update."
-        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]] || [[ "${{ env.SHA_BRANCH }]" == "main" ]]; then
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]] || [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
           TEAM_TO_NOTIFY=""
           ADDITIONAL_MESSAGE=""
         fi
