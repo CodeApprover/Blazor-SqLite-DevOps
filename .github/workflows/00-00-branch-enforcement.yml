@@ -1,37 +1,120 @@
+---
 name: Branch Name Checker
 
 on: 
   push:
 
+env:
+  NEXT_WORKFLOW: Authorisation Gate
+
 jobs:
-  check-branch-name:
+
+  validate-branch-name:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3.6.0
-      
-    - name: Validate Branch Name # blocks all other branch commits
-      run: |
-      
-        REF=${{ github.ref }} 
-        BRANCH_NAME=${REF#refs/heads/}
-        ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")       
-        isValidBranch=false
 
-        for branch in "${ALLOWED_BRANCHES[@]}"
-        do
-          if [[ "$BRANCH_NAME" == "$branch" ]]; then
-            isValidBranch=true
-            break
+      - name: Checkout Repository
+        uses: actions/checkout@v3.6.0
+
+      - name: Validate Branch Name # reverts commits on unknown branches
+        run: |
+        
+          ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")
+          REF=${{ github.ref }}
+          BRANCH_NAME=${REF#refs/heads/}
+
+          echo "isValidBranch=false" >> $GITHUB_ENV
+          for branch in "${ALLOWED_BRANCHES[@]}"
+          do
+            if [[ "$BRANCH_NAME" == "$branch" ]]; then
+              echo "isValidBranch=true" >> $GITHUB_ENV
+              break
+            fi
+          done
+
+      - name: Revert Commit if Branch Name is Unknown
+        if: env.isValidBranch == 'false'
+        run: |
+        
+          # Avoid infinite looping, reverting the revert
+          ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
+          if [[ "$ORIGINAL_COMMITTER" == "${{ github.repository_owner }}" ]]; then
+              echo "##[debug] Last commit was by repository owner (possibly an automated revert) - skipping further actions." && exit 0
           fi
-        done
 
-        if [[ $isValidBranch == false ]]; then
-          echo "##[error] Invalid branch name: $BRANCH_NAME"
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ vars.EMAIL }}"
+          REF=${{ github.ref }} 
+          BRANCH_NAME=${REF#refs/heads/}
           git reset HEAD~1 --hard
           git push origin +$BRANCH_NAME
-          COMMITTER_NAME=$()
+          ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
           COMMITTER_EMAIL=$(git log --pretty=format:%ae | grep -v "github.com" | head -n 1)
-          echo "Notifying committer at $COMMITTER_EMAIL about the illegal branch name."
-          exit 10
-        fi
+
+          # Construct notification title and body
+          MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
+          MESSAGE_BODY=$(echo "@${{ github.repository_owner }},
+            Branch: $BRANCH_NAME
+            SHA: ${{ github.sha }} 
+            Committer: $ORIGINAL_COMMITTER
+            Commit Message: $COMMIT_MESSAGE
+
+            ${{ github.sha }} committed to an unknown branch, was reverted.
+
+            Thank you for your contribution.")
+
+          create_issue() {
+            local title="$1"
+            local body="$2"
+            payload=$(jq -n \
+              --arg title "$title" \
+              --arg body "$body" \
+              '{title: $title, body: $body}')
+            CURL_CMD="curl -X POST"
+            CURL_CMD+=" -H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\""
+            CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
+            CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/issues"
+            CURL_CMD+=" -d '$payload'"
+            eval "$CURL_CMD"
+          }
+
+          # Create issue in the repository with the constructed title and body
+          create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
+
+          # exit gracefully after revert
+          echo "##[debug] Last commit was reverted." && exit 0
+
+      - name: Trigger Next Workflow
+        if: ${{ env.isValidBranch }}== 'true'
+        run: |
+        
+          CMD=$(echo "curl -L -X POST" \
+            "-H \"Accept: application/vnd.github+json\"" \
+            "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+            "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+            "\"client_payload\":{" \
+            "\"sha\":\"${{ env.SHA }}\"," \
+            "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+            "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+          retries=0
+          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            eval "$CMD"
+            CURL_EXIT_CODE=$?
+            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+              echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+              retries=$((retries+1))
+              if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+                echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+                sleep ${{ vars.WAIT_SECONDS }}
+              else
+                echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+                echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow." && exit 90
+              fi
+            else
+              break
+            fi
+          done
