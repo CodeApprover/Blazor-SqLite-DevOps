@@ -99,10 +99,10 @@ jobs:
           ADDITIONAL_MESSAGE=""
         fi
 
-        # Convert CSV list to space-separated list with "@" prefixed
+        # Convert CSV list to space-separated list with "@" prefixed and remove duplicates
         format_team_to_notify() {
           local csv="$1"
-          echo "$csv" | tr ',' '\n' | awk '{print "@"$0}' | tr '\n' ' '
+          echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
         }
 
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
@@ -135,3 +135,5 @@ jobs:
         # Create issue in the repository with the constructed title and body
         create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
 
+        # Create issue in the repository with the constructed title and body
+        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
