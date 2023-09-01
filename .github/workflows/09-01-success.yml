@@ -86,10 +86,10 @@ jobs:
     
         # Determine the relevant team to notify based on SHA_BRANCH
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
-          TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
+          TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }},${{ github.repository_owner }}"
           ADDITIONAL_MESSAGE="The code-staging branch has received an update."
         elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
-          TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }}"
+          TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }},${{ github.repository_owner }}"
           ADDITIONAL_MESSAGE="The code-production branch has received an update."
         elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]]; then
           TEAM_TO_NOTIFY="${{ github.repository_owner }}"
@@ -107,7 +107,7 @@ jobs:
 
         # Construct notification title and body
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
-        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and $FORMATTED_TEAM_TO_NOTIFY,
+        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and $FORMATTED_TEAM_TO_NOTIFY
 
           Commit `${{ env.SHA }}` has been successfully deployed to ${{ env.SHA_BRANCH }}.
           Commit Message: $COMMIT_MESSAGE
