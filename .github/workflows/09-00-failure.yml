@@ -35,8 +35,12 @@ jobs:
     - name: Configure Git User
       run: |
       
-        git config user.name "${{ github.repository_owner}}"
-        git config user.email "${{ vars.EMAIL }}"
+        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+          git config user.name "CodeApprover"
+          git config user.email "pucfada@pm.me"
+        else
+          echo "Not in a git directory - failing gracefully." && exit 0
+        fi
 
     - name: Extract Branch Name
       run: |
