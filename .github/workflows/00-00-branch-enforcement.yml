@@ -1,0 +1,37 @@
+name: Branch Name Checker
+
+on: 
+  push:
+
+jobs:
+  check-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3.6.0
+      
+    - name: Validate Branch Name # blocks all other branch commits
+      run: |
+      
+        REF=${{ github.ref }} 
+        BRANCH_NAME=${REF#refs/heads/}
+        ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")       
+        isValidBranch=false
+
+        for branch in "${ALLOWED_BRANCHES[@]}"
+        do
+          if [[ "$BRANCH_NAME" == "$branch" ]]; then
+            isValidBranch=true
+            break
+          fi
+        done
+
+        if [[ $isValidBranch == false ]]; then
+          echo "##[error] Invalid branch name: $BRANCH_NAME"
+          git reset HEAD~1 --hard
+          git push origin +$BRANCH_NAME
+          COMMITTER_NAME=$()
+          COMMITTER_EMAIL=$(git log --pretty=format:%ae | grep -v "github.com" | head -n 1)
+          echo "Notifying committer at $COMMITTER_EMAIL about the illegal branch name."
+          exit 10
+        fi
