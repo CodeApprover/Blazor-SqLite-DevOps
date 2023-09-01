@@ -86,13 +86,13 @@ jobs:
     
         # Determine the relevant team to notify based on SHA_BRANCH
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
-          TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }},${{ github.repository_owner }}"
+          TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
           ADDITIONAL_MESSAGE="The code-staging branch has received an update."
         elif [[ "${{ env.SHA_BRANCH }}" == "code-staging" ]]; then
-          TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }},${{ github.repository_owner }}"
+          TEAM_TO_NOTIFY="${{ secrets.PRODUCTION_TEAM }}"
           ADDITIONAL_MESSAGE="The code-production branch has received an update."
-        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]]; then
-          TEAM_TO_NOTIFY="${{ github.repository_owner }}"
+        elif [[ "${{ env.SHA_BRANCH }}" == "code-production" ]] || [[ "${{ env.SHA_BRANCH }]" == "main" ]]; then
+          TEAM_TO_NOTIFY=""
           ADDITIONAL_MESSAGE=""
         fi
 
@@ -102,16 +102,20 @@ jobs:
           echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
         }
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
-        echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
+        echo "##[debug] TEAM TO NOTIFY: ${{ github.repository_owner }}, $FORMATTED_TEAM_TO_NOTIFY"
         echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
         # Construct notification title and body
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
-        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and $FORMATTED_TEAM_TO_NOTIFY
+        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER ${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
 
-          Commit `${{ env.SHA }}` has been successfully deployed to ${{ env.SHA_BRANCH }}.
+          Commit: ${{ env.SHA }} 
           Commit Message: $COMMIT_MESSAGE
-          $ADDITIONAL_MESSAGE
+          Committer: $ORIGINAL_COMMITTER
+          
+          Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.
+          
+          NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 
           Thank you for your contribution.")
 
