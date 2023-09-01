@@ -107,7 +107,7 @@ jobs:
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            $CMD
+            eval $CMD
             CURL_EXIT_CODE=$?
             if [[ $CURL_EXIT_CODE -ne 0 ]]; then
                 echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
