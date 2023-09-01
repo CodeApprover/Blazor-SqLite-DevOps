@@ -104,12 +104,11 @@ jobs:
           local csv="$1"
           echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
         }
-
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
         echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
         echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
-        # Construct the notification message
+        # Construct notification title and body
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
         MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and $FORMATTED_TEAM_TO_NOTIFY,
 
@@ -119,7 +118,7 @@ jobs:
 
           Thank you for your contribution.")
 
-        # Define issue content
+        # Set create issue command
         create_issue() {
           local title="$1"
           local body="$2"
