@@ -32,12 +32,12 @@ jobs:
 
     steps:
 
-    - name: Configure Git User
+    - name: Configure Git User and Check if in Git Repository
       run: |
       
         if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-          git config user.name "CodeApprover"
-          git config user.email "pucfada@pm.me"
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ vars.EMAIL }}"
         else
           echo "Not in a git directory - failing gracefully." && exit 0
         fi
@@ -86,6 +86,8 @@ jobs:
         git revert --no-commit ${{ env.SHA }}^..${{ env.SHA }}
     
         # Commit and push reverts
+        git config user.name "${{ github.repository_owner }}"
+        git config user.email "${{ vars.EMAIL }}"
         git commit -m "Reverted commit ${{ env.SHA }} due to failed workflow."
         git push origin ${{ env.BRANCH_NAME }}
     
@@ -96,6 +98,8 @@ jobs:
         git revert ${{ github.event.workflow_run.head_sha }}
     
         # Commit and push reverts
+        git config user.name "${{ github.repository_owner }}"
+        git config user.email "${{ vars.EMAIL }}"
         git commit -m "Reverted commit ${{ github.event.workflow_run.head_sha }} due to failed workflow."
         git push origin ${{ env.BRANCH_NAME }}
 
@@ -116,6 +120,8 @@ jobs:
             # Delete the tag locally
             git tag -d $latest_tag
             # Delete the tag remotely
+            git config user.name "${{ github.repository_owner }}"
+            git config user.email "${{ vars.EMAIL }}"
             git push origin :refs/tags/$latest_tag
           fi
         fi
