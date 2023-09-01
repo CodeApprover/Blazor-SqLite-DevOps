@@ -82,7 +82,7 @@ jobs:
       run: |
       
         # Fetch the name of the original committer of the commit
-        ORIGINAL_COMMITTER=$( git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
+        ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
         
         # Fetch the commit message of the commit
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
