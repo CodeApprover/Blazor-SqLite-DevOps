@@ -106,14 +106,17 @@ jobs:
         }
 
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
+        echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
+        echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
         # Construct the notification message
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
         MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER and $FORMATTED_TEAM_TO_NOTIFY,
+
           Commit `${{ env.SHA }}` has been successfully deployed to ${{ env.SHA_BRANCH }}.
           Commit Message: $COMMIT_MESSAGE
           $ADDITIONAL_MESSAGE
-          
+
           Thank you for your contribution.")
 
         # Define issue content
@@ -129,11 +132,9 @@ jobs:
           CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
           CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/issues"
           CURL_CMD+=" -d '$payload'"
+          echo "##[debug] ISSUE COMMAND: $CURL_CMD"
           eval "$CURL_CMD"
         }
-
-        # Create issue in the repository with the constructed title and body
-        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
-
+        
         # Create issue in the repository with the constructed title and body
         create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
