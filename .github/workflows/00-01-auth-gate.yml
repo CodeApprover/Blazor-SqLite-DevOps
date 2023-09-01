@@ -6,6 +6,7 @@ on:
     types: Authentication Gate
 
 env:
+  SHA: ${{ github.event.client_payload.sha }}
   NEXT_WORKFLOW: Deploy Git # Cache Dependencies
 
 jobs:
@@ -58,18 +59,17 @@ jobs:
         id: checkout-sha
         uses: actions/checkout@v3.6.0
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ env.SHA }}
           fetch-depth: 0
 
       - name: Validate SHA Checkout
         run: |
   
-          echo "##[info] Validating checkout for SHA ${{ github.sha }}"
+          echo "##[info] Validating checkout for SHA ${{ env.SHA }}"
           if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-              echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 23
+              echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 23
           fi
-          echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}"
-          echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+          echo "##[info] Successfully validated SHA checkout for ${{ env.SHA }}"
 
       - name: Configure Git User
         run: |
