@@ -70,16 +70,6 @@ jobs:
               fi
           done
 
-      - name: Configure Git User
-        run: |
-        
-          if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-            git config user.name "CodeApprover"
-            git config user.email "pucfada@pm.me"
-          else
-            echo "Not in a git directory - failing gracefully." && exit 0
-          fi
-
       - name: Revert Commit if Branch Name is Unknown
         if: env.isValidBranch == 'false'
         run: |
@@ -98,7 +88,10 @@ jobs:
           if [[ $? -ne 0 ]]; then
               echo "##[error] Failed to reset the commit." && exit 10
           fi
-  
+
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ vars.EMAIL }}"
+
           git push origin +$BRANCH_NAME
           if [[ $? -ne 0 ]]; then
               echo "##[error] Failed to push the changes." && exit 11
@@ -211,6 +204,10 @@ jobs:
 
           echo "##[debug] Adding and committing the new lock file $LOCK_FILE for SHA ${{ env.SHA }}"
           echo "${{ env.SHA }}" > "$LOCK_FILE"
+
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ vars.EMAIL }}"
+          
           git add "$LOCK_FILE"
           git commit -m "Adding $LOCK_FILE for ${{ env.SHA }} [skip ci]."
 
