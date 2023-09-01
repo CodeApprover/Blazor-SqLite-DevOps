@@ -27,15 +27,15 @@ case $branch in
     code-development)
         git config user.name "Code-Backups"
         git config user.email "404bot@pm.me"
-        ;;
+    ;;
     code-staging)
         git config user.name "ScriptShifters"
         git config user.email "lodgings@pm.me"
-        ;;
+    ;;
     code-production)
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
-        ;;
+    ;;
 esac
 
 # WARNING message
@@ -61,9 +61,9 @@ git pull
 
 # Commit and push to test workflows
 for num in $(seq 1 $num_commits); do
-  echo "$num" >> workflow.driver
+    echo "$num" >> workflow.driver
     git add workflow.driver
-    git commit -m "running dev push to test workflows #$num"
+    git commit -m "Running $branch push #$num"
     git push
     sleep $pause_duration
 done
