@@ -35,7 +35,7 @@ jobs:
           done
 
       - name: Revert Commit if Branch Name is Unknown
-        if: env.isValidBranch == 'false'
+        if: ${{ env.isValidBranch }}== 'false'
         run: |
         
           # Avoid infinite looping, reverting the revert
