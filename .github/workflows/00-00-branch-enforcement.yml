@@ -6,6 +6,7 @@ on:
 
 env:
   NEXT_WORKFLOW: Authentication Gate
+  GITHUB_TOKEN: ${{ secrets.AUTH }}
 
 jobs:
 
@@ -51,6 +52,7 @@ jobs:
           git push origin +$BRANCH_NAME
           ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
           COMMITTER_EMAIL=$(git log --pretty=format:%ae | grep -v "github.com" | head -n 1)
+          COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ github.sha }})
 
           # Construct notification title and body
           MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
@@ -96,9 +98,7 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/dispatches" \
             "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
             "\"client_payload\":{" \
-            "\"sha\":\"${{ env.SHA }}\"," \
-            "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-            "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+            "\"sha\":\"${{ github.sha }}\"}'")
 
           retries=0
           while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
