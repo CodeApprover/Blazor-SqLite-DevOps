@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Array of available options
-available_options=("code-development" "code-staging" "code-production")
+available_options=("code-development" "code-staging" "code-production" "main")
 
 # Set the number of commits and pause duration
 num_commits=3
-pause_duration=120 # seconds
+wait=180 # seconds
 
 # Check if no argument is provided
 if [ $# -ne 1 ]; then
@@ -36,15 +36,19 @@ case $branch in
         git config user.name "CodeApprover"
         git config user.email "pucfada@pm.me"
     ;;
+    main)
+        git config user.name "CodeApprover"
+        git config user.email "pucfada@pm.me"
+    ;;
 esac
 
 # WARNING message
 echo "CAUTION:"
 echo "This script will perform the following operations:"
-echo "1. Commit $num_commits workflow.driver files to the '$branch' branch ${branch#code-} directory."
-echo ""
-echo "Consequences:"
-echo "- The workflow.driver files will be committed to the '$branch' branch."
+echo "1. Commits workflow.driver files to"
+echo "   the '$branch' branch ${branch#code-} directory"
+echo "   $num times every $wait seconds."
+echo "- Three workflow.driver files will be committed to the '$branch' branch."
 echo ""
 read -p "Do you wish to proceed? (y/n): " -r
 
@@ -65,5 +69,5 @@ for num in $(seq 1 $num_commits); do
     git add workflow.driver
     git commit -m "Running $branch push #$num"
     git push
-    sleep $pause_duration
+    sleep $wait
 done
