@@ -1,11 +1,11 @@
 ---
-name: Branch Name Checker
+name: Branch Enforcer
 
 on: 
   push:
 
 env:
-  NEXT_WORKFLOW: Authorisation Gate
+  NEXT_WORKFLOW: Authentication Gate
 
 jobs:
 
