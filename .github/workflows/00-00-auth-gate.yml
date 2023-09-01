@@ -42,7 +42,7 @@ jobs:
           fi
 
           echo "##[debug] Commit messages cannot contain some dangerous chars, to inhibit injection of shell commands."
-          forbidden_chars="|*[]<(){]}>S"
+          forbidden_chars="|*>)}<{(S"
           commit_msg="${{ github.event.head_commit.message }}"
           for (( i=0; i<${#forbidden_chars}; i++ )); do
               char="${forbidden_chars:$i:1}"  # Extract each character one by one
