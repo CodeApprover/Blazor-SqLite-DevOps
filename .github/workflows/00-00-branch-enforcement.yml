@@ -38,7 +38,7 @@ jobs:
       
         COMMIT_COUNT=$(git rev-list --count HEAD)
         if [[ $COMMIT_COUNT -le 1 ]]; then
-            echo "##[debug] Only one commit in this branch. Nothing to revert." && exit 0
+            echo "##[error] Only one commit in this branch. Nowhere to revert to." && exit 0
         fi
 
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
@@ -48,14 +48,15 @@ jobs:
 
         git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
+
         git reset HEAD~1 --hard
         if [[ $? -ne 0 ]]; then
-            echo "##[error] Failed to reset the commit." && exit 1
+            echo "##[error] Failed to reset the commit." && exit 10
         fi
 
         git push origin +$BRANCH_NAME
         if [[ $? -ne 0 ]]; then
-            echo "##[error] Failed to push the changes." && exit 1
+            echo "##[error] Failed to push the changes." && exit 11
         fi
 
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
