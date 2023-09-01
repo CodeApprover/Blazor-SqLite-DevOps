@@ -1,22 +1,22 @@
 ---
 name: Authentication Gate
 
-on:
-  repository_dispatch:
-    types: Authentication Gate
+on: 
+  push:
 
 env:
-  SHA: ${{ github.event.client_payload.sha }}
   NEXT_WORKFLOW: Deploy Git # Cache Dependencies
 
 jobs:
   authentication-gate:
+
     name: Authentication Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: (github.actor != ${{ github.repository_owner }}) # ignore DevOps
 
     steps:
+
       - name: Sanitise and Validate Untrusted User-Controlled Details
         run: |
   
@@ -55,28 +55,103 @@ jobs:
 
           echo "##[info] Sanitisation and validation completed successfully."
 
+      - name: Validate Branch Name
+        run: |
+        
+          ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")
+          REF=${{ github.ref }}
+          BRANCH_NAME=${REF#refs/heads/}
+          echo "isValidBranch=false" >> $GITHUB_ENV
+          for branch in "${ALLOWED_BRANCHES[@]}"
+          do
+              if [[ "$BRANCH_NAME" == "$branch" ]]; then
+                  echo "isValidBranch=true" >> $GITHUB_ENV
+                  break
+              fi
+          done
+
+      - name: Configure Git User
+        run: |
+        
+          if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+            git config user.name "CodeApprover"
+            git config user.email "pucfada@pm.me"
+          else
+            echo "Not in a git directory - failing gracefully." && exit 0
+          fi
+
+      - name: Revert Commit if Branch Name is Unknown
+        if: env.isValidBranch == 'false'
+        run: |
+        
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          if [[ $COMMIT_COUNT -le 1 ]]; then
+              echo "##[error] Only one commit in this branch. Nowhere to revert to." && exit 0
+          fi
+  
+          ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
+          if [[ "$ORIGINAL_COMMITTER" == "${{ github.repository_owner }}" ]]; then
+              echo "##[debug] Last commit was by repository owner (possibly an automated revert) - skipping further actions." && exit 0
+          fi
+  
+          git reset HEAD --hard
+          if [[ $? -ne 0 ]]; then
+              echo "##[error] Failed to reset the commit." && exit 10
+          fi
+  
+          git push origin +$BRANCH_NAME
+          if [[ $? -ne 0 ]]; then
+              echo "##[error] Failed to push the changes." && exit 11
+          fi
+  
+          ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
+          COMMITTER_EMAIL=$(git log --pretty=format:%ae | grep -v "github.com" | head -n 1)
+          COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ github.sha }})
+  
+          # Construct notification title and body
+          MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
+          MESSAGE_BODY=$(echo "@${{ github.repository_owner }},
+            Branch: $BRANCH_NAME
+            SHA: ${{ github.sha }} 
+            Committer: $ORIGINAL_COMMITTER
+            Commit Message: $COMMIT_MESSAGE
+            ${{ github.sha }} committed to an unknown branch, was reverted.
+            Thank you for your contribution.")
+  
+          create_issue() {
+            local title="$1"
+            local body="$2"
+            payload=$(jq -n \
+              --arg title "$title" \
+              --arg body "$body" \
+              '{title: $title, body: $body}')
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/issues \
+              -d "$payload"
+          }
+  
+          # Create issue in the repository with the constructed title and body
+          create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
+          echo "##[debug] Last commit was reverted." && exit 0
+
       - name: "Checkout SHA Repository"
         id: checkout-sha
         uses: actions/checkout@v3.6.0
         with:
-          ref: ${{ env.SHA }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Validate SHA Checkout
         run: |
   
-          echo "##[info] Validating checkout for SHA ${{ env.SHA }}"
+          echo "##[info] Validating checkout for SHA ${{ github.sha }}"
           if [[ "${{ steps.checkout-sha.outcome }}" == "failure" ]]; then
-              echo "##[error] SHA checkout FAIL for ${{ env.SHA }}" && exit 23
+              echo "##[error] SHA checkout FAIL for ${{ github.sha }}" && exit 23
           fi
-          echo "##[info] Successfully validated SHA checkout for ${{ env.SHA }}"
-
-      - name: Configure Git User
-        run: |
-  
-          echo "##[info] Configuring git user account for ${{ env.SHA }}"
-          git config user.name "${{ github.repository_owner}}"
-          git config user.email "${{ vars.EMAIL }}"
+          echo "##[info] Successfully validated SHA checkout for ${{ github.sha }}"
+          echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Validate Commit as Unique to Existent Remote SHA Branch
         run: |
