@@ -102,12 +102,12 @@ jobs:
           echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
         }
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
-        echo "##[debug] TEAM TO NOTIFY: ${{ github.repository_owner }}, $FORMATTED_TEAM_TO_NOTIFY"
+        echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
         echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
         # Construct notification title and body
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
-        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER ${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
+        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
 
           Commit: ${{ env.SHA }} 
           Commit Message: $COMMIT_MESSAGE
@@ -117,7 +117,7 @@ jobs:
           
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 
-          Thank you for your contribution.")
+          Thank you for your contribution @$ORIGINAL_COMMITTER")
 
         # Set create issue command
         create_issue() {
