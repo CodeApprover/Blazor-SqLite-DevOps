@@ -81,22 +81,22 @@ jobs:
  
         echo "##[debug][extract] setting branch name from github.ref"
         branch=${{ github.ref }}
-        branch_name=${branch#refs/heads/}
-        if [[ -z "$branch_name" ]]; then
+        SHA_BRANCH=${branch#refs/heads/}
+        if [[ -z "$SHA_BRANCH" ]]; then
           echo "##[error][extract] Branch name is not populated."
           exit 40
         fi
-        echo "##[debug][extract] Branch Name: $branch_name"
+        echo "##[debug][extract] Branch Name: $SHA_BRANCH"
 
-        echo "##[debug][extract] setting environment name from branch name $branch_name"
-        environment=${branch_name#code-}
+        echo "##[debug][extract] setting environment name from branch name $SHA_BRANCH"
+        environment=${SHA_BRANCH#code-}
         if [[ -z "$environment" ]]; then
           echo "##[error][extract] Environment is not populated."
           exit 41
         fi
         echo "##[debug][extract] Environment: $environment"
 
-        echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
+        echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
     # Step 2: Identify lock file and extract SHA.
@@ -137,19 +137,22 @@ jobs:
             exit 26
         fi
 
-    # Step 5: Reset to the desired commit.
-    - name: Reset to the Commit Before Problematic One
+    # Step 5: Reset to the commit before the problematic SHA.
+    - name: Reset to Commit Before Problematic SHA
       id: reset_commit
       run: |
  
-        git config user.name "${{ github.repository_owner }}"
+        echo "##[debug][reset] git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
 
-        echo "##[debug][reset] Resetting repository to the commit before the latest one."
-        if git reset --hard $(git log --skip 1 -n 1 --pretty=format:"%H"); then
-          echo "##[debug][push] Reset repository."
+        echo "##[debug][reset] Getting the commit just before the problematic SHA: $PREVIOUS_SHA."
+        PREVIOUS_SHA=$(git rev-list -n 1 ${{ env.SHA }}~1)
+        
+        echo "##[debug][reset] Resetting repository to commit $PREVIOUS_SHA"
+        if git reset --hard $PREVIOUS_SHA; then
+          echo "##[debug][reset] Reset repository to $PREVIOUS_SHA"
         else
-          echo "##[error][push] Failed to reset repository."
+          echo "##[error][reset] Failed to reset repository to $PREVIOUS_SHA"
           exit 24
         fi
 
@@ -158,38 +161,38 @@ jobs:
       if: steps.reset_commit.outcome == 'success'
       run: |
  
-        if git push origin HEAD:${{ env.BRANCH_NAME }} --force; then
+        if git push origin HEAD:${{ env.SHA_BRANCH }} --force; then
           echo "##[debug][push] Pushed changes."
         else
           echo "##[error][push] Failed to push changes."
           exit 25
         fi
 
-        # Step 7: Delete the latest tag (locally) if it exists.
-        - name: Delete Latest Tag (Locally)
-          run: |
-     
-            latest_tag=$(git describe --tags --abbrev=0)
-            if [[ "$latest_tag" ]]; then
-              git tag -d "$latest_tag" || {
-                echo "##[error][tag] Failed to delete the tag locally."
-                exit 44
-              }
-              echo "##[debug][tag] Deleted tag: $latest_tag locally."
-            fi
-    
-        # Step 8: Delete the latest tag (remotely) if it exists.
-        - name: Delete Latest Tag (Remotely)
-          run: |
-     
-            latest_tag=$(git describe --tags --abbrev=0)
-            if [[ "$latest_tag" ]]; then
-              git push --delete origin "$latest_tag" || {
-                echo "##[error][tag] Failed to delete the tag remotely."
-                exit 45
-              }
-              echo "##[debug][tag] Deleted tag: $latest_tag remotely."
-            fi
+    # Step 7: Delete the latest tag (locally) if it exists.
+    - name: Delete Latest Tag (Locally)
+      run: |
+ 
+        latest_tag=$(git describe --tags --abbrev=0)
+        if [[ "$latest_tag" ]]; then
+          git tag -d "$latest_tag" || {
+            echo "##[error][tag] Failed to delete the tag locally."
+            exit 44
+          }
+          echo "##[debug][tag] Deleted tag: $latest_tag locally."
+        fi
+
+    # Step 8: Delete the latest tag (remotely) if it exists.
+    - name: Delete Latest Tag (Remotely)
+      run: |
+ 
+        latest_tag=$(git describe --tags --abbrev=0)
+        if [[ "$latest_tag" ]]; then
+          git push --delete origin "$latest_tag" || {
+            echo "##[error][tag] Failed to delete the tag remotely."
+            exit 45
+          }
+          echo "##[debug][tag] Deleted tag: $latest_tag remotely."
+        fi
 
     # Step 9: Set Relevant Team members.
     - name: Notify Relevant Teams and Committer
