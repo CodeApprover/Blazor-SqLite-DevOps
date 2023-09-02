@@ -1,3 +1,37 @@
+---
+######################################
+# Workflow: Deployment Success
+
+# Description:
+# This workflow is responsible for updating the deployment status
+# for a specific commit SHA to success, deleting any related lock file
+# and notifying the relevant teams and the committer.
+
+# Trigger: Activated upon receiving the event `Deployment Success`.
+
+# Logical Flow (Steps):
+# 1.  The workflow starts by verifying that it's being executed within a git repository.
+# 2.  It then checks out the specific SHA from the repository.
+# 3.  A verification step ensures the checkout was successful.
+# 4.  The deployment status on GitHub is updated.
+# 5.  Any existing lock file related to the SHA is searched for and deleted.
+# 6.  Notifications are sent to relevant teams and the original committer.
+# 7.  Catch-all for unspecified errors.
+
+# Exit Codes:
+# 20 - Not executing within a git directory. (Reused)
+# 26 - SHA checkout failure. (Reused)
+# 33 - Catch-all for unhandled errors. (Reused)
+# 42 - Lock file has invalid SHA. (Reused)
+# 43 - Lock file not found. (Reused)
+# 46 - Failed to notify teams and committer. (Reused)
+
+# 60 - Failed to update API status to success.
+# 61 - Failed to deploy via API call.
+# 62 - Failed to delete lock file.
+
+######################################
+
 name: Deployment Success
 
 on:
@@ -17,15 +51,41 @@ jobs:
     timeout-minutes: 15
 
     steps:
+
+    # Step 1: Verify the workflow is running inside a git repository.
+    - name: Verify Workflow Run is Git Repository
+      run: |
+ 
+        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+          echo "##[debug][repo-run] Execution confirmed inside git repository."
+        else
+          echo "##[error][repo-run] Not executing within a git directory."
+          exit 20
+        fi
+
+    # Step 2: Checkout repository using SHA.
     - name: Checkout SHA Repository
+      id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
-        ref: ${{ env.SHA }}
+        ref: ${{ github.sha }}
         fetch-depth: 0
 
+    # Step 3: Validate SHA checkout.
+    - name: Validate Checkout
+      run: |
+ 
+        if [ $? -ne 0 ]; then
+            echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
+            exit 26
+        fi
+
+    # Step 4: Update the deployment status on GitHub.
     - name: Update Deployment Status
       run: |
-  
+ 
+        echo "##[debug][status-update] Attempting to update the deployment status."
+
         latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
         desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} with tag $latest_tag."
 
@@ -38,7 +98,12 @@ jobs:
           "\"context\": \"deployment/${{ env.SHA_BRANCH }}\"}'")
 
         RESPONSE_STATUS=$(eval "$CMD_STATUS")
-        echo "##[debug] Status API Response: $RESPONSE_STATUS"
+        echo "##[debug][status] Status API Response: $RESPONSE_STATUS"
+        
+        if [ $? -ne 0 ]; then
+          echo "##[error][status] Failed to update API status to success."
+          exit 60
+        fi
 
         CMD_DEPLOY=$(echo "gh api --method POST" \
           "-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28'" \
@@ -48,43 +113,63 @@ jobs:
           "-f description='$desc'")
 
         RESPONSE_DEPLOY=$(eval "$CMD_DEPLOY")
-        echo "##[debug] Deployment API Response: $RESPONSE_DEPLOY"
+        echo "##[debug][status] API response: $RESPONSE_DEPLOY"
+        
+        if [ $? -ne 0 ]; then
+          echo "##[error][status] Failed to deploy via API call."
+          exit 61
+        fi
 
+    # Step 5: Find any lock file related to the SHA and delete it.
     - name: Find and Delete Lock File
       run: |
-      
-        echo "##[debug] Determining lock file name based on branch ${{ env.SHA_BRANCH }}."
+ 
+        echo "##[debug][lock] Determining lock file name based on branch ${{ env.SHA_BRANCH }}."
         if [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
           lock_file_name="main.lock"
         else
           branch=${{ env.SHA_BRANCH }}
           lock_file_name=".$(echo $branch | sed 's/code-//').lock"
-
         fi
-        echo "##[debug] lock file name: $lock_file_name."
+        echo "##[debug][lock] lock file name: $lock_file_name."
 
-        echo "##[debug] Searching for lock file $lock_file_name"
+        echo "##[debug][lock] Searching for lock file $lock_file_name"
         lock_file_path=$(find . -name "$lock_file_name" | head -n 1)
 
-        echo "##[debug] Checking lock file content matches env.SHA and if so deleting it."
-        if [[ -n "$lock_file_path" && $(cat "$lock_file_path") == "${{ env.SHA }}" ]]; then
-          git config user.name "${{ github.repository_owner}}"
-          git config user.email "${{ vars.EMAIL }}"
-          git rm "$lock_file_path"
-          git commit -m "Remove $lock_file_name [skip ci]"
-          git push origin "${{ env.SHA_BRANCH }}"
+        if [[ -z "$lock_file_path" ]]; then
+          echo "##[error][lock] Failed to find lock file $lock_file."
+          exit 43
         fi
 
+        echo "##[debug][lock] Checking lock file content matches env.SHA and if so deleting it."
+        if [[ $(cat "$lock_file_path") != "${{ env.SHA }}" ]]; then
+          echo "##[error][lock] Lock file content does not match the expected SHA."
+          exit 42
+        fi
+
+        git config user.name "${{ github.repository_owner}}"
+        git config user.email "${{ vars.EMAIL }}"
+
+        git rm "$lock_file_path"
+        git commit -m "Remove $lock_file_name [skip ci]"
+        git push origin "${{ env.SHA_BRANCH }}"
+
+        if [ $? -ne 0 ]; then
+          echo "##[error][lock] Failed to delete lock file."
+          exit 62
+        fi
+
+    # Step 6: Notify Relevant Parties of Deployment Success.
     - name: Notify Relevant Teams and Committer
       run: |
-      
-        echo "##[debug] Fetching the name of the original committer of the commit."
+ 
+        echo "##[debug][notify] Fetching the name of the original committer of the commit."
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
 
-        echo "##[debug] Fetchibg the commit message of the payload commit."
+        echo "##[debug][notify] Fetching the commit message of the payload commit."
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
 
-        echo "##[debug] Determining the relevant team to notify based on SHA_BRANCH."
+        echo "##[debug][notify] Determining the relevant team to notify based on SHA_BRANCH."
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
           TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
           ADDITIONAL_MESSAGE="The code-staging branch has received an update."
@@ -96,29 +181,28 @@ jobs:
           ADDITIONAL_MESSAGE=""
         fi
 
-        echo "##[debug] Converting CSV list to space-separated list with "@" prefixed and remove duplicates."
+        echo "##[debug][notify] Converting CSV list to space-separated list with "@" prefixed and remove duplicates."
         format_team_to_notify() {
           local csv="$1"
           echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
         }
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
-        echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
-        echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
+        echo "##[debug][notify] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
+        echo "##[debug][notify] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
-        echo "##[debug] Constructing notification title and body."
-        MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
-        MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
+        echo "##[debug][notify] Constructing notification title and body."
+        ISSUE_TITLE="Commit Accepted: ${{ env.SHA }}"
+        ISSUE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
 
           Commit: ${{ env.SHA }}
           Committer: $ORIGINAL_COMMITTER
           Commit Message: $COMMIT_MESSAGE
           
-          Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.    
+          Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 
           Thank you for your contribution @$ORIGINAL_COMMITTER")
 
-        echo "##[debug] Setting issue command."
         create_issue() {
           local title="$1"
           local body="$2"
@@ -126,14 +210,27 @@ jobs:
             --arg title "$title" \
             --arg body "$body" \
             '{title: $title, body: $body}')
-          CURL_CMD="curl -X POST"
-          CURL_CMD+=" -H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\""
-          CURL_CMD+=" -H \"Accept: application/vnd.github.v3+json\""
-          CURL_CMD+=" https://api.github.com/repos/${{ github.repository }}/issues"
-          CURL_CMD+=" -d '$payload'"
-          echo "##[debug] ISSUE COMMAND: $CURL_CMD"
+          CURL_CMD=$(echo "curl -X POST" \
+            "-H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\"" \
+            "-H \"Accept: application/vnd.github.v3+json\"" \
+            "https://api.github.com/repos/${{ github.repository }}/issues" \
+            "-d '$payload'")
+          echo "##[debug][notify] ISSUE COMMAND: $CURL_CMD"
           eval "$CURL_CMD"
         }
 
-        echo "##[debug] Create issue in the repository with the constructed title and body."
-        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
+        echo "##[debug][notify] Creating issue in the repository with the constructed title and body."
+        create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
+
+        if [ $? -ne 0 ]; then
+          echo "##[error][notify] Issue creation encountered an error."
+          exit 46
+        fi
+
+    # Step 7: Catch-all for Unspecified Errors.
+    - name: Catch-All Error Handler
+      if: failure()
+      run: |
+ 
+        echo "##[error][unhandled] An unidentified error has occurred."
+        exit 33
