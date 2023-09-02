@@ -10,19 +10,16 @@
 # Trigger: Activated upon receiving the event `Cache Dependencies`.
 
 # Logical Flow (Steps):
-# 1.  The workflow starts by verifying that it's being executed within a git repository.
-# 2.  It then checks out the specific SHA from the repository.
-# 3.  A verification step ensures the checkout was successful.
-# 4.  The .NET dependencies for the provided .csproj file are restored.
-# 5.  The restored .NET dependencies are cached for future use.
-# 6.  Upon successful caching, the workflow triggers the next workflow in the pipeline.
-# 7.  A catch-all step handles unspecified errors.
+# 1.  It then checks out the specific SHA from the repository.
+# 2.  A verification step ensures the checkout was successful.
+# 3.  The .NET dependencies for the provided .csproj file are restored.
+# 4.  The restored .NET dependencies are cached for future use.
+# 5.  Upon successful caching, the workflow triggers the next workflow in the pipeline.
 
 # Exit Codes:
-# 20 - Not executing within a git directory. (Reused)
 # 26 - SHA checkout failure. (Reused)
 
-# 90 - 
+# 50 - Dotnet restore failed for ${{ env.CSPROJ }}
 # 91 - Failed to trigger the next workflow. (Reused)
 # 99 - Catch-all for unhandled errors. (Reused)
 
@@ -48,18 +45,7 @@ jobs:
 
     steps:
 
-    # Step 1: Verify the workflow is running inside a git repository.
-    - name: Verify Workflow Run is Git Repository
-      run: |
- 
-        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-          echo "##[debug][repo-run] Execution confirmed inside git repository."
-        else
-          echo "##[error][repo-run] Not executing within a git directory."
-          exit 20
-        fi
-
-    # Step 2: Checkout repository using SHA.
+    # Step 1: Checkout repository using SHA.
     - name: Checkout SHA Repository
       id: checkout-sha
       uses: actions/checkout@v3.6.0
@@ -67,7 +53,7 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 3: Validate SHA checkout.
+    # Step 2: Validate SHA checkout.
     - name: Validate Checkout
       run: |
  
@@ -76,19 +62,19 @@ jobs:
             exit 26
         fi
 
-    # Step 4: Restore dotnet project to acquire eg: nuget packages
+    # Step 3: Restore dotnet project to acquire eg: nuget packages
     - name: Restore dotnet Dependencies
       run: |
  
         echo "##[info][dotnet] Restoring .NET dependencies for ${{ env.CSPROJ }}"
         dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
         if [ $? -ne 0 ]; then
-          echo "##[error][dotnet] Dotnet restore failed for ${{ env.CSPROJ }}"
+          echo "##[error][dotnet] Dotnet restore failed for .csproj ${{ env.CSPROJ }}"
           exit 50
         fi
         echo "##[debug][dotnet] Restored .NET dependencies for ${{ env.CSPROJ }}"
 
-    # Step 5: Cache acquired packages 
+    # Step 4: Cache acquired packages 
     - name: Cache dotnet Dependencies
       uses: actions/cache@v3.3.1
       with:
@@ -97,7 +83,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-dotnet-
 
-    # Step 6: Trigger next workflow if all checks pass.
+    # Step 5: Trigger next workflow if all checks pass.
     - name: Trigger Next Workflow and Dispatch Success Event
       if: success()
       run: |
@@ -150,11 +136,3 @@ jobs:
             break
           fi
         done
-
-    # Step 7: Catch-all for unspecified errors.
-    - name: Catch-All Error Handler
-      if: failure()
-      run: |
- 
-        echo "##[error][unhandled] An unidentified error has occurred."
-        exit 99
