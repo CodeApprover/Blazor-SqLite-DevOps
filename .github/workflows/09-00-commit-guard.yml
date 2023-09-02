@@ -142,7 +142,7 @@ jobs:
       id: reset_commit
       run: |
  
-        echo "##[debug][reset] git config user.name "${{ github.repository_owner }}"
+        echo "##[debug][reset] git config user.name ${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
 
         echo "##[debug][reset] Getting the commit just before the problematic SHA: $PREVIOUS_SHA."
