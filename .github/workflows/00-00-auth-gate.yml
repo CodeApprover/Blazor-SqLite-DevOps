@@ -43,7 +43,7 @@ on:
   push:
 
 env:
-  NEXT_WORKFLOW: Deploy Git
+  NEXT_WORKFLOW: Cache Dependencies
 
 jobs:
   authentication-gate:
