@@ -80,6 +80,7 @@ jobs:
       run: |
  
         echo "##[debug][extract] setting branch name from github.ref"
+        echo "## [debug] github.ref is ${{ github.ref }}"
         branch=${{ github.ref }}
         SHA_BRANCH=${branch#refs/heads/}
         if [[ -z "$SHA_BRANCH" ]]; then
@@ -108,14 +109,13 @@ jobs:
 
         if [[ -n "$lock_file_path" ]]; then
           sha=$(cat "$lock_file_path")
-          if [[ ${#sha} -eq 40 && $sha =~ ^[0-9a-fA-F]+$ ]]; then
-            echo "##[debug][lockfile] Lock File SHA: $sha"
-            echo "SHA=$sha" >> $GITHUB_ENV
-          else
+          if ! [[ ${#sha} -eq 40 && $sha =~ ^[0-9a-fA-F]+$ ]]; then
             echo "##[error][lockfile] Lock file $lock_file_path has invalid sha $sha."
             exit 42
           fi
-        else:
+          echo "##[debug][lockfile] Lock File SHA: $sha"
+          echo "SHA=$sha" >> $GITHUB_ENV
+        else
           echo "##[error][lockfile] Lock file not found for the ${{ env.ENVIRONMENT }} environment."
           exit 43
         fi
@@ -141,10 +141,16 @@ jobs:
     - name: Reset to Commit Before Problematic SHA
       id: reset_commit
       run: |
- 
+     
         echo "##[debug][reset] git config user.name ${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
-
+        
+        echo "##[debug][reset] Checking if SHA ${{ env.SHA }} is valid."
+        if [ -z "${{ env.SHA }}" ] || ! git cat-file -e "${{ env.SHA }}^{commit}"; then
+          echo "##[error][reset] Invalid or empty SHA: ${{ env.SHA }}"
+          exit 26
+        fi
+    
         echo "##[debug][reset] Getting the commit just before the problematic SHA: $PREVIOUS_SHA."
         PREVIOUS_SHA=$(git rev-list -n 1 ${{ env.SHA }}~1)
         
