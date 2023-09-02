@@ -10,20 +10,18 @@
 # Trigger: Activated upon every push made to any branch.
 
 # Logical Flow (Steps):
-# 1.  Verify the workflow is running inside a git repository.
-# 2.  Sanitise and validate untrusted user-controlled details.
-# 3.  Validate branch names.
-# 4.  Revert commits if the branch name is unknown.
-# 5.  Checkout repository using the commit's SHA.
-# 6.  Validate the SHA checkout.
-# 7.  Ensure commit is unique to existing remote SHA branches.
-# 8.  Validate the existence of a .csproj file.
-# 9.  Check for pre-existent .lock files in the commit.
-# 10. Trigger next workflow if all checks pass.
-# 11. Handle unspecified errors with a catch-all error handler.
+# 1.  Sanitise and validate untrusted user-controlled details.
+# 2.  Validate branch names.
+# 3.  Revert commits if the branch name is unknown.
+# 4.  Checkout repository using the commit SHA.
+# 5.  Validate the SHA checkout.
+# 6.  Ensure commit is unique to existing remote SHA branches.
+# 7.  Validate the existence of a .csproj file.
+# 8.  Check for pre-existent .lock files in the commit.
+# 9.  Trigger next workflow if all checks pass.
+# 10. Handle unspecified errors with a catch-all error handler.
 
 # Exit Codes:
-# 20 - Not executing within a git directory.
 # 21 - Username contains invalid characters.
 # 22 - Email format is invalid.
 # 23 - Commit message contains invalid characters.
@@ -36,7 +34,6 @@
 # 30 - Failed to fetch the branch.
 # 31 - Lock file issue.
 # 32 - Failed to trigger the next workflow.
-# 33 - Catch-all for unhandled errors.
 
 ######################################
 
@@ -57,20 +54,8 @@ jobs:
     if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
 
     steps:
-    # Step 1: Verify the workflow is running inside a git repository.
-    - name: Verify Git Environment
-      run: |
- 
-        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-          echo "##[debug][repository] Execution confirmed inside git repository."
-          git config user.name "${{ github.repository_owner }}"
-          git config user.email "${{ vars.EMAIL }}"
-        else
-          echo "##[error][repository] Not executing within a git directory."
-          exit 20
-        fi
 
-    # Step 2: Sanitisation and validation of untrusted user-controlled details.
+    # Step 1: Sanitisation and validation of untrusted user-controlled details.
     - name: Sanitise and Validate User Details
       run: |
  
@@ -106,7 +91,7 @@ jobs:
 
         echo "##[info][sanitise] Sanitisation and validation completed successfully."
 
-    # Step 3: Branch name validation.
+    # Step 2: Branch name validation.
     - name: Validate Branch Name
       run: |
  
@@ -126,7 +111,7 @@ jobs:
             fi
         done
 
-    # Step 4: Commit reversion if the branch name is unknown.
+    # Step 3: Commit reversion if the branch name is unknown.
     - name: Revert Unknown Branch Commits
       if: env.isValidBranch == 'false'
       run: |
@@ -174,7 +159,7 @@ jobs:
         echo "##[warn][revert] Last commit was reverted."
         exit 0
 
-    # Step 5: Checkout repository using SHA.
+    # Step 4: Checkout repository using SHA.
     - name: Checkout SHA Repository
       id: checkout-sha
       uses: actions/checkout@v3.6.0
@@ -182,7 +167,7 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 6: Validate SHA checkout.
+    # Step 5: Validate SHA checkout.
     - name: Validate Checkout
       run: |
  
@@ -191,7 +176,7 @@ jobs:
             exit 26
         fi
 
-    # Step 7: Ensure commit is unique to existing remote SHA branches.
+    # Step 6: Ensure commit is unique to existing remote SHA branches.
     - name: Check Commit Uniqueness
       run: |
  
@@ -209,7 +194,7 @@ jobs:
             exit 28
         fi
 
-    # Step 8: Validation of the .csproj file.
+    # Step 7: Validation of the .csproj file.
     - name: Validate .csproj File
       run: |
  
@@ -221,7 +206,7 @@ jobs:
             exit 29
         fi
 
-    # Step 9: Check for pre-existent .lock files in history.
+    # Step 8: Check for pre-existent .lock files in history.
     - name: Check for Pre-Existent .lock Files
       run: |
  
@@ -236,7 +221,7 @@ jobs:
             exit 31
         fi
 
-    # Step 10: Trigger next workflow if all checks pass.
+    # Step 9: Trigger next workflow if all checks pass.
     - name: Trigger Next Workflow and Dispatch Success Event
       if: success()
       run: |
@@ -289,11 +274,3 @@ jobs:
             break
           fi
         done
-
-    # Step 11: Catch-all for unspecified errors.
-    - name: Catch-All Error Handler
-      if: failure()
-      run: |
- 
-        echo "##[error][unhandled] An unidentified error has occurred."
-        exit 33
