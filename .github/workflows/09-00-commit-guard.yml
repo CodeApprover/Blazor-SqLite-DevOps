@@ -23,7 +23,7 @@
 # 11. Catch all for failures reports on any failures in this workflow execution.
 
 # Exit Codes:
-# 24 - Failed to revert commit. (Reused)
+# 24 - Failed to reset repository. (Reused)
 # 25 - Failed to push reversion. (Reused)
 # 26 - SHA checkout failure. (Reused)
 
@@ -137,71 +137,59 @@ jobs:
             exit 26
         fi
 
-    # Step 5: Revert the commits based on the SHA.
-    - name: Revert Commit(s) Based on SHA
+    # Step 5: Reset to the desired commit.
+    - name: Reset to the Commit Before Problematic One
+      id: reset_commit
       run: |
  
-        determine_target_sha() {
-          if [[ "${{ env.SHA }}" ]]; then
-            echo "${{ env.SHA }}"
-          else
-            echo "${{ github.event.workflow_run.head_sha }}"
-          fi
-        }
-        TARGET_SHA=$(determine_target_sha)
-        echo "##[debug][target-sha] Target SHA for Reversion: $TARGET_SHA"
-    
         git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
-    
-        if [[ "${{ env.SHA }}" ]]; then
-          git revert HEAD || {
-            echo "##[error][revert] Failed to revert commit from ${{ env.SHA }}."
-            exit 24
-          }
+
+        echo "##[debug][reset] Resetting repository to the commit before the latest one."
+        if git reset --hard $(git log --skip 1 -n 1 --pretty=format:"%H"); then
+          echo "##[debug][push] Reset repository."
         else
-          git revert "$TARGET_SHA^..HEAD" || {
-            echo "##[error][revert] Failed to revert commit from 1 before triggreing commit."
-            exit 24
-          }
+          echo "##[error][push] Failed to reset repository."
+          exit 24
         fi
 
-    # Step 6: Push the reversion changes to the origin.
-    - name: Push Reversion Changes
+    # Step 6: Push the changes.
+    - name: Push Changes
+      if: steps.reset_commit.outcome == 'success'
       run: |
  
-        if git push origin HEAD:${{ github.ref }}; then
-          echo "##[debug][push] Pushed reversion."
+        if git push origin HEAD:${{ env.BRANCH_NAME }} --force; then
+          echo "##[debug][push] Pushed changes."
         else
-          echo "##[error][push] Failed to push reversion."
+          echo "##[error][push] Failed to push changes."
           exit 25
         fi
 
-    # Step 7: Delete the latest tag (locally) if it exists.
-    - name: Delete Latest Tag (Locally)
-      run: |
- 
-        latest_tag=$(git describe --tags --abbrev=0)
-        if [[ "$latest_tag" ]]; then
-          git tag -d "$latest_tag" || {
-            echo "##[error][tag] Failed to delete the tag locally."
-            exit 44
-          }
-          echo "##[debug][tag] Deleted tag: $latest_tag locally."
-        fi
-
-    # Step 8: Delete the latest tag (remotely) if it exists.
-    - name: Delete Latest Tag (Remotely)
-      run: |
- 
-        latest_tag=$(git describe --tags --abbrev=0)
-        if [[ "$latest_tag" ]]; then
-          git push --delete origin "$latest_tag" || {
-            echo "##[error][tag] Failed to delete the tag remotely."
-            exit 45
-          }
-          echo "##[debug][tag] Deleted tag: $latest_tag remotely."
-        fi
+        # Step 7: Delete the latest tag (locally) if it exists.
+        - name: Delete Latest Tag (Locally)
+          run: |
+     
+            latest_tag=$(git describe --tags --abbrev=0)
+            if [[ "$latest_tag" ]]; then
+              git tag -d "$latest_tag" || {
+                echo "##[error][tag] Failed to delete the tag locally."
+                exit 44
+              }
+              echo "##[debug][tag] Deleted tag: $latest_tag locally."
+            fi
+    
+        # Step 8: Delete the latest tag (remotely) if it exists.
+        - name: Delete Latest Tag (Remotely)
+          run: |
+     
+            latest_tag=$(git describe --tags --abbrev=0)
+            if [[ "$latest_tag" ]]; then
+              git push --delete origin "$latest_tag" || {
+                echo "##[error][tag] Failed to delete the tag remotely."
+                exit 45
+              }
+              echo "##[debug][tag] Deleted tag: $latest_tag remotely."
+            fi
 
     # Step 9: Set Relevant Team members.
     - name: Notify Relevant Teams and Committer
@@ -297,9 +285,8 @@ jobs:
           ISSUE_TITLE="Commit Guard Workflow Error: ${{ github.run_id }}"
           ISSUE_BODY=$(echo "Hello @${{ github.repository_owner }}
 
-          An unexpected error occurred during the execution of the ${{ github.workflow }} workflow.#
+          An unexpected error occurred during the execution of the ${{ github.workflow }} workflow.
           Check the logs for more details. 
-
           Workflow ID: ${{ github.run_id }}")
 
           create_issue() {
