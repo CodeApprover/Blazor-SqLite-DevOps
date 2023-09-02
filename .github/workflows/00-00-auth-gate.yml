@@ -96,7 +96,6 @@ jobs:
         exit 0
 
     - name: Checkout SHA Repository # Step 4
-      id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
@@ -158,8 +157,8 @@ jobs:
     - name: Upload github.sha as Build Artifact # Step 10
       uses: actions/upload-artifact@v3.1.2            
       with:
-        name: original_sha
-        path: .original_sha
+        name: original-sha
+        path: .original.sha
 
     - name: Remove SHA file # Step 11
       run: rm .original_sha
