@@ -260,7 +260,7 @@ jobs:
         fi
 
     # Step 10: Catch-all for failures.
-    - name: Catch-all for unspecified errors
+    - name: Catch-all for Unexpected Errors
       if: ${{ always() }}
       run: |
  
