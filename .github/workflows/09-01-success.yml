@@ -17,15 +17,13 @@
 # 5.  Notifications are sent to relevant teams and the original committer.
 
 # Exit Codes:
-# 26 - SHA checkout failure. (Reused)
-# 33 - Catch-all for unhandled errors. (Reused)
-# 42 - Lock file has invalid SHA. (Reused)
-# 43 - Lock file not found. (Reused)
-# 46 - Failed to notify teams and committer. (Reused)
-
-# 60 - Failed to update API status to success.
-# 61 - Failed to deploy via API call.
-# 62 - Failed to delete lock file.
+# 60 - SHA checkout failure.
+# 61 - Failed to update API status to success.
+# 62 - Failed to deploy via API call.
+# 63 - Lock file not found.
+# 64 - Lock file content does not match the expected SHA.
+# 65 - Failed to delete lock file.
+# 66 - Failed to notify teams and committer. (Reused)
 
 ######################################
 
@@ -49,25 +47,22 @@ jobs:
 
     steps:
 
-    # Step 1: Checkout repository using SHA.
-    - name: Checkout SHA Repository
+    - name: Checkout SHA Repository # Step 1
       id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 2: Validate SHA checkout.
-    - name: Validate Checkout
+    - name: Validate Checkout # Step 2
       run: |
  
         if [ $? -ne 0 ]; then
             echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
-            exit 26
+            exit 60
         fi
 
-    # Step 3: Update the deployment status on GitHub.
-    - name: Update Deployment Status
+    - name: Update Deployment Status # Step 3
       run: |
  
         echo "##[debug][status-update] Attempting to update the deployment status."
@@ -88,7 +83,7 @@ jobs:
         
         if [ $? -ne 0 ]; then
           echo "##[error][status] Failed to update API status to success."
-          exit 60
+          exit 61
         fi
 
         CMD_DEPLOY=$(echo "gh api --method POST" \
@@ -103,11 +98,10 @@ jobs:
         
         if [ $? -ne 0 ]; then
           echo "##[error][status] Failed to deploy via API call."
-          exit 61
+          exit 62
         fi
 
-    # Step 4: Find any lock file related to the SHA and delete it.
-    - name: Find and Delete Lock File
+    - name: Find and Delete Lock File # Step 4
       run: |
  
         echo "##[debug][lock] Determining lock file name based on branch ${{ env.SHA_BRANCH }}."
@@ -124,13 +118,13 @@ jobs:
 
         if [[ -z "$lock_file_path" ]]; then
           echo "##[error][lock] Failed to find lock file $lock_file."
-          exit 43
+          exit 63
         fi
 
         echo "##[debug][lock] Checking lock file content matches env.SHA and if so deleting it."
         if [[ $(cat "$lock_file_path") != "${{ env.SHA }}" ]]; then
           echo "##[error][lock] Lock file content does not match the expected SHA."
-          exit 42
+          exit 64
         fi
 
         git config user.name "${{ github.repository_owner}}"
@@ -142,11 +136,10 @@ jobs:
 
         if [ $? -ne 0 ]; then
           echo "##[error][lock] Failed to delete lock file."
-          exit 62
+          exit 65
         fi
 
-    # Step 5: Notify Relevant Parties of Deployment Success.
-    - name: Notify Relevant Teams and Committer
+    - name: Notify Relevant Teams and Committer # Step 5
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
@@ -210,5 +203,5 @@ jobs:
 
         if [ $? -ne 0 ]; then
           echo "##[error][notify] Issue creation encountered an error."
-          exit 46
+          exit 66
         fi
