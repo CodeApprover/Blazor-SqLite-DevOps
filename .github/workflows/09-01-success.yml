@@ -10,16 +10,13 @@
 # Trigger: Activated upon receiving the event `Deployment Success`.
 
 # Logical Flow (Steps):
-# 1.  The workflow starts by verifying that it's being executed within a git repository.
-# 2.  It then checks out the specific SHA from the repository.
-# 3.  A verification step ensures the checkout was successful.
-# 4.  The deployment status on GitHub is updated.
-# 5.  Any existing lock file related to the SHA is searched for and deleted.
-# 6.  Notifications are sent to relevant teams and the original committer.
-# 7.  Catch-all for unspecified errors.
+# 1.  Checks out the specific SHA from the repository.
+# 2.  Verification ensures the checkout was successful.
+# 3.  The deployment status on GitHub is updated.
+# 4.  Any existing lock file related to the SHA is searched for and deleted.
+# 5.  Notifications are sent to relevant teams and the original committer.
 
 # Exit Codes:
-# 20 - Not executing within a git directory. (Reused)
 # 26 - SHA checkout failure. (Reused)
 # 33 - Catch-all for unhandled errors. (Reused)
 # 42 - Lock file has invalid SHA. (Reused)
@@ -52,18 +49,7 @@ jobs:
 
     steps:
 
-    # Step 1: Verify the workflow is running inside a git repository.
-    - name: Verify Workflow Run is Git Repository
-      run: |
- 
-        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-          echo "##[debug][repo-run] Execution confirmed inside git repository."
-        else
-          echo "##[error][repo-run] Not executing within a git directory."
-          exit 20
-        fi
-
-    # Step 2: Checkout repository using SHA.
+    # Step 1: Checkout repository using SHA.
     - name: Checkout SHA Repository
       id: checkout-sha
       uses: actions/checkout@v3.6.0
@@ -71,7 +57,7 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 3: Validate SHA checkout.
+    # Step 2: Validate SHA checkout.
     - name: Validate Checkout
       run: |
  
@@ -80,7 +66,7 @@ jobs:
             exit 26
         fi
 
-    # Step 4: Update the deployment status on GitHub.
+    # Step 3: Update the deployment status on GitHub.
     - name: Update Deployment Status
       run: |
  
@@ -120,7 +106,7 @@ jobs:
           exit 61
         fi
 
-    # Step 5: Find any lock file related to the SHA and delete it.
+    # Step 4: Find any lock file related to the SHA and delete it.
     - name: Find and Delete Lock File
       run: |
  
@@ -159,7 +145,7 @@ jobs:
           exit 62
         fi
 
-    # Step 6: Notify Relevant Parties of Deployment Success.
+    # Step 5: Notify Relevant Parties of Deployment Success.
     - name: Notify Relevant Teams and Committer
       run: |
  
@@ -226,11 +212,3 @@ jobs:
           echo "##[error][notify] Issue creation encountered an error."
           exit 46
         fi
-
-    # Step 7: Catch-all for Unspecified Errors.
-    - name: Catch-All Error Handler
-      if: failure()
-      run: |
- 
-        echo "##[error][unhandled] An unidentified error has occurred."
-        exit 33
