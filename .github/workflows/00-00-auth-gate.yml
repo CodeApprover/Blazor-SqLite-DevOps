@@ -234,13 +234,13 @@ jobs:
         fi
 
     - name: Save SHA to file # Step 9
-      run: echo "${{ github.sha }}" > ~/.original_sha
+      run: echo "${{ github.sha }}" > .original_sha
 
     - name: Upload github.sha as Build Artifact # Step 10
       uses: actions/upload-artifact@v3.1.2            
       with:
         name: original_sha
-        path: ~/.original_sha
+        path: .original_sha
 
     - name: Remove SHA file # Step 11
       run: rm ~/.original_sha
