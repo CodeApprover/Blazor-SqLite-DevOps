@@ -80,10 +80,10 @@ jobs:
       
         echo "##[debug] Fetching the name of the original committer of the commit."
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
-        
+
         echo "##[debug] Fetchibg the commit message of the payload commit."
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
-    
+
         echo "##[debug] Determining the relevant team to notify based on SHA_BRANCH."
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
           TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
@@ -109,11 +109,11 @@ jobs:
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
         MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
 
-          Commit: ${{ env.SHA }} 
-          Commit Message: $COMMIT_MESSAGE
+          Commit: ${{ env.SHA }}
           Committer: $ORIGINAL_COMMITTER
+          Commit Message: $COMMIT_MESSAGE
           
-          Commit ${{ env.SHA }} has been successfully deployed to ${{ env.SHA_BRANCH }}.        
+          Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.    
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 
           Thank you for your contribution @$ORIGINAL_COMMITTER")
@@ -134,6 +134,6 @@ jobs:
           echo "##[debug] ISSUE COMMAND: $CURL_CMD"
           eval "$CURL_CMD"
         }
-        
+
         echo "##[debug] Create issue in the repository with the constructed title and body."
         create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
