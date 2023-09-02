@@ -19,22 +19,23 @@
 # 7.  Delete the latest tag locally (if it exists).
 # 8.  Delete the latest tag remotely (if it exists).
 # 9.  Set relevant team members.
-# 10. Notify team about the reverted commit.
-# 11. Catch all for failures reports on any failures in this workflow execution.
+# 10. Notify team about the reverted commit by creating an issue.
+# 11. Catch all captures failures in this workflow execution and creates an issue.
 
 # Exit Codes:
-# 24 - Failed to reset repository. (Reused)
-# 25 - Failed to push reversion. (Reused)
-# 26 - SHA checkout failure. (Reused)
-
-# 40 - Branch name is not populated.
-# 41 - Environment is not populated.
-# 42 - Lock file has invalid SHA.
-# 43 - Lock file not found.
-# 44 - Failed to delete the tag locally.
-# 45 - Failed to delete the tag remotely.
-# 46 - Failed to notify teams and committer.
-# 47 - Catch-all for failures
+# 40 - SHA is not populated.
+# 41 - Branch name is not populated.
+# 42 - Environment is not populated.
+# 43 - Lock file has invalid SHA.
+# 44 - Lock file not found.
+# 45 - SHA checkout failure.
+# 46 - Invalid or empty SHA.
+# 47 - Failed to reset repository to previous SHA.
+# 48 - Failed to push changes.
+# 49 - Failed to delete the tag locally.
+# 50 - Failed to delete the tag remotely.
+# 51 - Failed to notify teams and committer.
+# 52 - Catch-all for Unexpected Errors.
 
 ######################################
 
@@ -75,8 +76,21 @@ jobs:
     
     steps:
 
-    # Step 1: Extract branch from github ref and environment from branch.
-    - name: Determine Deployment Context
+    - name: Download SHA as Build Artifact # Step 1
+      uses: actions/download-artifact@v3
+      with:
+        name: original_sha
+
+    - name: Verify SHA Retrieval and Set env.SHA # Step 2
+      run: |
+ 
+        if [[ steps.retrieve-cached-sha.outputs.cache-hit != 'true' ]]"; then
+          echo "##[error][sha] SHA is not populated."
+          exit 40
+        fi
+        echo "SHA=$(cat .original_sha)" >> $GITHUB_ENV
+
+    - name: Determine Deployment Context # Step 3
       run: |
  
         echo "##[debug][extract] setting branch name from github.ref"
@@ -85,7 +99,7 @@ jobs:
         SHA_BRANCH=${branch#refs/heads/}
         if [[ -z "$SHA_BRANCH" ]]; then
           echo "##[error][extract] Branch name is not populated."
-          exit 40
+          exit 41
         fi
         echo "##[debug][extract] Branch Name: $SHA_BRANCH"
 
@@ -93,15 +107,14 @@ jobs:
         environment=${SHA_BRANCH#code-}
         if [[ -z "$environment" ]]; then
           echo "##[error][extract] Environment is not populated."
-          exit 41
+          exit 42
         fi
         echo "##[debug][extract] Environment: $environment"
 
         echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    # Step 2: Identify lock file and extract SHA.
-    - name: Retrieve Commit SHA from Lock File
+    - name: Retrieve Commit SHA from Lock File # Step 4
       run: |
  
         lock_file_path=$(find . -name "${{ env.ENVIRONMENT }}.lock" | head -n 1)
@@ -111,34 +124,31 @@ jobs:
           sha=$(cat "$lock_file_path")
           if ! [[ ${#sha} -eq 40 && $sha =~ ^[0-9a-fA-F]+$ ]]; then
             echo "##[error][lockfile] Lock file $lock_file_path has invalid sha $sha."
-            exit 42
+            exit 43
           fi
           echo "##[debug][lockfile] Lock File SHA: $sha"
           echo "SHA=$sha" >> $GITHUB_ENV
         else
           echo "##[error][lockfile] Lock file not found for the ${{ env.ENVIRONMENT }} environment."
-          exit 43
+          exit 44
         fi
 
-    # Step 3: Checkout repository using SHA.
-    - name: Checkout SHA Repository
+    - name: Checkout SHA Repository # Step 5
       id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 4: Validate SHA checkout.
-    - name: Validate Checkout
+    - name: Validate Checkout # Step 6
       run: |
  
         if [ $? -ne 0 ]; then
             echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
-            exit 26
+            exit 45
         fi
 
-    # Step 5: Reset to the commit before the problematic SHA.
-    - name: Reset to Commit Before Problematic SHA
+    - name: Reset to Commit Before Problematic SHA # Step 7
       id: reset_commit
       run: |
      
@@ -147,8 +157,8 @@ jobs:
         
         echo "##[debug][reset] Checking if SHA ${{ env.SHA }} is valid."
         if [ -z "${{ env.SHA }}" ] || ! git cat-file -e "${{ env.SHA }}^{commit}"; then
-          echo "##[error][reset] Invalid or empty SHA: ${{ env.SHA }}"
-          exit 26
+          echo "##[error][reset] Invalid or empty SHA ${{ env.SHA }}"
+          exit 46
         fi
     
         echo "##[debug][reset] Getting the commit just before the problematic SHA: $PREVIOUS_SHA."
@@ -158,12 +168,11 @@ jobs:
         if git reset --hard $PREVIOUS_SHA; then
           echo "##[debug][reset] Reset repository to $PREVIOUS_SHA"
         else
-          echo "##[error][reset] Failed to reset repository to $PREVIOUS_SHA"
-          exit 24
+          echo "##[error][reset] Failed to reset repository to previous SHA $PREVIOUS_SHA"
+          exit 47
         fi
 
-    # Step 6: Push the changes.
-    - name: Push Changes
+    - name: Push Changes # Step 8
       if: steps.reset_commit.outcome == 'success'
       run: |
  
@@ -171,37 +180,34 @@ jobs:
           echo "##[debug][push] Pushed changes."
         else
           echo "##[error][push] Failed to push changes."
-          exit 25
+          exit 48
         fi
 
-    # Step 7: Delete the latest tag (locally) if it exists.
-    - name: Delete Latest Tag (Locally)
+    - name: Delete Latest Tag (Locally) # Step 9
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
         if [[ "$latest_tag" ]]; then
           git tag -d "$latest_tag" || {
             echo "##[error][tag] Failed to delete the tag locally."
-            exit 44
+            exit 49
           }
           echo "##[debug][tag] Deleted tag: $latest_tag locally."
         fi
 
-    # Step 8: Delete the latest tag (remotely) if it exists.
-    - name: Delete Latest Tag (Remotely)
+    - name: Delete Latest Tag (Remotely) # Step 10
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
         if [[ "$latest_tag" ]]; then
           git push --delete origin "$latest_tag" || {
             echo "##[error][tag] Failed to delete the tag remotely."
-            exit 45
+            exit 50
           }
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    # Step 9: Set Relevant Team members.
-    - name: Notify Relevant Teams and Committer
+    - name: Notify Relevant Teams and Committer # Step 11
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
@@ -265,11 +271,10 @@ jobs:
 
         if [ $? -ne 0 ]; then
           echo "##[error][notify] Failed to notify teams and committer."
-          exit 46
+          exit 51
         fi
 
-    # Step 10: Catch-all for failures.
-    - name: Catch-all for Unexpected Errors
+    - name: Catch-all for Unexpected Errors # Step 12
       if: ${{ always() }}
       run: |
  
@@ -319,4 +324,4 @@ jobs:
         fi
         
         echo "##[error][catch-all] An error has occurred executing ${{ github.workflow }} run ${{ github.run_id }}"
-        exit 33
+        exit 52
