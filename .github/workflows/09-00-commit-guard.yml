@@ -19,6 +19,7 @@
 # 7.  Delete the latest tag locally (if it exists).
 # 8.  Delete the latest tag remotely (if it exists).
 # 9.  Notify relevant teams and the original committer about the reverted commit.
+# 10. Catch all for failures reports on any failures in this workflow execution.
 
 # Exit Codes:
 # 24 - Failed to revert commit. (Reused)
@@ -32,6 +33,7 @@
 # 44 - Failed to delete the tag locally.
 # 45 - Failed to delete the tag remotely.
 # 46 - Failed to notify teams and committer.
+# 47 - Catch-all for failures
 
 ######################################
 
@@ -267,3 +269,11 @@ jobs:
           echo "##[error][notify] Failed to notify teams and committer."
           exit 46
         fi
+
+    # Step 10: Catch-all for failures.
+    - name: Catch-all for unspecified errors
+      if: ${{ always() }}
+      run: |
+ 
+        echo "##[error][unhandled] An error has occurred."
+        exit 33
