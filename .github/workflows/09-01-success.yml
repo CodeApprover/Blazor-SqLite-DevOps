@@ -66,7 +66,7 @@ jobs:
         echo "##[debug] Searching for lock file $lock_file_name"
         lock_file_path=$(find . -name "$lock_file_name" | head -n 1)
 
-        echo "##[debug] If found and content matches env.SHA deleting lock file"
+        echo "##[debug] Checking lock file content matches env.SHA and if so deleting it."
         if [[ -n "$lock_file_path" && $(cat "$lock_file_path") == "${{ env.SHA }}" ]]; then
           git config user.name "${{ github.repository_owner}}"
           git config user.email "${{ vars.EMAIL }}"
@@ -78,13 +78,13 @@ jobs:
     - name: Notify Relevant Teams and Committer
       run: |
       
-        # Fetch the name of the original committer of the commit
+        echo "##[debug] Fetching the name of the original committer of the commit."
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
         
-        # Fetch the commit message of the commit
+        echo "##[debug] Fetchibg the commit message of the payload commit."
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
     
-        # Determine the relevant team to notify based on SHA_BRANCH
+        echo "##[debug] Determining the relevant team to notify based on SHA_BRANCH."
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
           TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
           ADDITIONAL_MESSAGE="The code-staging branch has received an update."
@@ -96,7 +96,7 @@ jobs:
           ADDITIONAL_MESSAGE=""
         fi
 
-        # Convert CSV list to space-separated list with "@" prefixed and remove duplicates
+        echo "##[debug] Converting CSV list to space-separated list with "@" prefixed and remove duplicates."
         format_team_to_notify() {
           local csv="$1"
           echo "$csv" | tr ',' '\n' | sort | uniq | awk '{print "@"$0}' | tr '\n' ' '
@@ -105,7 +105,7 @@ jobs:
         echo "##[debug] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
         echo "##[debug] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
 
-        # Construct notification title and body
+        echo "##[debug] Constructing notification title and body."
         MESSAGE_TITLE="Commit Accepted: ${{ env.SHA }}"
         MESSAGE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
 
@@ -113,13 +113,12 @@ jobs:
           Commit Message: $COMMIT_MESSAGE
           Committer: $ORIGINAL_COMMITTER
           
-          Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.
-          
+          Commit ${{ env.SHA }} has been successfully deployed to ${{ env.SHA_BRANCH }}.        
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 
           Thank you for your contribution @$ORIGINAL_COMMITTER")
 
-        # Set create issue command
+        echo "##[debug] Setting issue command."
         create_issue() {
           local title="$1"
           local body="$2"
@@ -136,5 +135,5 @@ jobs:
           eval "$CURL_CMD"
         }
         
-        # Create issue in the repository with the constructed title and body
+        echo "##[debug] Create issue in the repository with the constructed title and body."
         create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
