@@ -297,7 +297,8 @@ jobs:
           ISSUE_TITLE="Commit Guard Workflow Error: ${{ github.run_id }}"
           ISSUE_BODY=$(echo "Hello @${{ github.repository_owner }}
 
-          An error occurred during the execution of the Commit Guard workflow. Check the logs for more details. 
+          An unexpected error occurred during the execution of the ${{ github.workflow }} workflow.#
+          Check the logs for more details. 
 
           Workflow ID: ${{ github.run_id }}")
 
