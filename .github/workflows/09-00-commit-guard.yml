@@ -10,24 +10,20 @@
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  Verify the workflow is running inside a git repository.
-# 2.  Extract branch from GitHub ref and determine environment from branch.
-# 3.  Identify lock file and extract SHA.
-# 4.  Checkout the repository using the SHA from the lock file.
-# 5.  Validate the SHA checkout.
-# 6.  Revert the commits based on the SHA.
-# 7.  Push the reversion changes to the origin.
-# 8.  Delete the latest tag locally (if it exists).
-# 9.  Delete the latest tag remotely (if it exists).
-# 10. Notify relevant teams and the original committer about the reverted commit.
-# 11. Catch-all for unspecified errors.
+# 1.  Extract branch from GitHub ref and determine environment from branch.
+# 2.  Identify lock file and extract SHA.
+# 3.  Checkout the repository using the SHA from the lock file.
+# 4.  Validate the SHA checkout.
+# 5.  Revert the commits based on the SHA.
+# 6.  Push the reversion changes to the origin.
+# 7.  Delete the latest tag locally (if it exists).
+# 8.  Delete the latest tag remotely (if it exists).
+# 9.  Notify relevant teams and the original committer about the reverted commit.
 
 # Exit Codes:
-# 20 - Not executing within a git directory. (Reused)
 # 24 - Failed to revert commit. (Reused)
 # 25 - Failed to push reversion. (Reused)
 # 26 - SHA checkout failure. (Reused)
-# 33 - Catch-all for unhandled errors. (Reused)
 
 # 40 - Branch name is not populated.
 # 41 - Environment is not populated.
@@ -76,18 +72,7 @@ jobs:
     
     steps:
 
-    # Step 1: Verify the workflow is running inside a git repository.
-    - name: Verify Git Environment
-      run: |
- 
-        if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-          echo "##[debug][repository] Execution confirmed inside git repository."
-        else
-          echo "##[error][repository] Not executing within a git directory."
-          exit 20
-        fi
-
-    # Step 2: Extract branch from github ref and environment from branch.
+    # Step 1: Extract branch from github ref and environment from branch.
     - name: Determine Deployment Context
       run: |
  
@@ -109,7 +94,7 @@ jobs:
         echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    # Step 3: Identify lock file and extract SHA.
+    # Step 2: Identify lock file and extract SHA.
     - name: Retrieve Commit SHA from Lock File
       run: |
  
@@ -130,7 +115,7 @@ jobs:
           exit 43
         fi
 
-    # Step 4: Checkout repository using SHA.
+    # Step 3: Checkout repository using SHA.
     - name: Checkout SHA Repository
       id: checkout-sha
       uses: actions/checkout@v3.6.0
@@ -138,7 +123,7 @@ jobs:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    # Step 5: Validate SHA checkout.
+    # Step 4: Validate SHA checkout.
     - name: Validate Checkout
       run: |
  
@@ -147,7 +132,7 @@ jobs:
             exit 26
         fi
 
-    # Step 6: Revert the commits based on the SHA.
+    # Step 5: Revert the commits based on the SHA.
     - name: Revert Commit(s) Based on SHA
       run: |
  
@@ -176,7 +161,7 @@ jobs:
           }
         fi
 
-    # Step 7: Push the reversion changes to the origin.
+    # Step 6: Push the reversion changes to the origin.
     - name: Push Reversion Changes
       run: |
  
@@ -187,7 +172,7 @@ jobs:
           exit 25
         fi
 
-    # Step 8: Delete the latest tag (locally) if it exists.
+    # Step 7: Delete the latest tag (locally) if it exists.
     - name: Delete Latest Tag (Locally)
       run: |
  
@@ -200,7 +185,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag locally."
         fi
 
-    # Step 9: Delete the latest tag (remotely) if it exists.
+    # Step 8: Delete the latest tag (remotely) if it exists.
     - name: Delete Latest Tag (Remotely)
       run: |
  
@@ -213,7 +198,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    # Step 10: Notify Relevant Parties of Reversion.
+    # Step 9: Notify Relevant Parties of Reversion.
     - name: Notify Relevant Teams and Committer
       run: |
  
@@ -280,11 +265,3 @@ jobs:
           echo "##[error][notify] Failed to notify teams and committer."
           exit 46
         fi
-
-    # Step 11: Catch-all for unspecified errors.
-    - name: Catch-all for unspecified errors
-      if: ${{ always() }}
-      run: |
- 
-        echo "##[error][unhandled] An unidentified error has occurred."
-        exit 33
