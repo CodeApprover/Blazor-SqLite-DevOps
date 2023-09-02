@@ -18,8 +18,9 @@
 # 6.  Push the reversion changes to the origin.
 # 7.  Delete the latest tag locally (if it exists).
 # 8.  Delete the latest tag remotely (if it exists).
-# 9.  Notify relevant teams and the original committer about the reverted commit.
-# 10. Catch all for failures reports on any failures in this workflow execution.
+# 9.  Set relevant team members.
+# 10. Notify team about the reverted commit.
+# 11. Catch all for failures reports on any failures in this workflow execution.
 
 # Exit Codes:
 # 24 - Failed to revert commit. (Reused)
@@ -202,7 +203,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    # Step 9: Notify Relevant Parties of Reversion.
+    # Step 9: Set Relevant Team members.
     - name: Notify Relevant Teams and Committer
       run: |
  
@@ -275,5 +276,50 @@ jobs:
       if: ${{ always() }}
       run: |
  
-        echo "##[error][unhandled] An error has occurred."
+        echo "##[debug][catch-all] Check if an issue with title "Commit Guard Workflow Error: ${{ github.run_id }}" already exists."
+
+        BASE_URL="https://api.github.com/search/issues"
+        REPO_PARAM="repo:${{ github.repository }}"
+        TYPE_PARAM="type:issue"
+        STATE_PARAM="state:open"
+        TITLE_PARAM="in:title"
+        ERROR_PARAM="Commit+Guard+Workflow+Error:${{ github.run_id }}"
+        FULL_URL=$(echo "${BASE_URL}?q=${REPO_PARAM}+${TYPE_PARAM}+${STATE_PARAM}+${TITLE_PARAM}+${ERROR_PARAM}")
+        
+        issue_exists=$(curl \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "$FULL_URL" \
+          | jq '.total_count')
+
+        if [[ $issue_exists -eq 0 ]]; then
+          echo "##[debug][catch-all] Constructing notification title and body  to the previous step."
+          ISSUE_TITLE="Commit Guard Workflow Error: ${{ github.run_id }}"
+          ISSUE_BODY=$(echo "Hello @${{ github.repository_owner }}
+
+          An error occurred during the execution of the Commit Guard workflow. Check the logs for more details. 
+
+          Workflow ID: ${{ github.run_id }}")
+
+          create_issue() {
+            local title="$1"
+            local body="$2"
+            payload=$(jq -n \
+              --arg title "$title" \
+              --arg body "$body" \
+              '{title: $title, body: $body}')
+            CURL_CMD=$(echo "curl -X POST" \
+              "-H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\"" \
+              "-H \"Accept: application/vnd.github.v3+json\"" \
+              "https://api.github.com/repos/${{ github.repository }}/issues" \
+              "-d '$payload'")
+            echo "##[debug][catch-all] ISSUE COMMAND: $CURL_CMD"
+            eval "$CURL_CMD"
+          }
+
+          echo "##[debug][catch-all] Creating issue in the repository with the constructed title and body."
+          create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
+        fi
+        
+        echo "##[error][catch-all] An error has occurred executing ${{ github.workflow }} run ${{ github.run_id }}"
         exit 33
