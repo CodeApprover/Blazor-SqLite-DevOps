@@ -17,11 +17,9 @@
 # 5.  Upon successful caching, the workflow triggers the next workflow in the pipeline.
 
 # Exit Codes:
-# 26 - SHA checkout failure. (Reused)
-
-# 50 - Dotnet restore failed for ${{ env.CSPROJ }}
-# 91 - Failed to trigger the next workflow. (Reused)
-# 99 - Catch-all for unhandled errors. (Reused)
+# 70 - SHA checkout failure.
+# 71 - Dotnet restore failed for .csproj
+# 72 - Failed to trigger the next workflow.
 
 ######################################
 
@@ -59,7 +57,7 @@ jobs:
  
         if [ $? -ne 0 ]; then
             echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
-            exit 26
+            exit 70
         fi
 
     # Step 3: Restore dotnet project to acquire eg: nuget packages
@@ -70,7 +68,7 @@ jobs:
         dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed
         if [ $? -ne 0 ]; then
           echo "##[error][dotnet] Dotnet restore failed for .csproj ${{ env.CSPROJ }}"
-          exit 50
+          exit 71
         fi
         echo "##[debug][dotnet] Restored .NET dependencies for ${{ env.CSPROJ }}"
 
@@ -78,10 +76,10 @@ jobs:
     - name: Cache dotnet Dependencies
       uses: actions/cache@v3.3.1
       with:
+        name: cache-dotnet
         path: ~/.nuget/packages
         key: ${{ runner.os }}-dotnet-${{ hashFiles('${{ env.SHA }}') }}
-        restore-keys: |
-          ${{ runner.os }}-dotnet-
+        restore-keys: ${{ runner.os }}-dotnet-
 
     # Step 5: Trigger next workflow if all checks pass.
     - name: Trigger Next Workflow and Dispatch Success Event
@@ -129,7 +127,7 @@ jobs:
               sleep ${{ vars.WAIT_SECONDS }}
             else
               echo "##[error][trigger] All retries exhausted. Failed to trigger ${{ env.NEXT_WORKFLOW }}."
-              exit 32
+              exit 72
             fi
           else
             echo "##[info][trigger] ${{ env.NEXT_WORKFLOW }} successfully triggered."
