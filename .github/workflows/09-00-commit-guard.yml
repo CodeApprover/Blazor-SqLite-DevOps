@@ -79,7 +79,7 @@ jobs:
     - name: Download SHA as Build Artifact # Step 1
       uses: actions/download-artifact@v3
       with:
-        name: original_sha
+        name: original-sha
 
     - name: Verify SHA Retrieval and Set env.SHA # Step 2
       run: |
