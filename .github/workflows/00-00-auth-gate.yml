@@ -25,7 +25,7 @@
 # 21 - Username contains invalid characters.
 # 22 - Email format is invalid.
 # 23 - Commit message contains invalid characters.
-# 24 - Failed to revert commit.
+# 24 - Failed to reset repository.
 # 25 - Failed to push reversion.
 # 26 - SHA checkout failure.
 # 27 - No branches found containing the commit.
@@ -130,7 +130,7 @@ jobs:
 
         git reset HEAD --hard
         if [[ $? -ne 0 ]]; then
-            echo "##[error][revert] Failed to revert commit."
+            echo "##[error][revert] Failed to reset repository."
             exit 24
         fi
 
@@ -226,8 +226,7 @@ jobs:
       if: success()
       run: |
  
-        echo "##[info][trigger] Sending success event for Authentication Gate workflow."
-
+        echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
         SUCCESS_CMD=$(echo "curl -L -X POST" \
          "-H \"Accept: application/vnd.github+json\"" \
          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
@@ -242,8 +241,6 @@ jobs:
         else
           echo "##[info][trigger] Success event dispatched."
         fi
-
-        echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
 
         CMD=$(echo "curl -L -X POST" \
          "-H \"Accept: application/vnd.github+json\"" \
