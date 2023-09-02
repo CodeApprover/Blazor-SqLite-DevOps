@@ -77,18 +77,20 @@ jobs:
       run: |
  
         echo "##[debug][extract] setting branch name from github.ref"
-        branch_name=${{ github.ref#refs/heads/ }}
+        branch=${{ github.ref }}
+        branch_name=${branch#refs/heads/}
         if [[ -z "$branch_name" ]]; then
           echo "##[error][extract] Branch name is not populated."
           exit 40
         fi
+        echo "##[debug][extract] Branch Name: $branch_name"
+
         echo "##[debug][extract] setting environment name from branch name $branch_name"
         environment=${branch_name#code-}
         if [[ -z "$environment" ]]; then
           echo "##[error][extract] Environment is not populated."
           exit 41
         fi
-        echo "##[debug][extract] Branch Name: $branch_name"
         echo "##[debug][extract] Environment: $environment"
 
         echo "BRANCH_NAME=$branch_name" >> $GITHUB_ENV
