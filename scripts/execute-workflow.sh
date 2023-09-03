@@ -17,12 +17,14 @@ fi
 branch=$1
 
 # Check if the provided branch option is valid
-if [[ ! " ${available_options[*]} " =~ " $branch " ]]; then
+if [[ ! " ${available_options[*]} " =~ "$branch" ]]; then
     echo "Error: Invalid branch option. Available options are: ${available_options[*]}"
-    exit 1
+    exit 2
 fi
 
 # Configure git user based on the branch
+git config user.name "CodeApprover"
+git config user.email "pucfada@pm.me"
 case $branch in
     code-development)
         git config user.name "Code-Backups"
@@ -31,14 +33,6 @@ case $branch in
     code-staging)
         git config user.name "ScriptShifters"
         git config user.email "lodgings@pm.me"
-    ;;
-    code-production)
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
-    ;;
-    main)
-        git config user.name "CodeApprover"
-        git config user.email "pucfada@pm.me"
     ;;
 esac
 
@@ -71,3 +65,8 @@ for num in $(seq 1 $num_commits); do
     git push
     sleep $wait
 done
+
+# return to main branch and reset git user
+git config user.name "CodeApprover"
+git config user.email "pucfada@pm.me"
+git checkout main
