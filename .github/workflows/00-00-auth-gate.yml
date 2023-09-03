@@ -11,18 +11,16 @@
 # Trigger: Activated upon every push made to any branch.
 
 # Logical Flow (Steps):
-# 1. Sanitise and validate untrusted user-controlled details.
-# 2. Validate branch names.
-# 3. Revert commits if the branch name is unknown.
-# 4. Checkout repository using the commit SHA.
-# 5. Validate the SHA checkout.
-# 6. Ensure commit is unique to existing remote SHA branches.
-# 7. Validate the existence of a .csproj file.
-# 8. Check for pre-existent .lock files in the commit.
-# 9. Save github.sha to a file.
-# 10. Upload github.sha as a build artifact.
-# 11. Delete the temporary github.sha file.
-# 12. Trigger the next workflow if all checks pass.
+# 1.  Sanitise and validate untrusted user-controlled details.
+# 2.  Validate branch names.
+# 3.  Revert commits if the branch name is unknown.
+# 4.  Checkout repository using the commit SHA.
+# 5.  Validate the SHA checkout.
+# 6.  Ensure commit is unique to existing remote SHA branches.
+# 7.  Validate the existence of a .csproj file.
+# 8.  Check for pre-existent .lock files in the commit.
+# 9.  Update Gist with SHA.
+# 10. Trigger the next workflow if all checks pass.
 
 # Exit Codes:
 # 20 - Username contains invalid characters.
@@ -151,20 +149,15 @@ jobs:
             exit 30
         fi
 
-    - name: Save SHA to file # Step 9
-      run: echo "${{ github.sha }}" > .original-sha
+    - name: Update Gist with SHA # Step 9
+      run: |
+ 
+        curl -H "Authorization: token ${{ secrets.AUTH }}" \
+             -X PATCH \
+             -d '{"files": {"auth-gate.sha": {"content": "${{ github.sha }}"}}}' \
+             https://api.github.com/gists/auth-gate-sha
 
-    - name: Upload github.sha as Build Artifact # Step 10
-      uses: actions/upload-artifact@v3.1.2
-      with:
-        name: original-sha
-        path: .original-sha
-        retention-days: 1
-
-    - name: Remove SHA file # Step 11
-      run: rm .original-sha
-
-    - name: Trigger Next Workflow and Dispatch Success Event # Step 12
+    - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
       run: |
  
