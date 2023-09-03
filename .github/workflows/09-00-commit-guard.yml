@@ -80,9 +80,7 @@ jobs:
     - name: Retrieve SHA from Gist # Step 1
       run: |
  
-        curl -H "Authorization: token ${{ secrets.AUTH }}" \
-             https://api.github.com/gists/auth-gate-sha \
-             | jq .files["auth-gate.sha"].content -r > auth-gate.sha
+        curl -H "Authorization: token ${{ secrets.AUTH }}" https://api.github.com/gists/auth-gate-sha | jq '.files["auth-gate.sha"].content' -r > auth-gate.sha
 
         sha=$(cat auth-gate.sha)
         rm auth-gate.sha
