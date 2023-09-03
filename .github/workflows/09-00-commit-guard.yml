@@ -89,18 +89,10 @@ jobs:
         
         content=$(echo "$response" | jq '.files["auth-gate.sha"].content' -r)
         if [[ "$content" == '' ]]; then
-          exit 99
-        fi
-        echo "SHA=$content" >> $GITHUB_ENV
-
-    - name: Verify SHA Retrieval and Set env.SHA # Step 2
-      run: |
- 
-        if [[ steps.retrieve-cached-sha.outputs.cache-hit != 'true' ]]"; then
           echo "##[error][sha] SHA is not populated."
           exit 40
         fi
-        echo "SHA=$(cat .original_sha)" >> $GITHUB_ENV
+        echo "SHA=$content" >> $GITHUB_ENV
 
     - name: Determine Deployment Context # Step 3
       run: |
