@@ -26,7 +26,7 @@ read -p "Do you wish to proceed? (y/n): " -r
 # Check for the user's response
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
-    echo "Exiting without making changes." && exit 1
+    echo "Exiting without making changes." && exit 11
 fi
 
 # Configure git user
@@ -59,7 +59,7 @@ done
 development=$(find ../ -type d -name "development" | head -n 1)
 
 # If the development directory is found
-if [[ ! -z "$development" ]]; then
+if [[ -n "$development" ]]; then
     # Extract the parent directory of the development directory
     parent_dir=$(dirname "$development")
 
@@ -69,30 +69,18 @@ if [[ ! -z "$development" ]]; then
     scripts="$parent_dir/scripts"
 
     # Check if the directories exist
-    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 2
-    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 3
-    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 4
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 12
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 13
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 14
 else
     ls -la ../
-    echo "Development directory not found." && exit 5
+    echo "Development directory not found." && exit 15
 fi
 
-# Check if directories were found, exit if not
-if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
-    ls -la ./
-    echo "Required directories not found." && exit 6
-fi
-
-# Find Files to Remove for each branch:
-
-# For code-development:
-files_to_remove_dev=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-development-.*\.sh$')
-
-# For code-staging:
-files_to_remove_staging=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-staging-.*\.sh$')
-
-# For code-production:
-files_to_remove_production=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-production-.*\.sh$')
+# Find Files to remove for branches:
+files_to_remove_dev=$(find "$scripts" -type f -name "*.sh" | grep -v '-development-')
+files_to_remove_staging=$(find "$scripts" -type f -name "*.sh" | grep -v '-staging-')
+files_to_remove_production=$(find "$scripts" -type f -name "*.sh" | grep -v '-production-')
 
 # Set up code-development
 git checkout -b code-development main
