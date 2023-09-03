@@ -10,17 +10,19 @@
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  Extract branch from GitHub ref and determine environment from branch.
-# 2.  Identify lock file and extract SHA.
-# 3.  Checkout the repository using the SHA from the lock file.
-# 4.  Validate the SHA checkout.
-# 5.  Revert the commits based on the SHA.
-# 6.  Push the reversion changes to the origin.
-# 7.  Delete the latest tag locally (if it exists).
-# 8.  Delete the latest tag remotely (if it exists).
-# 9.  Set relevant team members.
-# 10. Notify team about the reverted commit by creating an issue.
-# 11. Catch all captures failures in this workflow execution and creates an issue.
+# 1.  Configure git user.
+# 2.  Download SHA as build artifact.
+# 3.  Extract branch from GitHub ref and determine environment from branch.
+# 4.  Identify lock file and extract SHA.
+# 5.  Checkout the repository using the SHA from the lock file.
+# 6.  Validate the SHA checkout.
+# 7.  Revert the commits based on the SHA.
+# 8.  Push the reversion changes to the origin.
+# 9.  Delete the latest tag locally (if it exists).
+# 10.  Delete the latest tag remotely (if it exists).
+# 11.  Set relevant team members.
+# 12. Notify team about the reverted commit by creating an issue.
+# 13. Catch all captures failures in this workflow execution and creates an issue.
 
 # Exit Codes:
 # 40 - SHA is not populated.
@@ -76,12 +78,19 @@ jobs:
     
     steps:
 
-    - name: Download SHA as Build Artifact # Step 1
+    - name: Configure Git User # Step 2
+      run: |
+ 
+        git config user.name "${{ github.repository_owner}}"
+        git config user.email "${{ vars.EMAIL }}"
+        
+
+    - name: Download SHA as Build Artifact # Step 2
       uses: actions/download-artifact@v3
       with:
         name: original-sha
 
-    - name: Verify SHA Retrieval and Set env.SHA # Step 2
+    - name: Verify SHA Retrieval and Set env.SHA # Step 3
       run: |
  
         if [[ steps.retrieve-cached-sha.outputs.cache-hit != 'true' ]]"; then
@@ -90,7 +99,7 @@ jobs:
         fi
         echo "SHA=$(cat .original_sha)" >> $GITHUB_ENV
 
-    - name: Determine Deployment Context # Step 3
+    - name: Determine Deployment Context # Step 4
       run: |
  
         echo "##[debug][extract] setting branch name from github.ref"
@@ -114,7 +123,7 @@ jobs:
         echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    - name: Retrieve Commit SHA from Lock File # Step 4
+    - name: Retrieve Commit SHA from Lock File # Step 5
       run: |
  
         lock_file_path=$(find . -name "${{ env.ENVIRONMENT }}.lock" | head -n 1)
@@ -133,14 +142,14 @@ jobs:
           exit 44
         fi
 
-    - name: Checkout SHA Repository # Step 5
+    - name: Checkout SHA Repository # Step 6
       id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    - name: Validate Checkout # Step 6
+    - name: Validate Checkout # Step 7
       run: |
  
         if [ $? -ne 0 ]; then
@@ -148,7 +157,7 @@ jobs:
             exit 45
         fi
 
-    - name: Reset to Commit Before Problematic SHA # Step 7
+    - name: Reset to Commit Before Problematic SHA # Step 8
       id: reset_commit
       run: |
      
@@ -172,7 +181,7 @@ jobs:
           exit 47
         fi
 
-    - name: Push Changes # Step 8
+    - name: Push Changes # Step 9
       if: steps.reset_commit.outcome == 'success'
       run: |
  
@@ -183,7 +192,7 @@ jobs:
           exit 48
         fi
 
-    - name: Delete Latest Tag (Locally) # Step 9
+    - name: Delete Latest Tag (Locally) # Step 10
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
@@ -195,7 +204,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag locally."
         fi
 
-    - name: Delete Latest Tag (Remotely) # Step 10
+    - name: Delete Latest Tag (Remotely) # Step 11
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
@@ -207,7 +216,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    - name: Notify Relevant Teams and Committer # Step 11
+    - name: Notify Relevant Teams and Committer # Step 12
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
@@ -274,7 +283,7 @@ jobs:
           exit 51
         fi
 
-    - name: Catch-all for Unexpected Errors # Step 12
+    - name: Catch-all for Unexpected Errors # Step 13
       if: ${{ always() }}
       run: |
  
