@@ -88,7 +88,7 @@ jobs:
           https://api.github.com/gists/$gist_id)
         
         content=$(echo "$response" | jq '.files["auth-gate.sha"].content' -r)
-        if [[ "$content" == '' ]]
+        if [[ "$content" == '' ]]; then
           exit 99
         fi
         echo "SHA=$content" >> $GITHUB_ENV
