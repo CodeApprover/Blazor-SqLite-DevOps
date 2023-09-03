@@ -248,6 +248,7 @@ jobs:
           https://api.github.com/gists/$gist_id | jq '.files["auth-gate.sha"].content' -r)
         if [ "$content" != "${{ github.sha }}" ]; then
           echo "##[error][gist] Gist content mismatch. Expected: ${{ github.sha }}. Got: $content."
+          echo "##[error][gist] Gist Content: $content"
           exit 33
         else
           echo "##[debug][gist] Gist updated successfully."
