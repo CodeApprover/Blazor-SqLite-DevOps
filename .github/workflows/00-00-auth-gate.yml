@@ -91,7 +91,7 @@ jobs:
 
         echo "##[debug][revert] Creating issue in the repository with the constructed title and body."
         create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-        
+
         echo "##[warn][revert] Last commit was reverted."
         exit 0
 
@@ -131,7 +131,7 @@ jobs:
  
         CSPROJ_PATH=$(find . -name "*.csproj" | head -n 1)
         echo "##[debug][csproj] CSPROJ_PATH: $CSPROJ_PATH"
-        
+
         if [[ -z "$CSPROJ_PATH" ]]; then
             echo "##[error][csproj] Failed to find the .csproj file $CSPROJ_PATH."
             exit 28
@@ -155,14 +155,14 @@ jobs:
       run: echo "${{ github.sha }}" > .original-sha
 
     - name: Upload github.sha as Build Artifact # Step 10
-      uses: actions/upload-artifact@v3.1.2            
+      uses: actions/upload-artifact@v3.1.2
       with:
         name: original-sha
         path: .original-sha
         retention-days: 1
 
     - name: Remove SHA file # Step 11
-      run: rm .original_sha
+      run: rm .original-sha
 
     - name: Trigger Next Workflow and Dispatch Success Event # Step 12
       if: success()
