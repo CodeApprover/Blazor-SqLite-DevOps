@@ -158,7 +158,8 @@ jobs:
       uses: actions/upload-artifact@v3.1.2            
       with:
         name: original-sha
-        path: .original.sha
+        path: ./.original-sha
+        retention-days: 1
 
     - name: Remove SHA file # Step 11
       run: rm .original_sha
