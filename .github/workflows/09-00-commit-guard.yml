@@ -1,42 +1,42 @@
----
 ######################################
 # Workflow: Commit Guard
 
 # Description:
 # This workflow manages the response to failed deployments.
 # It verifies the workflow's environment, extracts crucial data,
-# reverts commits if necessary, possibly deletes tags and notifies the team.
+# reverts commits if necessary, possibly deletes tags, and notifies the team.
 
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  Retrieve SHA fron Gist.
-# 3.  Extract branch from GitHub ref and determine environment from branch.
-# 4.  Identify lock file and extract SHA.
-# 5.  Checkout the repository using the SHA from the lock file.
-# 6.  Validate the SHA checkout.
-# 7.  Revert the commits based on the SHA.
-# 8.  Push the reversion changes to the origin.
-# 9.  Delete the latest tag locally (if it exists).
-# 10.  Delete the latest tag remotely (if it exists).
-# 11.  Set relevant team members.
-# 12. Notify team about the reverted commit by creating an issue.
-# 13. Catch all captures failures in this workflow execution and creates an issue.
+# 1.  Retrieve SHA from Gist.
+# 2.  Checkout SHA Repository.
+# 3.  Validate Checkout.
+# 4.  Determine Deployment Context.
+# 5.  Retrieve Commit SHA from Lock File.
+# 6.  Reset to Commit Before Problematic SHA.
+# 7.  Push Changes.
+# 8.  Delete Latest Tag (Locally).
+# 9.  Delete Latest Tag (Remotely).
+# 10. Notify Relevant Teams and Committer.
+# 11. Catch-all for Unexpected Errors.
 
 # Exit Codes:
 # 40 - SHA is not populated.
-# 41 - Branch name is not populated.
-# 42 - Environment is not populated.
-# 43 - Lock file has invalid SHA.
-# 44 - Lock file not found.
-# 45 - SHA checkout failure.
-# 46 - Invalid or empty SHA.
-# 47 - Failed to reset repository to previous SHA.
-# 48 - Failed to push changes.
-# 49 - Failed to delete the tag locally.
-# 50 - Failed to delete the tag remotely.
-# 51 - Failed to notify teams and committer.
-# 52 - Catch-all for Unexpected Errors.
+# 41 - SHA checkout failure.
+# 42 - No branches found containing the commit.
+# 43 - Multiple branches contain the commit SHA.
+# 44 - Branch name is not populated.
+# 45 - Environment is not populated.
+# 46 - Lock file has invalid SHA.
+# 47 - Lock file not found.
+# 48 - Invalid or empty SHA.
+# 49 - Failed to reset repository to previous SHA.
+# 50 - Failed to push changes.
+# 51 - Failed to delete the tag locally.
+# 52 - Failed to delete the tag remotely.
+# 53 - Failed to notify teams and committer.
+# 54 - Catch-all for Unexpected Errors.
 
 ######################################
 
@@ -44,7 +44,6 @@ name: Commit Guard
 
 on:
   workflow_run:
-
     workflows:
       - Authentication Gate
       - Cache Dependencies
@@ -59,7 +58,6 @@ on:
       - Deploy Docker
       - Deploy Git
       - Success
-
     types:
       - completed
 
@@ -72,9 +70,8 @@ jobs:
     name: Handle Workflow Failure
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     if: ${{ github.event.workflow_run.conclusion != 'success' }}
-    
+
     steps:
 
     - name: Retrieve SHA from Gist # Step 1
@@ -86,7 +83,6 @@ jobs:
           -H "Authorization: token ${{ secrets.AUTH }}" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           https://api.github.com/gists/$gist_id)
-        
         content=$(echo "$response" | jq '.files["auth-gate.sha"].content' -r)
         if [[ "$content" == '' ]]; then
           echo "##[error][sha] SHA is not populated."
@@ -94,89 +90,93 @@ jobs:
         fi
         echo "SHA=$content" >> $GITHUB_ENV
 
-    - name: Determine Deployment Context # Step 3
+    - name: Checkout SHA Repository # Step 2
+      id: checkout-sha
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
+
+    - name: Validate Checkout # Step 3
       run: |
  
-        echo "##[debug][extract] setting branch name from github.ref"
-        echo "## [debug] github.ref is ${{ github.ref }}"
-        branch=${{ github.ref }}
-        SHA_BRANCH=${branch#refs/heads/}
-        if [[ -z "$SHA_BRANCH" ]]; then
-          echo "##[error][extract] Branch name is not populated."
+        if [ $? -ne 0 ]; then
+          echo "##[error][checkout] SHA checkout failure ${{ env.SHA }}"
           exit 41
         fi
-        echo "##[debug][extract] Branch Name: $SHA_BRANCH"
 
+    - name: Determine Deployment Context # Step 4
+      run: |
+ 
+        BRANCHES_CONTAINING_COMMIT=$(git branch -r --contains ${{ env.SHA }})
+        echo "##[debug][deploy] BRANCHES_CONTAINING_COMMIT: $BRANCHES_CONTAINING_COMMIT"
+        BRANCH_COUNT=$(echo "$BRANCHES_CONTAINING_COMMIT" | wc -l)
+        echo "##[debug][deploy] BRANCH_COUNT: $BRANCH_COUNT"
+        if [[ $BRANCH_COUNT -eq 0 ]]; then
+          echo "##[warn][deploy] No branches found containing the commit ${{ env.SHA }}."
+          exit 42
+        elif [[ $BRANCH_COUNT -gt 1 ]]; then
+          echo "##[error][deploy] Multiple branches contain the commit SHA ${{ env.SHA }}."
+          exit 43
+        fi
+        echo "##[debug][deploy] setting branch name from SHA"
+        echo "##[debug][deploy] github.ref is ${{ github.ref }}"
+        SHA_BRANCH=${BRANCHES_CONTAINING_COMMIT#refs/heads/}
+        if [[ -z "$SHA_BRANCH" ]]; then
+          echo "##[error][extract] Branch name is not populated."
+          exit 44
+        fi
+        echo "##[debug][extract] Branch Name: $SHA_BRANCH"
         echo "##[debug][extract] setting environment name from branch name $SHA_BRANCH"
         environment=${SHA_BRANCH#code-}
         if [[ -z "$environment" ]]; then
           echo "##[error][extract] Environment is not populated."
-          exit 42
+          exit 45
         fi
         echo "##[debug][extract] Environment: $environment"
-
         echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    - name: Retrieve Commit SHA from Lock File # Step 4
+    - name: Retrieve Commit SHA from Lock File # Step 5
       run: |
  
         lock_file_path=$(find . -name "${{ env.ENVIRONMENT }}.lock" | head -n 1)
         echo "##[debug][lockfile] Lock file path $lock_file_path"
-
         if [[ -n "$lock_file_path" ]]; then
           sha=$(cat "$lock_file_path")
           if ! [[ ${#sha} -eq 40 && $sha =~ ^[0-9a-fA-F]+$ ]]; then
             echo "##[error][lockfile] Lock file $lock_file_path has invalid sha $sha."
-            exit 43
+            exit 46
           fi
           echo "##[debug][lockfile] Lock File SHA: $sha"
           echo "SHA=$sha" >> $GITHUB_ENV
         else
           echo "##[error][lockfile] Lock file not found for the ${{ env.ENVIRONMENT }} environment."
-          exit 44
+          exit 47
         fi
 
-    - name: Checkout SHA Repository # Step 5
-      id: checkout-sha
-      uses: actions/checkout@v3.6.0
-      with:
-        ref: ${{ github.sha }}
-        fetch-depth: 0
-
-    - name: Validate Checkout # Step 6
-      run: |
- 
-        if [ $? -ne 0 ]; then
-            echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
-            exit 45
-        fi
-
-    - name: Reset to Commit Before Problematic SHA # Step 7
+    - name: Reset to Commit Before Problematic SHA # Step 6
       id: reset_commit
       run: |
-     
+ 
         echo "##[debug][reset] git config user.name ${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
-        
         echo "##[debug][reset] Checking if SHA ${{ env.SHA }} is valid."
         if [ -z "${{ env.SHA }}" ] || ! git cat-file -e "${{ env.SHA }}^{commit}"; then
           echo "##[error][reset] Invalid or empty SHA ${{ env.SHA }}"
-          exit 46
+          exit 48
         fi
-    
         echo "##[debug][reset] Getting the commit just before the problematic SHA: $PREVIOUS_SHA."
         PREVIOUS_SHA=$(git rev-list -n 1 ${{ env.SHA }}~1)
-        
         echo "##[debug][reset] Resetting repository to commit $PREVIOUS_SHA"
         if git reset --hard $PREVIOUS_SHA; then
           echo "##[debug][reset] Reset repository to $PREVIOUS_SHA"
         else
           echo "##[error][reset] Failed to reset repository to previous SHA $PREVIOUS_SHA"
-          exit 47
+          exit 49
         fi
 
-    - name: Push Changes # Step 8
+    - name: Push Changes # Step 7
       if: steps.reset_commit.outcome == 'success'
       run: |
  
@@ -184,42 +184,40 @@ jobs:
           echo "##[debug][push] Pushed changes."
         else
           echo "##[error][push] Failed to push changes."
-          exit 48
+          exit 50
         fi
 
-    - name: Delete Latest Tag (Locally) # Step 9
+    - name: Delete Latest Tag (Locally) # Step 8
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
         if [[ "$latest_tag" ]]; then
           git tag -d "$latest_tag" || {
             echo "##[error][tag] Failed to delete the tag locally."
-            exit 49
+            exit 51
           }
           echo "##[debug][tag] Deleted tag: $latest_tag locally."
         fi
 
-    - name: Delete Latest Tag (Remotely) # Step 10
+    - name: Delete Latest Tag (Remotely) # Step 9
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
         if [[ "$latest_tag" ]]; then
           git push --delete origin "$latest_tag" || {
             echo "##[error][tag] Failed to delete the tag remotely."
-            exit 50
+            exit 52
           }
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    - name: Notify Relevant Teams and Committer # Step 11
+    - name: Notify Relevant Teams and Committer # Step 10
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
-
         echo "##[debug][notify] Fetching the commit message of the payload commit."
         COMMIT_MESSAGE=$(git log --pretty=format:'%B' -n 1 ${{ env.SHA }})
-
         echo "##[debug][notify] Determining the relevant team to notify based on SHA_BRANCH."
         if [[ "${{ env.SHA_BRANCH }}" == "code-development" ]]; then
           TEAM_TO_NOTIFY="${{ secrets.STAGING_TEAM }}"
@@ -231,7 +229,6 @@ jobs:
           TEAM_TO_NOTIFY=""
           ADDITIONAL_MESSAGE=""
         fi
-
         echo "##[debug][notify] Converting CSV list to space-separated list with "@" prefixed and remove duplicates."
         format_team_to_notify() {
           local csv="$1"
@@ -240,20 +237,15 @@ jobs:
         FORMATTED_TEAM_TO_NOTIFY=$(format_team_to_notify "$TEAM_TO_NOTIFY")
         echo "##[debug][notify] TEAM TO NOTIFY: $FORMATTED_TEAM_TO_NOTIFY"
         echo "##[debug][notify] ORIGINAL COMMITTER: $ORIGINAL_COMMITTER"
-
         echo "##[debug][notify] Constructing notification title and body."
         ISSUE_TITLE="Commit Reverted: ${{ env.SHA }}"
-                ISSUE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
-
+        ISSUE_BODY=$(echo "Hello @$ORIGINAL_COMMITTER @${{ github.repository_owner }} $FORMATTED_TEAM_TO_NOTIFY
           Commit: ${{ env.SHA }}
           Committer: $ORIGINAL_COMMITTER
           Commit Message: $COMMIT_MESSAGE
-          
           Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
-
           Thank you for your contribution @$ORIGINAL_COMMITTER")
-
         create_issue() {
           local title="$1"
           local body="$2"
@@ -269,21 +261,19 @@ jobs:
           echo "##[debug][notify] ISSUE COMMAND: $CURL_CMD"
           eval "$CURL_CMD"
         }
-
         echo "##[debug][notify] Creating issue in the repository with the constructed title and body."
         create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-
         if [ $? -ne 0 ]; then
           echo "##[error][notify] Failed to notify teams and committer."
-          exit 51
+          exit 53
         fi
 
-    - name: Catch-all for Unexpected Errors # Step 12
+    - name: Catch-all for Unexpected Errors # Step 11
       if: ${{ always() }}
       run: |
  
-        echo "##[debug][catch-all] Check if an issue with title "Commit Guard Workflow Error: ${{ github.run_id }}" already exists."
-
+        echo "##[debug][catch-all] Checking if issue for ${{ github.run_id }} already exists."
+ 
         BASE_URL="https://api.github.com/search/issues"
         REPO_PARAM="repo:${{ github.repository }}"
         TYPE_PARAM="type:issue"
@@ -291,41 +281,59 @@ jobs:
         TITLE_PARAM="in:title"
         ERROR_PARAM="Commit+Guard+Workflow+Error:${{ github.run_id }}"
         FULL_URL=$(echo "${BASE_URL}?q=${REPO_PARAM}+${TYPE_PARAM}+${STATE_PARAM}+${TITLE_PARAM}+${ERROR_PARAM}")
-        
-        issue_exists=$(curl \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "$FULL_URL" \
-          | jq '.total_count')
+ 
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+ 
+          issue_exists=$(curl \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$FULL_URL" \
+            | jq '.total_count')
+ 
+          if [[ $issue_exists -eq 0 ]]; then
+            echo "##[debug][catch-all] Constructing notification title and body to the previous step."
+ 
+            ISSUE_TITLE="Commit Guard Workflow Error: ${{ github.run_id }}"
+            ISSUE_BODY=$(echo "Hello @${{ github.repository_owner }}
+            An unexpected error occurred during the execution of the ${{ github.workflow }} workflow.
+            Check the logs for more details.
+            Workflow ID: ${{ github.run_id }}")
 
-        if [[ $issue_exists -eq 0 ]]; then
-          echo "##[debug][catch-all] Constructing notification title and body  to the previous step."
-          ISSUE_TITLE="Commit Guard Workflow Error: ${{ github.run_id }}"
-          ISSUE_BODY=$(echo "Hello @${{ github.repository_owner }}
+            create_issue() {
+              local title="$1"
+              local body="$2"
+              payload=$(jq -n \
+                --arg title "$title" \
+                --arg body "$body" \
+                '{title: $title, body: $body}')
 
-          An unexpected error occurred during the execution of the ${{ github.workflow }} workflow.
-          Check the logs for more details. 
-          Workflow ID: ${{ github.run_id }}")
+              CURL_CMD=$(echo "curl -X POST" \
+                "-H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\"" \
+                "-H \"Accept: application/vnd.github.v3+json\"" \
+                "https://api.github.com/repos/${{ github.repository }}/issues" \
+                "-d '$payload'")
 
-          create_issue() {
-            local title="$1"
-            local body="$2"
-            payload=$(jq -n \
-              --arg title "$title" \
-              --arg body "$body" \
-              '{title: $title, body: $body}')
-            CURL_CMD=$(echo "curl -X POST" \
-              "-H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\"" \
-              "-H \"Accept: application/vnd.github.v3+json\"" \
-              "https://api.github.com/repos/${{ github.repository }}/issues" \
-              "-d '$payload'")
-            echo "##[debug][catch-all] ISSUE COMMAND: $CURL_CMD"
-            eval "$CURL_CMD"
-          }
+              echo "##[debug][catch-all] ISSUE COMMAND: $CURL_CMD"
+              eval "$CURL_CMD"
+            }
 
-          echo "##[debug][catch-all] Creating issue in the repository with the constructed title and body."
-          create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-        fi
-        
-        echo "##[error][catch-all] An error has occurred executing ${{ github.workflow }} run ${{ github.run_id }}"
-        exit 52
+            echo "##[debug][catch-all] Creating issue in the repository with the constructed title and body."
+            create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
+
+            echo "##[debug][catch-all] Break if the curl command was successful."
+            if [ $? -eq 0 ]; then
+              break
+            fi
+
+          fi
+
+          retries=$((retries+1))
+          if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[warn][catch-all] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+            sleep ${{ vars.WAIT_SECONDS }}
+          else
+            echo "##[error][catch-all] All retries exhausted. Failed to create an issue."
+            exit 54
+          fi
+        done
