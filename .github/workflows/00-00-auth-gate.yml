@@ -189,12 +189,14 @@ jobs:
  
         BRANCHES_CONTAINING_COMMIT=$(git branch -r --contains ${{ github.sha }})
         echo "##[debug][unique] BRANCHES_CONTAINING_COMMIT: $BRANCHES_CONTAINING_COMMIT"
+
         BRANCH_COUNT=$(echo "$BRANCHES_CONTAINING_COMMIT" | wc -l)
         echo "##[debug][unique] BRANCH_COUNT: $BRANCH_COUNT"
+
         if [[ $BRANCH_COUNT -eq 0 ]]; then
           echo "##[warn][unique] No branches found containing the commit ${{ github.sha }}."
           exit 27
-        elif [[ $BRANCH_COUNT -gt 1 ]]; then
+        elif [[ $BRANCH_COUNT -ne 1 ]]; then
           echo "##[error][unique] Multiple branches contain the commit SHA ${{ github.sha }}."
           exit 28
         fi
@@ -227,8 +229,9 @@ jobs:
     - name: Set Gist with SHA # Step 9
       run: |
  
-        echo "##[debug][gist] Updating the Gist with the current SHA."
+        echo "##[debug][gist] Attempting to update the Gist with the current SHA."
         gist_id="${{ vars.SHA_GIST }}"      
+ 
         CURL_CMD=$(echo "curl -L \
           -X PATCH \
           -H \"Accept: application/vnd.github+json\" \
@@ -236,23 +239,37 @@ jobs:
           -H \"X-GitHub-Api-Version: 2022-11-28\" \
           https://api.github.com/gists/$gist_id \
           -d '{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}'")
-        eval "$CURL_CMD"
-        if [[ $? -ne 0 ]]; then
-          echo "##[error][gist] Failed to update Gist with SHA."
-          exit 32
-        fi
-        content=$(curl -L \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          https://api.github.com/gists/$gist_id | jq '.files["auth-gate.sha"].content' -r)
-        if [ "$content" != "${{ github.sha }}" ]; then
-          echo "##[error][gist] Gist content mismatch. Expected: ${{ github.sha }}. Got: $content."
-          echo "##[error][gist] Gist Content: $content"
-          exit 33
-        else
-          echo "##[debug][gist] Gist updated successfully."
-        fi
+ 
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+          eval "$CURL_CMD"
+          if [[ $? -ne 0 ]]; then
+            echo "##[error][gist] Failed to update Gist with SHA. Attempt $((retries+1))."
+          else
+            content=$(curl -L \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: token ${{ secrets.AUTH }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/gists/$gist_id | jq '.files["auth-gate.sha"].content' -r)
+ 
+            if [ "$content" == "${{ github.sha }}" ]; then
+              echo "##[debug][gist] Gist updated successfully."
+              break
+            else
+              echo "##[error][gist] Gist content mismatch. Expected: ${{ github.sha }}. Got: $content. Attempt $((retries+1))."
+            fi
+          fi
+ 
+          retries=$((retries+1))
+          if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[warn][gist] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+            sleep ${{ vars.WAIT_SECONDS }}
+          else
+            echo "##[error][gist] All retries exhausted."
+            echo "##[error][gist] Failed to update Gist with SHA."
+            exit 32
+          fi
+        done
 
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
