@@ -3,12 +3,11 @@
 # Workflow: Authentication Gate
 
 # Description:
-# This workflow manages the authentication and validation of commits before triggering subsequent workflows.
-# It checks if the push is within a git repository, sanitises and validates untrusted user details, validates branch names,
-# checks .csproj files, ensures that commits are unique to existing remote SHA branches, and checks for lock files.
-# Additionally, it saves the github.sha as an artifact and triggers the next workflow if all checks pass.
+# This workflow handles commit authentication and validation before initiating subsequent workflows.
+# It sanitises user details, checks branch validity, ensures commit uniqueness, inspects for .csproj and .lock files
+# and updates Gists with the SHA. Upon successful validation, the next workflow is triggered.
 
-# Trigger: Activated upon every push made to any branch.
+# Trigger: Activated by every push to any branch.
 
 # Logical Flow (Steps):
 # 1.  Sanitise and validate untrusted user-controlled details.
@@ -26,17 +25,19 @@
 # 20 - Username contains invalid characters.
 # 21 - Email format is invalid.
 # 22 - Commit message contains invalid characters.
-# 23 - Failed to reset repository.
-# 24 - Failed to push reversion.
-# 25 - SHA checkout failure.
-# 26 - No branches found containing the commit.
-# 27 - Multiple branches contain the commit SHA.
-# 28 - Failed to find the .csproj file.
-# 29 - Failed to fetch the branch.
-# 30 - Lock file found in commit.
-# 31 - Failed to trigger the next workflow.
-# 32 - All retries exhausted. Failed to update Gist.
+# 23 - Unknown branch.
+# 24 - Failed to reset repository.
+# 25 - Failed to push reversion.
+# 26 - SHA checkout failure.
+# 27 - No branches found containing the commit.
+# 28 - Multiple branches contain the commit SHA.
+# 29 - Failed to find the .csproj file.
+# 30 - Failed to fetch the branch.
+# 31 - Lock file found in repository.
+# 32 - Failed to update Gist with SHA.
 # 33 - Gist content mismatch.
+# 34 - Failed to send success event.
+# 35 - All retries exhausted. Failed to trigger the next workflow.
 
 ######################################
 
@@ -62,17 +63,93 @@ jobs:
       run: |
  
         echo "##[info][sanitise] Starting security sanitisation and validation."
-
         echo "##[debug][sanitise] Sanitising username as github username."
         regex_pattern="^([a-z0-9](-?[a-z0-9]){0,19})$"
         username=$(echo ${{ github.event.head_commit.author.name }} | tr '[:upper:]' '[:lower:]')
         if ! [[ "$username" =~ ${regex_pattern} ]] || [[ "$username" == -* ]]; then
-          echo "##[error][sanitise] Username contains invalid characters"
-          exit 20
+            echo "##[error][sanitise] Username contains invalid characters"
+            exit 20
         fi
-
         echo "##[debug][sanitise] Sanitising email address."
         regex_pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
+        if ! [[ "${{ github.event.head_commit.author.email }}" =~ ${regex_pattern} ]]; then
+            echo "##[error][sanitise] Email format is invalid"
+            exit 21
+        fi
+        echo "##[debug][sanitise] Sanitising commit message."
+        forbidden_chars="|*]>)}<{([S"
+        echo "##[debug][sanitise] Forbidden characters: $forbidden_chars"
+        commit_msg="${{ github.event.head_commit.message }}"
+        for (( i=0; i<${#forbidden_chars}; i++ )); do
+            char="${forbidden_chars:$i:1}"
+            echo "##[debug][sanitise] Checking for forbidden char $char"
+            if [[ $commit_msg == *"$char"* ]]; then
+                echo "##[error][sanitise] Commit message ${commit_msg} contains invalid character $char."
+                exit 22
+            fi
+        done
+        echo "##[info][sanitise] Sanitisation and validation completed successfully."
+
+    - name: Validate Branch Name # Step 2
+      run: |
+ 
+        ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")
+        REF=${{ github.ref }}
+        BRANCH_NAME=${REF#refs/heads/}
+        echo "##[debug][branch] Branch: $BRANCH_NAME"
+        branch_found=false
+        echo "##[debug][branch] Looping through allowed branches to check if the current branch is valid."
+        for branch in "${ALLOWED_BRANCHES[@]}"
+        do
+            if [[ "$BRANCH_NAME" == "$branch" ]]; then
+                echo "##[info][branch] Branch $BRANCH_NAME is valid."
+                echo "SHA_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+                branch_found=true
+                break
+            fi
+        done
+        if [ "$branch_found" = false ]; then
+            echo "##[error][branch] Unknown branch: $BRANCH_NAME. Exiting."
+            exit 23
+        fi
+
+    - name: Revert Unknown Branch Commits # Step 3
+      if: env.SHA_BRANCH == ''
+      run: |
+ 
+        git config user.name "${{ github.repository_owner }}"
+        git config user.email "${{ vars.EMAIL }}"
+        COMMIT_COUNT=$(git rev-list --count HEAD)
+        if [[ $COMMIT_COUNT -le 1 ]]; then
+            echo "##[error][revert] Only one commit in this branch. Nowhere to revert to."
+            exit 0
+        fi
+        ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
+        if [[ "$ORIGINAL_COMMITTER" == "${{ github.repository_owner }}" ]]; then
+            echo "##[warn][revert] Last commit was by repository owner (possibly an automated revert) - skipping further actions."
+            exit 0
+        fi
+        git reset HEAD --hard
+        if [[ $? -ne 0 ]]; then
+            echo "##[error][revert] Failed to reset repository."
+            exit 24
+        fi
+        if git push origin +$BRANCH_NAME; then
+          echo "##[debug][revert] Pushed reversion."
+        else
+          echo "##[error][revert] Failed to push reversion."
+          exit 25
+        fi
+        MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
+        MESSAGE_BODY=$(echo "@${{ github.repository_owner }},
+          Branch: $BRANCH_NAME
+          SHA: ${{ github.sha }} 
+          Committer: $ORIGINAL_COMMITTER
+          Commit Message: $COMMIT_MESSAGE
+          ${{ github.sha }} committed to an unknown branch, was reverted.
+          Thank you for your contribution.")
+        echo "##[debug][revert] MESSAGE_TITLE: $MESSAGE_TITLE"
+        echo "##[debug][revert] MESSAGE_BODY: $MESSAGE_BODY"
         create_issue() {
           local title="$1"
           local body="$2"
@@ -85,75 +162,13 @@ jobs:
             "-H \"Accept: application/vnd.github.v3+json\"" \
             "https://api.github.com/repos/${{ github.repository }}/issues" \
             "-d '$payload'")
-          echo "##[debug][notify] ISSUE COMMAND: $CURL_CMD"
+          echo "##[debug][revert] ISSUE COMMAND: $CURL_CMD"
           eval "$CURL_CMD"
         }
-
         echo "##[debug][revert] Creating issue in the repository with the constructed title and body."
-        create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-
+        create_issue "$MESSAGE_TITLE" "$MESSAGE_BODY"
         echo "##[warn][revert] Last commit was reverted."
         exit 0
-
-    - name: Validate Branch Names # Step 2
-      run: |
- 
-        echo "##[info][branch] Validating branch name."
-        regex_pattern="^refs/heads/[a-zA-Z0-9_-]+$"
-        if ! [[ "${{ github.ref }}" =~ $regex_pattern ]]; then
-          echo "##[error][branch] Branch name contains invalid characters."
-          exit 21
-        fi
-
-    - name: Revert Commits if Branch Name is Unknown # Step 3
-      run: |
- 
-        KNOWN_BRANCHES=("main" "develop" "feature" "hotfix")
-        CURRENT_BRANCH=$(echo "${{ github.ref }}" | sed -n 's#refs/heads/##p')
-        
-        if [[ ! " ${KNOWN_BRANCHES[@]} " =~ " ${CURRENT_BRANCH} " ]]; then
-          echo "##[warn][revert] Unknown branch detected. Reverting the commit."
-          
-          git config --global user.email "noreply@github.com"
-          git config --global user.name "GitHub Actions"
-          
-          git reset --hard HEAD~1
-          if [[ $? -ne 0 ]]; then
-            echo "##[error][revert] Failed to reset repository."
-            exit 22
-          fi
-          
-          git push origin +${{ github.ref }}
-          if [[ $? -ne 0 ]]; then
-            echo "##[error][revert] Failed to push the reversion."
-            exit 23
-          fi
-          
-          ISSUE_TITLE="Unknown branch detected"
-          ISSUE_BODY="An unknown branch was detected and its commit has been reverted. Branch: ${{ github.ref }}, Commit SHA: ${{ github.sha }}"
-          
-          create_issue() {
-            local title="$1"
-            local body="$2"
-            payload=$(jq -n \
-              --arg title "$title" \
-              --arg body "$body" \
-              '{title: $title, body: $body}')
-            CURL_CMD=$(echo "curl -X POST" \
-              "-H \"Authorization: token ${{ secrets.GITHUB_TOKEN }}\"" \
-              "-H \"Accept: application/vnd.github.v3+json\"" \
-              "https://api.github.com/repos/${{ github.repository }}/issues" \
-              "-d '$payload'")
-            echo "##[debug][notify] ISSUE COMMAND: $CURL_CMD"
-            eval "$CURL_CMD"
-          }
-
-          echo "##[debug][revert] Creating issue in the repository with the constructed title and body."
-          create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-
-          echo "##[warn][revert] Last commit was reverted."
-          exit 0
-        fi
 
     - name: Checkout SHA Repository # Step 4
       uses: actions/checkout@v3.6.0
@@ -166,7 +181,7 @@ jobs:
  
         if [ $? -ne 0 ]; then
           echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
-          exit 25
+          exit 26
         fi
 
     - name: Check Commit Uniqueness # Step 6
@@ -174,16 +189,14 @@ jobs:
  
         BRANCHES_CONTAINING_COMMIT=$(git branch -r --contains ${{ github.sha }})
         echo "##[debug][unique] BRANCHES_CONTAINING_COMMIT: $BRANCHES_CONTAINING_COMMIT"
-
         BRANCH_COUNT=$(echo "$BRANCHES_CONTAINING_COMMIT" | wc -l)
         echo "##[debug][unique] BRANCH_COUNT: $BRANCH_COUNT"
-
         if [[ $BRANCH_COUNT -eq 0 ]]; then
           echo "##[warn][unique] No branches found containing the commit ${{ github.sha }}."
-          exit 26
+          exit 27
         elif [[ $BRANCH_COUNT -gt 1 ]]; then
           echo "##[error][unique] Multiple branches contain the commit SHA ${{ github.sha }}."
-          exit 27
+          exit 28
         fi
 
     - name: Validate .csproj File # Step 7
@@ -191,24 +204,24 @@ jobs:
  
         CSPROJ_PATH=$(find . -name "*.csproj" | head -n 1)
         echo "##[debug][csproj] CSPROJ_PATH: $CSPROJ_PATH"
-
         if [[ -z "$CSPROJ_PATH" ]]; then
           echo "##[error][csproj] Failed to find the .csproj file $CSPROJ_PATH."
-          exit 28
+          exit 29
         fi
 
     - name: Check for Pre-Existent .lock Files # Step 8
       run: |
- 
+     
         git fetch origin
         if [[ $? -ne 0 ]]; then
           echo "##[error][lockfile] Failed to fetch the branch."
-          exit 29
+          exit 30
         fi
+
         LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
         if [[ -n "$LOCK_FILE_PATH" ]]; then
-          echo "##[error][lockfile] Lock file $LOCK_FILE_PATH issue."
-          exit 30
+          echo "##[error][lockfile] Lock file $LOCK_FILE_PATH found in repository."
+          exit 31
         fi
 
     - name: Set Gist with SHA # Step 9
@@ -224,18 +237,15 @@ jobs:
           https://api.github.com/gists/$gist_id \
           -d '{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}'")
         eval "$CURL_CMD"
-        
         if [[ $? -ne 0 ]]; then
           echo "##[error][gist] Failed to update Gist with SHA."
           exit 32
         fi
-        
         content=$(curl -L \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: token ${{ secrets.AUTH }}" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           https://api.github.com/gists/$gist_id | jq '.files["auth-gate.sha"].content' -r)
-        
         if [ "$content" != "${{ github.sha }}" ]; then
           echo "##[error][gist] Gist content mismatch. Expected: ${{ github.sha }}. Got: $content."
           exit 33
@@ -248,6 +258,7 @@ jobs:
       run: |
  
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
+
         SUCCESS_CMD=$(echo "curl -L -X POST \
           -H \"Accept: application/vnd.github+json\" \
           -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
@@ -255,13 +266,6 @@ jobs:
           -d '{\"event_type\":\"Authentication Gate Success\", \
           \"client_payload\":{ \
           \"message\":\"Workflow completed successfully\"}}'")
-        eval "$SUCCESS_CMD"
-        if [[ $? -ne 0 ]]; then
-          echo "##[error][trigger] Failed to send success event."
-          exit 34
-        else
-          echo "##[info][trigger] Success event dispatched."
-        fi
 
         CMD=$(echo "curl -L -X POST \
           -H \"Accept: application/vnd.github+json\" \
@@ -275,20 +279,34 @@ jobs:
 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+
+          eval "$SUCCESS_CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error][trigger] Failed to send success event."
+            echo "##[error][trigger] Attempt $((retries+1)). Curl exit code: $CURL_EXIT_CODE"
+          else
+            echo "##[info][trigger] Success event dispatched."
+          fi
+
           eval "$CMD"
           CURL_EXIT_CODE=$?
           if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-            echo "##[error][trigger] Attempt $((retries+1)) failed with exit code $CURL_EXIT_CODE."
-            retries=$((retries+1))
-            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-              echo "##[warn][trigger] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-              sleep ${{ vars.WAIT_SECONDS }}
-            else
-              echo "##[error][trigger] All retries exhausted. Failed to trigger ${{ env.NEXT_WORKFLOW }}."
-              exit 35
-            fi
+            echo "##[error][trigger] Failed to trigger ${{ env.NEXT_WORKFLOW }}."
+            echo "##[error][trigger] Attempt $((retries+1)). Curl exit code: $CURL_EXIT_CODE"
           else
             echo "##[info][trigger] ${{ env.NEXT_WORKFLOW }} successfully triggered."
             break
+          fi
+
+          retries=$((retries+1))
+
+          if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[warn][trigger] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+            sleep ${{ vars.WAIT_SECONDS }}
+          else
+            echo "##[error][trigger] All retries exhausted."
+            echo "##[error][trigger] Failed to trigger ${{ env.NEXT_WORKFLOW }} and/or dispatch success event."
+            exit 35
           fi
         done
