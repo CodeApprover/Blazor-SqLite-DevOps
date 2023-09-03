@@ -152,10 +152,7 @@ jobs:
     - name: Update Gist with SHA # Step 9
       run: |
  
-        curl -H "Authorization: token ${{ secrets.AUTH }}" \
-             -X PATCH \
-             -d '{"files": {"auth-gate.sha": {"content": "${{ github.sha }}"}}}' \
-             https://api.github.com/gists/auth-gate-sha
+        curl -H "Authorization: token ${{ secrets.AUTH }}" -X PATCH -d '{"files": {"auth-gate.sha": {"content": "${{ github.sha }}"}}}' https://api.github.com/gists/auth-gate-sha
 
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
