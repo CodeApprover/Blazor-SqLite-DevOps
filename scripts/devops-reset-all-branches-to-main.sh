@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# set -x
-# git add reset-all-branches-to-main.sh && git commit -m "adding scripts [skip ci]" && git push && git pull && git status
+# find . -name "*.sh" -exec dos2unix {} \; -exec sed -i 's/^[ \t]*$//' {} \;
 
 # Ensure this script is executed from the scripts directory
 current_dir=$(pwd)
@@ -63,12 +62,12 @@ development=$(find ../ -type d -name "development" | head -n 1)
 if [[ ! -z "$development" ]]; then
     # Extract the parent directory of the development directory
     parent_dir=$(dirname "$development")
-    
+
     # Use the parent directory to locate the other directories
     production="$parent_dir/production"
     staging="$parent_dir/staging"
     scripts="$parent_dir/scripts"
-    
+
     # Check if the directories exist
     ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 2
     ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 3
@@ -80,23 +79,26 @@ fi
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
-    ls .la ./
+    ls -la ./
     echo "Required directories not found." && exit 6
 fi
 
-# Allow only team scripts exclude devops scripts
-files_to_remove=$(find "$scripts" -type f -name "devops-*.sh" | grep -v 'team.*.sh$')
+# Find Files to Remove for each branch:
 
-# Check if file list is not empty
-if ! [[ -n "$files_to_remove" ]]; then
-    echo "Expected script dir files not found" && exit 7
-fi
+# For code-development:
+files_to_remove_dev=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-development-.*\.sh$')
+
+# For code-staging:
+files_to_remove_staging=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-staging-.*\.sh$')
+
+# For code-production:
+files_to_remove_production=$(find "$scripts" -type f -name "*.sh" | grep -v 'team-production-.*\.sh$')
 
 # Set up code-development
 git checkout -b code-development main
 git rm -r "$production"
 git rm -r "$staging"
-for file in $files_to_remove; do git rm "$file"; done
+for file in $files_to_remove_dev; do git rm "$file"; done
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
 git checkout main
@@ -104,7 +106,7 @@ git checkout main
 # Set up code-staging
 git checkout -b code-staging main
 git rm -r "$production"
-for file in $files_to_remove; do git rm "$file"; done
+for file in $files_to_remove_staging; do git rm "$file"; done
 git commit -m "Setup new code-staging branch. [skip ci]"
 git push -u --set-upstream origin code-staging
 git checkout main
@@ -112,7 +114,7 @@ git checkout main
 # Set up code-production
 git checkout -b code-production main
 git rm -r "$development"
-for file in $files_to_remove; do git rm "$file"; done
+for file in $files_to_remove_production; do git rm "$file"; done
 git commit -m "Setup new code-production branch. [skip ci]"
 git push -u --set-upstream origin code-production
 
