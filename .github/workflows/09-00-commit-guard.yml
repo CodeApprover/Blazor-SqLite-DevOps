@@ -10,8 +10,7 @@
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  Configure git user.
-# 2.  Download SHA as build artifact.
+# 1.  Download SHA as build artifact.
 # 3.  Extract branch from GitHub ref and determine environment from branch.
 # 4.  Identify lock file and extract SHA.
 # 5.  Checkout the repository using the SHA from the lock file.
@@ -78,19 +77,13 @@ jobs:
     
     steps:
 
-    - name: Configure Git User # Step 2
-      run: |
- 
-        git config user.name "${{ github.repository_owner}}"
-        git config user.email "${{ vars.EMAIL }}"
-        
-
-    - name: Download SHA as Build Artifact # Step 2
+    - name: Download SHA as Build Artifact # Step 1
       uses: actions/download-artifact@v3
       with:
         name: original-sha
+        path: ./.original-sha
 
-    - name: Verify SHA Retrieval and Set env.SHA # Step 3
+    - name: Verify SHA Retrieval and Set env.SHA # Step 2
       run: |
  
         if [[ steps.retrieve-cached-sha.outputs.cache-hit != 'true' ]]"; then
@@ -99,7 +92,7 @@ jobs:
         fi
         echo "SHA=$(cat .original_sha)" >> $GITHUB_ENV
 
-    - name: Determine Deployment Context # Step 4
+    - name: Determine Deployment Context # Step 3
       run: |
  
         echo "##[debug][extract] setting branch name from github.ref"
@@ -123,7 +116,7 @@ jobs:
         echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
         echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
 
-    - name: Retrieve Commit SHA from Lock File # Step 5
+    - name: Retrieve Commit SHA from Lock File # Step 4
       run: |
  
         lock_file_path=$(find . -name "${{ env.ENVIRONMENT }}.lock" | head -n 1)
@@ -142,14 +135,14 @@ jobs:
           exit 44
         fi
 
-    - name: Checkout SHA Repository # Step 6
+    - name: Checkout SHA Repository # Step 5
       id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0
 
-    - name: Validate Checkout # Step 7
+    - name: Validate Checkout # Step 6
       run: |
  
         if [ $? -ne 0 ]; then
@@ -157,7 +150,7 @@ jobs:
             exit 45
         fi
 
-    - name: Reset to Commit Before Problematic SHA # Step 8
+    - name: Reset to Commit Before Problematic SHA # Step 7
       id: reset_commit
       run: |
      
@@ -181,7 +174,7 @@ jobs:
           exit 47
         fi
 
-    - name: Push Changes # Step 9
+    - name: Push Changes # Step 8
       if: steps.reset_commit.outcome == 'success'
       run: |
  
@@ -192,7 +185,7 @@ jobs:
           exit 48
         fi
 
-    - name: Delete Latest Tag (Locally) # Step 10
+    - name: Delete Latest Tag (Locally) # Step 9
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
@@ -204,7 +197,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag locally."
         fi
 
-    - name: Delete Latest Tag (Remotely) # Step 11
+    - name: Delete Latest Tag (Remotely) # Step 10
       run: |
  
         latest_tag=$(git describe --tags --abbrev=0)
@@ -216,7 +209,7 @@ jobs:
           echo "##[debug][tag] Deleted tag: $latest_tag remotely."
         fi
 
-    - name: Notify Relevant Teams and Committer # Step 12
+    - name: Notify Relevant Teams and Committer # Step 11
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
@@ -283,7 +276,7 @@ jobs:
           exit 51
         fi
 
-    - name: Catch-all for Unexpected Errors # Step 13
+    - name: Catch-all for Unexpected Errors # Step 12
       if: ${{ always() }}
       run: |
  
