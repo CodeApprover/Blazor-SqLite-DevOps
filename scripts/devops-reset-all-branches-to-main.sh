@@ -84,8 +84,8 @@ if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]
     echo "Required directories not found." && exit 6
 fi
 
-# Find all team scripts directory excluding devops scripts
-files_to_remove=$(find "$scripts" -type f -name "team-*.sh" | grep -v 'devops.*.sh$')
+# Allow only team scripts exclude devops scripts
+files_to_remove=$(find "$scripts" -type f -name "devops-*.sh" | grep -v 'team.*.sh$')
 
 # Check if file list is not empty
 if ! [[ -n "$files_to_remove" ]]; then
