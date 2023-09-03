@@ -10,7 +10,7 @@
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  Download SHA as build artifact.
+# 1.  .
 # 3.  Extract branch from GitHub ref and determine environment from branch.
 # 4.  Identify lock file and extract SHA.
 # 5.  Checkout the repository using the SHA from the lock file.
@@ -77,11 +77,16 @@ jobs:
     
     steps:
 
-    - name: Download SHA as Build Artifact # Step 1
-      uses: actions/download-artifact@v3
-      with:
-        name: original-sha
-        path: .
+    - name: Retrieve SHA from Gist
+      run: |
+ 
+        curl -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
+             https://api.github.com/gists/auth-gate-sha \
+             | jq .files["auth-gate.sha"].content -r > auth-gate.sha
+
+        sha=$(cat auth-gate.sha)
+        rm auth-gate.sha
+        echo "SHA=$sha" >> $GITHUB_ENV
 
     - name: Verify SHA Retrieval and Set env.SHA # Step 2
       run: |
