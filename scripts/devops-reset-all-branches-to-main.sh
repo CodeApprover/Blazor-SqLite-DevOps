@@ -27,7 +27,7 @@ read -p "Do you wish to proceed? (y/n): " -r
 # Check for the user's response
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
-    echo "Exiting without making changes." && exit 71
+    echo "Exiting without making changes." && exit 1
 fi
 
 # Configure git user
@@ -44,16 +44,16 @@ branches=("code-development" "code-staging" "code-production")
 
 # Delete local branches
 for branch in "${branches[@]}"; do
-  if git show-ref --quiet "refs/heads/$branch"; then
-    git branch -D "$branch"
-  fi
+    if git show-ref --quiet "refs/heads/$branch"; then
+        git branch -D "$branch"
+    fi
 done
 
 # Delete remote branches
 for remote_branch in "${branches[@]}"; do
-  if git show-ref --quiet "refs/remotes/origin/$remote_branch"; then
-    git push origin --delete "$remote_branch"
-  fi
+    if git show-ref --quiet "refs/remotes/origin/$remote_branch"; then
+        git push origin --delete "$remote_branch"
+    fi
 done
 
 # Find the development directory
@@ -70,26 +70,26 @@ if [[ ! -z "$development" ]]; then
     scripts="$parent_dir/scripts"
     
     # Check if the directories exist
-    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 72
-    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 73
-    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 74
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 2
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 3
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 4
 else
     ls -la ../
-    echo "Development directory not found." && exit 75
+    echo "Development directory not found." && exit 5
 fi
 
 # Check if directories were found, exit if not
 if [[ -z "$development" || -z "$staging" || -z "$production" || -z "$scripts" ]]; then
     ls .la ./
-    echo "Required directories not found." && exit 76
+    echo "Required directories not found." && exit 6
 fi
 
-# Find all files in the scripts directory except execute-workflow.sh
-files_to_remove=$(find "$scripts" -type f | grep -v 'execute-workflow.sh$')
+# Find all team scripts directory excluding devops scripts
+files_to_remove=$(find "$scripts" -type f -name "team-*.sh" | grep -v 'devops.*.sh$')
 
 # Check if file list is not empty
 if ! [[ -n "$files_to_remove" ]]; then
-    echo "Expected script dir files not found" && exit 77
+    echo "Expected script dir files not found" && exit 7
 fi
 
 # Set up code-development
