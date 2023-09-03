@@ -10,7 +10,7 @@
 # Trigger: Activated upon the completion of various specified workflows.
 
 # Logical Flow (Steps):
-# 1.  .
+# 1.  Retrieve SHA fron Gist.
 # 3.  Extract branch from GitHub ref and determine environment from branch.
 # 4.  Identify lock file and extract SHA.
 # 5.  Checkout the repository using the SHA from the lock file.
@@ -77,10 +77,10 @@ jobs:
     
     steps:
 
-    - name: Retrieve SHA from Gist
+    - name: Retrieve SHA from Gist # Step 1
       run: |
  
-        curl -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
+        curl -H "Authorization: token ${{ secrets.AUTH }}" \
              https://api.github.com/gists/auth-gate-sha \
              | jq .files["auth-gate.sha"].content -r > auth-gate.sha
 
