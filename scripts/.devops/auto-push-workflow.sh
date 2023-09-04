@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e  # Exit if any command fails.
-set -x  # Print commands for debugging.
 
 # Constants
 NUM_COMMITS=3
@@ -134,8 +133,8 @@ esac
 echo "Updating file: $FILE_PATH for branch: $branch"
 
 # Configure git
-git config user.name "$USER_NAME"
-git config user.email "$USER_EMAIL"
+git config --replace-all user.name "$USER_NAME"
+git config --replace-all user.email "$USER_EMAIL"
 
 # Checkout the branch
 git fetch --all
@@ -161,8 +160,8 @@ for i in $(seq 1 $NUM_COMMITS); do
 done
 
 # Return to main and reset user and dir.
-git config user.name "$MAIN_USER"
-git config user.email "$MAIN_EMAIL"
+git config --replace-all user.name "$MAIN_USER"
+git config --replace-all user.email "$MAIN_EMAIL"
 git checkout main
 cd "$CURRENT_DIR"
 
