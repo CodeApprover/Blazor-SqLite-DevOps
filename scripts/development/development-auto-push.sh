@@ -11,10 +11,13 @@ PROJ_NAME="Blazor-SqLite-DevOps"
 NUM_COMMITS=3
 WAIT_DURATION=120 # seconds
 
+# Set the current directory to the script's location
+CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Check if the script is being run from the correct directory
-CURRENT_DIR=$(basename "$(pwd)")
-if [[ "$CURRENT_DIR" != "scripts" ]]; then
-    echo "Error: Please run this script from within its own directory (scripts/)."
+EXPECTED_DIR="$CURRENT_DIR/scripts/$TARGET_BRANCH"
+if [[ "$CURRENT_DIR" != "$EXPECTED_DIR" ]]; then
+    echo "Error: Please run this script from within its own directory ($EXPECTED_DIR)."
     exit 1
 fi
 
@@ -26,7 +29,7 @@ function update_workflow_driver() {
         echo "Email: $USER_EMAIL"
         echo "Automated push identifying push $1 of $2 iterations."
         cat bot.ascii
-    } > "../$TARGET_BRANCH/$PROJ_NAME/workflow.driver"
+    } > "../development/$PROJ_NAME/workflow.driver"
 }
 
 # Determine user based on the selected branch
@@ -34,23 +37,23 @@ case "$TARGET_BRANCH" in
     main)
         USER_NAME="CodeApprover"
         USER_EMAIL="pucfada@pm.me"
-        ;;
+    ;;
     code-development)
         USER_NAME="Code-Backups"
         USER_EMAIL="404bot@pm.me"
-        ;;
+    ;;
     code-staging)
         USER_NAME="ScriptShifters"
         USER_EMAIL="lodgings@pm.me"
-        ;;
+    ;;
     code-production)
         USER_NAME="CodeApprover"
         USER_EMAIL="pucfada@pm.me"
-        ;;
+    ;;
     *)
         echo "Invalid branch: $TARGET_BRANCH"
         exit 1
-        ;;
+    ;;
 esac
 
 # WARNING message
@@ -84,7 +87,7 @@ git pull
 # Committing and pushing in a loop
 for i in $(seq 1 $NUM_COMMITS); do
     update_workflow_driver "$i" "$NUM_COMMITS"
-    git add "../$TARGET_BRANCH/$PROJ_NAME/workflow.driver"
+    git add "../development/$PROJ_NAME/workflow.driver"
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
     git push
     sleep $WAIT_DURATION
