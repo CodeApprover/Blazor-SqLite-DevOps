@@ -8,36 +8,36 @@ WARNING_MESSAGE=$(cat << EOM
 
 CAUTION:
 
-This script automates the recreation of
+This script assumes that required users have the necessary permissions.
+
+The script automates the recreation of the
 code-development, code-staging and code-production branches
 using main as the source.
 
-The script assumes that required users have the necessary permissions.
+    It performs the following tasks:
 
-It performs the following tasks:
+        1. Checkout and update of the main branch.
+        2. DELETE all local and remote branches except 'main'.
+        3. Create and setup fresh branches named 'code-development', 'code-staging' and 'code-production' based on 'main'.
+        4. Ensure that each code- branch only has its specific required directories and files.
+        5. Returns to the main branch.
 
-    1. Checkout and update of the main branch.
-    2. DELETE all local and remote branches except 'main'.
-    3. Create and setup fresh branches named 'code-development', 'code-staging' and 'code-production' based on 'main'.
-    4. Ensure that each code- branch only has its specific required directories and files.
-    5. Returns to the main branch.
+    Consequences:
 
-Consequences:
+        1. Any unmerged changes in deleted branches will be LOST FOREVER.
+        2. The deleted branches on the remote could impact other collaborators' work.
+        3. The operations are irreversible. Ensure you have a backup if needed.
+        4. All stashes will be dropped and lost.
 
-    1. Any unmerged changes in deleted branches will be LOST FOREVER.
-    2. The deleted branches on the remote could impact other collaborators' work.
-    3. The operations are irreversible. Ensure you have a backup if needed.
-    4. All stashes will be dropped and lost.
+    Exit Codes:
 
-Exit Codes:
-
-    0. Script executed successfully without errors.
-    1. User chose to exit without making changes.
-    2. Run script from the correct directory.
-    3. Production directory not found in the parent directory.
-    4. Staging directory not found in the parent directory.
-    5. Scripts directory not found in the parent directory.
-    6. Development directory not found in the specified search path.
+        0. Script executed successfully without errors.
+        1. User chose to exit without making changes.
+        2. Run script from the correct directory.
+        3. Production directory not found in the parent directory.
+        4. Staging directory not found in the parent directory.
+        5. Scripts directory not found in the parent directory.
+        6. Development directory not found in the specified search path.
 
 EOM
 )

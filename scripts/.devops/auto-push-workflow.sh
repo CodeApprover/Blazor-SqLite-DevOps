@@ -19,8 +19,10 @@ WARNING_MESSAGE=$(cat << EOM
 
 CAUTION:
 
-This script automates pushing workflow.driver changes to a specific branch
-and assumes that required users have the necessary permissions.
+This script assumes that required users have the necessary permissions.
+
+The script automates pushing workflow.driver changes
+to a specific branch.
 
     It performs the following tasks:
 
