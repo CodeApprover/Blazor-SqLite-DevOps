@@ -8,7 +8,7 @@ NUM_COMMITS=3
 WAIT_DURATION=120  # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
-PROJ_NAME="Blazor-SqLite-DevOps"
+PROJ_NAME="Blazor-SqLite-Golf-Club"
 CURRENT_DIR=$(pwd)
 BRANCHES=("main" "code-development" "code-staging" "code-production")
 
