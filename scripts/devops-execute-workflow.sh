@@ -1,15 +1,17 @@
 #!/bin/bash
 
+set -e  # Exit on any command failure
+
 # Constants
 NUM_COMMITS=3
 WAIT_DURATION=120 # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
-PROJ_NAME="YourProjectName" # Set this to your project name or use environment variable
+PROJ_NAME="Blazor-SqLite-DevOps"
 
 # Array of available branches
 BRANCHES=("main" "code-development" "code-staging" "code-production")
-MAIN_DIRS=("development" "staging" "production") # Directories in the 'main' branch
+MAIN_DIRS=("development" "staging" "production") # Directories in 'main' branch
 
 # Validate the parameter
 if [ "$#" -ne 1 ]; then
@@ -28,13 +30,19 @@ fi
 # Set directory and user info based on branch
 case "$branch" in
     main)
-        # If running for 'main', let's choose which directory to use
-        echo "Available directories in main: ${MAIN_DIRS[*]}"
-        read -r -p "Which directory do you want to update in main? " dir
-        if [[ ! " ${MAIN_DIRS[*]} " =~ $dir ]]; then
-            echo "Invalid directory. Exiting."
-            exit 3
-        fi
+        # If running main choose a directory
+        while true; do
+            echo "Available directories in main: ${MAIN_DIRS[*]}"
+            read -r -p "Which directory do you want to update in main? (or 'cancel' to exit) " dir
+            if [[ " ${MAIN_DIRS[*]} " =~ $dir ]]; then
+                break
+                elif [[ "$dir" == "cancel" ]]; then
+                echo "User canceled. Exiting."
+                exit 4
+            else
+                echo "Invalid directory. Try again or enter 'cancel' to exit."
+            fi
+        done
         FILE_PATH="$dir/$PROJ_NAME/workflow.driver"
         USER_NAME=$MAIN_USER
         USER_EMAIL=$MAIN_EMAIL
