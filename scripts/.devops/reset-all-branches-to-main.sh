@@ -121,15 +121,28 @@ safe_git_rm() {
     fi
 }
 
+process_scripts_dir() {
+    local branch="$1"
+    local subdir="$2"
+    
+    # Delete all files residing directly in the scripts directory.
+    find "$scripts" -maxdepth 1 -type f -exec git rm {} \;
+
+    # Check if the specific subdir exists.
+    if [[ -d "$scripts/$subdir" ]]; then
+        # Copy the contents of the subdir to the scripts directory.
+        cp -r "$scripts/$subdir/"* "$scripts/"
+        
+        # Remove the subdir.
+        git rm -r "$scripts/$subdir"
+    fi
+}
+
 # Set up code-development dirs.
 git checkout -b code-development main
 safe_git_rm "$production"
 safe_git_rm "$staging"
-for file in "$scripts"/*; do
-    if [[ ! -e "$development/$(basename "$file")" ]]; then
-        safe_git_rm "$file"
-    fi
-done
+process_scripts_dir "code-development" "development"
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
 git checkout main
@@ -137,11 +150,7 @@ git checkout main
 # Set up code-staging dirs.
 git checkout -b code-staging main
 safe_git_rm "$production"
-for file in "$scripts"/*; do
-    if [[ ! -e "$staging/$(basename "$file")" ]]; then
-        safe_git_rm "$file"
-    fi
-done
+process_scripts_dir "code-staging" "staging"
 git commit -m "Setup new code-staging branch. [skip ci]"
 git push -u --set-upstream origin code-staging
 git checkout main
@@ -149,11 +158,7 @@ git checkout main
 # Set up code-production dirs.
 git checkout -b code-production main
 safe_git_rm "$development"
-for file in "$scripts"/*; do
-    if [[ ! -e "$staging/$(basename "$file")" ]]; then
-        safe_git_rm "$file"
-    fi
-done
+process_scripts_dir "code-production" "production"
 git commit -m "Setup new code-production branch. [skip ci]"
 git push -u --set-upstream origin code-production
 
