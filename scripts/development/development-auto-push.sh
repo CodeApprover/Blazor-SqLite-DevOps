@@ -92,7 +92,7 @@ for i in $(seq 1 "$NUM_COMMITS"); do
     } >> "../../development/$PROJ_NAME/workflow.driver"
 
     git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
-    git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
+    git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS every $WAIT_DURATION seconds."
     git push
 
     # Countdown timer
