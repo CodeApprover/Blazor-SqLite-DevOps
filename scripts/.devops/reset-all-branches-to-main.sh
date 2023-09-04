@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e  # Exit if a command fails.
-set -x  # Print commands for debugging.
+#set -x # Print commands for debugging.
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM

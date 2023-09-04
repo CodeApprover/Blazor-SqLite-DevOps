@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e  # Exit if any command fails.
-set -x  # Print commands for debugging.
+#set -x # Print commands for debugging.
 
 # Constants
 NUM_COMMITS=3
