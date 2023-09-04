@@ -146,6 +146,9 @@ process_scripts_dir() {
 
     # Remove the entire scripts directory.
     git rm -r "$scripts"
+    if [[ -d "$scripts" ]]; then
+      rm -rf "$scripts"
+    fi
 
     # Create a new scripts directory.
     mkdir "$scripts"
