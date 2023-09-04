@@ -1,7 +1,8 @@
 #!/bin/bash
 
 set -e  # Exit if a command fails.
-#set -x # Print commands for debugging.
+
+set -x # Print commands for debugging.
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
@@ -124,7 +125,7 @@ safe_git_rm() {
 # Function to process the scripts directory for each branch.
 process_scripts_dir() {
     local branch="$1"
-    subdir="branch" ; echo "${subdir//code-/}"
+    subdir=${branch//code-/}
 
     # Delete any files at the root of scripts dir.
     find "$scripts" -maxdepth 1 -type f -exec git rm {} \;
@@ -139,7 +140,7 @@ process_scripts_dir() {
         # Remove all other subdirs (apart from the one that matches the current branch).
         find "$scripts" -maxdepth 1 -type d | grep -v "$scripts/$subdir" | xargs -I {} git rm -r {}
         # Add the copied files to git.
-        git add "$scripts/"*
+        git add "$scripts"/*
     fi
 }
 
