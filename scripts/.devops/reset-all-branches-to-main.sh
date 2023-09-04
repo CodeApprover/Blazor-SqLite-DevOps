@@ -198,12 +198,6 @@ git checkout main
 # Switch back to main branch.
 git checkout main
 git stash clear
-git fetch --all --tags --prune
-git pull
-git status
-git branch -a
-
-###### CLEANUP ######
 
 # Set line ending conversion tool.
 LINE_ENDING_TOOL="unix2dos"
@@ -219,3 +213,18 @@ find "$CURRENT_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
 
 # Replace multiple consecutive empty lines with one.
 find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
+
+# Update the scripts directory remotely.
+git add -A
+git commit -m "updating scripts"
+git push
+
+# Update the scripts directory locally.
+git fetch --all --tags --prune
+git pull
+
+# Check the status of the repository.
+git status
+
+# List all branches.
+git branch -a
