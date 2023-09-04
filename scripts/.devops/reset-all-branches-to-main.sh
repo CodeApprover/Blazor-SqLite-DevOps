@@ -135,11 +135,11 @@ process_scripts_dir() {
     # Check if the specific subdir exists.
     if [[ -d "$scripts/$subdir" ]]; then
         # Copy the contents of the subdir to the scripts directory.
-        cp "$scripts/$subdir/"* "$scripts/"
+        cp -r "$scripts/$subdir/." "$scripts/"
         # Add the copied files to git.
         git add "$scripts/"*
-        # Remove the subdir.
-        git rm -r "$scripts/$subdir"
+        # Remove all other subdirs (apart from the one that matches the current branch).
+        find "$scripts" -maxdepth 1 -type d | grep -v "$scripts/$subdir" | xargs -I {} git rm -r {}
     fi
 }
 
