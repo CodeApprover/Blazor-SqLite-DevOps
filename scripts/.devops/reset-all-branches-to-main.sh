@@ -1,4 +1,4 @@
-#!/bin/
+#!/bin/bash
 
 set -e  # Exit if a command fails.
 set -x  # Print commands for debugging.
