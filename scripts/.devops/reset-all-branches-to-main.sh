@@ -203,6 +203,7 @@ git stash clear
 git fetch --all --tags --prune
 git pull
 git status
+git branch -a
 
 ###### CLEANUP ######
 
