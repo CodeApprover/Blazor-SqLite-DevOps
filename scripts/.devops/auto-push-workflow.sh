@@ -90,16 +90,16 @@ if [[ $(git status --porcelain) ]]; then
     git stash
     TARGET_BRANCH_STASHED=true
 fi
-git checkout $CURRENT_BRANCH
+git checkout "$CURRENT_BRANCH"
 
 # Extract MAIN_DIRS from BRANCHES and set the FILE_PATH.
-for branch in "${BRANCHES[@]}"; do
-    case "$branch" in
+for branch_item in "${BRANCHES[@]}"; do
+    case "$branch_item" in
         main)
             MAIN_DIRS=("development" "staging" "production")
         ;;
         code-*)
-            MAIN_DIRS=("${branch#code-}")
+            MAIN_DIRS=("${branch_item#code-}")
         ;;
     esac
 done
