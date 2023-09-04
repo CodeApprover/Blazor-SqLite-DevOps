@@ -55,7 +55,7 @@ case $# in
 esac
 
 # Check the directory from which the script is being run.
-EXPECTED_DIR="scripts/$BRANCH"
+EXPECTED_DIR="scripts/{$BRANCH#code-}"
 if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     echo "Error: Please run this script from its directory ($EXPECTED_DIR)."
     exit 2
@@ -116,11 +116,11 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         echo "Date: $(date)"
         echo "$EXTRA_MSG"
     } >> "../../development/$PROJ_NAME/workflow.driver"
-
+    
     git add "../../development/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-
+    
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
         sleep "$WAIT_DURATION"
