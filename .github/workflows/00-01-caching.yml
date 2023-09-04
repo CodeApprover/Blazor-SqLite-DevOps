@@ -46,7 +46,7 @@ jobs:
     # Step 1: Checkout repository using SHA.
     - name: Checkout SHA Repository
       id: checkout-sha
-      uses: actions/checkout@v3.6.0
+      uses: actions/checkout@v4.0.0
       with:
         ref: ${{ github.sha }}
         fetch-depth: 0

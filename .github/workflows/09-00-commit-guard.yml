@@ -92,7 +92,7 @@ jobs:
 
     - name: Checkout SHA Repository # Step 2
       id: checkout-sha
-      uses: actions/checkout@v3.6.0
+      uses: actions/checkout@v4.0.0
       with:
         ref: ${{ env.SHA }}
         fetch-depth: 0

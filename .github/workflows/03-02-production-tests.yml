@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Checkout SHA Repository
         id: checkout-sha
-        uses: actions/checkout@v3.6.0
+        uses: actions/checkout@v4.0.0
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0 # Fetch all
