@@ -32,11 +32,12 @@ Consequences:
 Exit Codes:
 
     0. Script executed successfully without errors.
-    1. User chose to exit the script without making changes.
-    2. Production directory not found in the parent directory.
-    3. Staging directory not found in the parent directory.
-    4. Scripts directory not found in the parent directory.
-    5. Development directory not found in the specified search path.
+    1. User choose to exit without making changes.
+    2. Run script form correct directory.
+    3. Production directory not found in the parent directory.
+    4. Staging directory not found in the parent directory.
+    5. Scripts directory not found in the parent directory.
+    6. Development directory not found in the specified search path.
 
 EOM
 )
@@ -102,21 +103,31 @@ if [[ -n "$development" ]]; then
     staging="$parent_dir/staging"
     scripts="$parent_dir/scripts"
     # Check if required directories exist.
-    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 2
-    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 3
-    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 4
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 3
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 4
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 5
 else
     ls -la "$CURRENT_DIR/../../"
-    echo "Development directory not found." && exit 5
+    echo "Development directory not found." && exit 6
 fi
+
+# Function to git remove files or dirs safely.
+safe_git_rm() {
+    local path="$1"
+    if [[ -d "$path" ]]; then
+        git rm -r "$path"
+    else
+        git rm "$path"
+    fi
+}
 
 # Set up code-development dirs.
 git checkout -b code-development main
-git rm -r "$production"
-git rm -r "$staging"
+safe_git_rm "$production"
+safe_git_rm "$staging"
 for file in "$scripts"/*; do
     if [[ ! -e "$development/$(basename "$file")" ]]; then
-        git rm "$file"
+        safe_git_rm "$file"
     fi
 done
 git commit -m "Setup new code-development branch. [skip ci]"
@@ -125,10 +136,10 @@ git checkout main
 
 # Set up code-staging dirs.
 git checkout -b code-staging main
-git rm -r "$production"
+safe_git_rm "$production"
 for file in "$scripts"/*; do
     if [[ ! -e "$staging/$(basename "$file")" ]]; then
-        git rm "$file"
+        safe_git_rm "$file"
     fi
 done
 git commit -m "Setup new code-staging branch. [skip ci]"
@@ -137,10 +148,10 @@ git checkout main
 
 # Set up code-production dirs.
 git checkout -b code-production main
-git rm -r "$development"
+safe_git_rm "$development"
 for file in "$scripts"/*; do
     if [[ ! -e "$staging/$(basename "$file")" ]]; then
-        git rm "$file"
+        safe_git_rm "$file"
     fi
 done
 git commit -m "Setup new code-production branch. [skip ci]"
