@@ -55,7 +55,7 @@ case $# in
 esac
 
 # Check the directory from which the script is being run.
-EXPECTED_DIR="scripts/{$BRANCH#code-}"
+EXPECTED_DIR="scripts/${BRANCH#code-}"
 if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     echo "Error: Please run this script from its directory ($EXPECTED_DIR)."
     exit 2
