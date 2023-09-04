@@ -28,5 +28,8 @@ fi
 # Process line ending conversion.
 find "$CURRENT_DIR" -type f -exec "$LINE_ENDING_TOOL" {} \;
 
-# Remove spaces from all empty lines and condense multiple blank lines.
-find "$CURRENT_DIR" -type f -exec sed -i -e 's/^[[:space:]]*$//' -e '/^$/N;/^\n$/D' {} \;
+# Remove trailing spaces from all lines.
+find "$CURRENT_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
+
+# Replace multiple consecutive empty lines with one.
+find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
