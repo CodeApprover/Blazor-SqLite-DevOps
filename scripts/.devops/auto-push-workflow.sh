@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# set -x    # Print all commands for debugging
+# set -x    # Print commands for debugging
 set -e      # Exit if any command fails
 
 # Constants
@@ -74,7 +74,7 @@ if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
 fi
 
 # Check user response.
-read -p "Do you wish to proceed? (y/n): " -r
+echo && read -p "Do you wish to proceed? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Exiting without making changes."
     exit 4

@@ -45,7 +45,7 @@ EOM
 echo "$WARNING_MESSAGE"
 
 # Check user response.
-read -p "Do you wish to proceed? (y/n): " -r
+echo && read -p "Do you wish to proceed? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     echo "Exiting without making changes."
