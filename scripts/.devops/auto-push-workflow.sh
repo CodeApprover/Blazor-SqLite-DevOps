@@ -1,65 +1,103 @@
 #!/bin/bash
 
 set -e  # Exit if any command fails.
-set -x # Print commands for debugging.
+set -x  # Print commands for debugging.
 
 # Constants
-NUM_COMMITS_DEFAULT=3
-WAIT_DURATION_DEFAULT=45  # seconds
+NUM_COMMITS_DEFAULT=5
+WAIT_DURATION_DEFAULT=100  # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
-CURRENT_DIR=$(pwd)
-BRANCHES=("main" "code-development" "code-staging" "code-production")
-
-# Exit Codes
-SUCCESS=0
-ERROR_DIR=1
 ERROR_USAGE=2
 ERROR_INVALID_BRANCH=3
-ERROR_USER_CANCELLED=4
-ERROR_DIR_SELECTION_CANCELLED=5
+
+BRANCHES=("main" "code-development" "code-staging" "code-production")
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
+
 CAUTION:
 
 This script automates pushing workflow.driver changes to a specific branch
 and assumes that required users have the necessary permissions.
 
-# ... (rest of the warning message) ...
+    It performs the following tasks:
+
+        1. Verifies the directory from which it is run.
+        2. Accepts a branch name as an argument.
+        3. Updates the 'workflow.driver' file with predefined content.
+        4. Commits the updated file to the specified branch multiple times at a defined interval.
+        5. Offers branch-specific directory selection for the 'main' branch.
+        6. Restores the git environment after execution.
+
+    Consequences:
+
+        1. The script will automate git operations that may affect the repository's branches and files.
+        2. Incorrect usage or misconfiguration can lead to unexpected changes and loss of data.
+        3. Use with caution and ensure you have backup copies of important files.
+
+    Exit Codes:
+
+        0. Script executed successfully without errors.
+        1. Incorrect script execution directory.
+        2. Incorrect usage or missing argument.
+        3. Invalid branch name as argument.
+        4. User cancelled the operation after warning message.
+        5. User cancelled during directory selection for the main branch.
+
 EOM
 )
 
 echo "$WARNING_MESSAGE"
 
+# Verify script execution directory
 CURRENT_DIR=$(pwd)
 EXPECTED_DIR="scripts/.devops"
 if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-    exit $ERROR_DIR
+    exit 1
 fi
 
-# Check if no argument is provided
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 <branch> [number_of_iterations] [wait_duration]"
+# Check and parse command-line arguments
+if [ $# -gt 2 ]; then
+    echo && echo "Usage: $0 <branch> [number_of_iterations] [wait_duration]"
     echo "Available options for <branch>: ${BRANCHES[*]}"
     exit $ERROR_USAGE
 fi
 
-branch=$1
-if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
-    echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
-    exit $ERROR_INVALID_BRANCH
+num_commits=$NUM_COMMITS_DEFAULT
+wait_duration=$WAIT_DURATION_DEFAULT
+
+if [ $# -ge 1 ]; then
+    branch=$1
+    if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
+        echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
+        exit $ERROR_INVALID_BRANCH
+    fi
 fi
 
-num_commits=${2:-$NUM_COMMITS_DEFAULT}
-wait_duration=${3:-$WAIT_DURATION_DEFAULT}
+if [ $# -ge 2 ]; then
+    if ! [[ $2 =~ ^[0-9]+$ ]]; then
+        echo "Invalid number of iterations: $2. Must be a positive integer."
+        exit $ERROR_USAGE
+    fi
+    num_commits=$2
+fi
 
+if [ $# -ge 3 ]; then
+    if ! [[ $3 =~ ^[0-9]+$ ]]; then
+        echo "Invalid wait duration: $3. Must be a positive integer."
+        exit $ERROR_USAGE
+    fi
+    wait_duration=$3
+fi
+
+# Ask user for confirmation
 echo && read -p "Do you wish to proceed? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Exiting without making changes."
-    exit $ERROR_USER_CANCELLED
+    exit 4
 fi
 
 # Stash uncommitted changes in the current branch.
@@ -101,7 +139,7 @@ case "$branch" in
                 ;;
                 cancel)
                     echo "User cancelled. Exiting."
-                    exit $ERROR_DIR_SELECTION_CANCELLED
+                    exit 5
                 ;;
             esac
         done
@@ -129,6 +167,7 @@ git fetch --all
 git checkout "$branch"
 git pull
 
+# Function to update workflow driver content
 function update_workflow_driver() {
     {
         echo "Push iteration: $1 of $2 to branch: $branch by:"
@@ -139,7 +178,7 @@ function update_workflow_driver() {
 }
 
 # Commit and push in a loop.
-for i in $(seq 1 $num_commits); do
+for i in $(seq 1 "$num_commits"); do
     update_workflow_driver "$i" "$num_commits"
     git add "$FILE_PATH"
     git commit -m "Running $branch push #$i"
@@ -147,7 +186,7 @@ for i in $(seq 1 $num_commits); do
 
     # Countdown timer
     echo "Waiting for the next push..."
-    for j in $(seq $wait_duration -1 1); do
+    for j in $(seq "$wait_duration" -1 1); do
         echo -ne "$j seconds remaining...\r"
         sleep 1
     done
@@ -171,5 +210,3 @@ fi
 if [[ $CURRENT_BRANCH_STASHED == true ]]; then
     git stash pop
 fi
-
-exit $SUCCESS
