@@ -32,12 +32,13 @@ case "$BRANCH" in
     ;;
     *)
         echo "Invalid branch: $BRANCH"
-        exit 3
+        exit 1
     ;;
 esac
 
-# Now set DEFAULT_COMMIT_MSG after USER_NAME has a value.
+# Set DEFAULT_COMMIT_MSG after USER_NAME has a value.
 DEFAULT_COMMIT_MSG="Automated $BRANCH push by $USER_NAME"
+COMMIT_MSG=$DEFAULT_COMMIT_MSG
 
 # Parse the number of command line arguments and assign values accordingly.
 case $# in
@@ -62,13 +63,13 @@ case $# in
     3)
         NUM_COMMITS=$1
         WAIT_DURATION=$2
-        COMMIT_MSG=$3
+        COMMIT_MSG=$3  # Override the default commit message
         EXTRA_MSG=$DEFAULT_EXTRA_MSG
     ;;
     4)
         NUM_COMMITS=$1
         WAIT_DURATION=$2
-        COMMIT_MSG=$3
+        COMMIT_MSG=$3  # Override the default commit message
         EXTRA_MSG=$4
     ;;
     *)
@@ -76,7 +77,7 @@ case $# in
         echo "Error: Invalid number of arguments. Expected 0 to 4 arguments, but got $#."
         echo "Usage:"
         echo "$0 [num_commits] [wait_duration] [commit_msg] [extra_msg]"
-        exit 1
+        exit 2
     ;;
 esac
 
@@ -84,7 +85,7 @@ esac
 EXPECTED_DIR="toolbox/${BRANCH#code-}"
 if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     echo "Error: Please run this script from its directory ($EXPECTED_DIR)."
-    exit 2
+    exit 3
 fi
 
 # Warning before executing the script.
@@ -110,8 +111,9 @@ git pull
 
 # Commit workflow.driver in a loop.
 for i in $(seq 1 "$NUM_COMMITS"); do
+    ITERATION_MSG="Commit iteration: $i of $NUM_COMMITS (every $WAIT_DURATION seconds)."
     {
-        echo "Commit iteration: $i of $NUM_COMMITS (every $WAIT_DURATION seconds)."
+        echo "$ITERATION_MSG"
         echo "Branch: $BRANCH"
         echo "Username: $USER_NAME"
         echo "Email: $USER_EMAIL"
