@@ -53,6 +53,13 @@ then
     exit 1
 fi
 
+# Normalise path separators based on operating system.
+OS=$(uname)
+CURRENT_DIR=$(pwd)
+if [[ "$OS" != "Linux" ]]; then # Windows/MinGW.
+    CURRENT_DIR=${CURRENT_DIR//\\/\/}
+fi
+
 # Check if script is run from correct directory.
 CURRENT_DIR=$(pwd)
 EXPECTED_DIR="scripts/.devops"
@@ -125,14 +132,13 @@ safe_git_rm() {
 
 # Function to process the scripts directory for each branch.
 process_scripts_dir() {
-
     local branch="$1"
     subdir=${branch//code-/}
 
     # Check if the specific subdir exists.
     if [[ ! -d "$scripts/$subdir" ]]; then
         echo "Error: $subdir directory not found in $scripts. Exiting..."
-        exit 7
+        exit 7  # Using exit code 7 to indicate this specific error.
     fi
 
     # Copy the subdir to a temporary location.
@@ -141,8 +147,14 @@ process_scripts_dir() {
     # Remove the entire scripts directory.
     git rm -r "$scripts"
 
-    # Rename the copied directory to "scripts".
-    mv "$CURRENT_DIR/$subdir" "$scripts"
+    # Create a new scripts directory.
+    mkdir "$scripts"
+
+    # Move the contents of the copied subdir into the newly created scripts directory.
+    mv "$CURRENT_DIR/$subdir/"* "$scripts/"
+
+    # Cleanup: Remove the now-empty copied subdir.
+    rmdir "$CURRENT_DIR/$subdir"
 
     # Add the new scripts directory to git.
     git add "$scripts"/*
@@ -185,9 +197,26 @@ git push -u --set-upstream origin code-production
 git reset --hard HEAD
 git checkout main
 
-# Clean up and switch back to main branch.
+# Switch back to main branch.
 git checkout main
 git stash clear
 git fetch --all --tags --prune
 git pull
 git status
+
+###### CLEANUP ######
+
+# Set line ending conversion tool.
+LINE_ENDING_TOOL="unix2dos"
+if [[ "$OS" == "Linux" ]]; then
+    LINE_ENDING_TOOL="dos2unix"
+fi
+
+# Process line ending conversion.
+find "$CURRENT_DIR" -type f -exec "$LINE_ENDING_TOOL" {} \;
+
+# Remove trailing spaces from all lines.
+find "$CURRENT_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
+
+# Replace multiple consecutive empty lines with one.
+find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
