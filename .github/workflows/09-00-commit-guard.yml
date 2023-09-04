@@ -4,7 +4,7 @@
 # Description:
 # This workflow manages the response to failed deployments.
 # It verifies the workflow's environment, extracts crucial data,
-# reverts commits if necessary, possibly deletes tags, and notifies the team.
+# reverts BRANCH_LIST if necessary, possibly deletes tags, and notifies the team.
 
 # Trigger: Activated upon the completion of various specified workflows.
 
@@ -108,39 +108,40 @@ jobs:
     - name: Determine Deployment Context # Step 4
       run: |
  
-        BRANCHES_CONTAINING_COMMIT=$(git branch -r --contains ${{ env.SHA }})
-        echo "##[debug][deploy] BRANCHES_CONTAINING_COMMIT: $BRANCHES_CONTAINING_COMMIT"
-        BRANCH_COUNT=$(echo "$BRANCHES_CONTAINING_COMMIT" | wc -l)
-        echo "##[debug][deploy] BRANCH_COUNT: $BRANCH_COUNT"
+        echo "##[debug][deploy] Getting the branches containing the commit."
+        BRANCH_LIST=$(git branch -r --contains ${{ env.SHA }})
+
+        echo "##[debug][deploy] Stripping unnecessary details."
+        BRANCH_LIST=$BRANCH_LIST | grep -v 'HEAD'
+        BRANCH_LIST=$BRANCH_LIST | sed 's/origin\///g' | tr -d ' '
+        echo "##[debug][deploy] BRANCH_LIST: $BRANCH_LIST"
+
+        BRANCH_COUNT=$(echo "$BRANCH_LIST" | wc -l)
+        echo "##[debug][deploy] Expecting 1 branch ... BRANCH_COUNT: $BRANCH_COUNT"
+     
         if [[ $BRANCH_COUNT -eq 0 ]]; then
-          echo "##[warn][deploy] No branches found containing the commit ${{ env.SHA }}."
+          echo "##[warn][deploy] No branches contain commit ${{ env.SHA }}."
           exit 42
         elif [[ $BRANCH_COUNT -gt 1 ]]; then
-          echo "##[error][deploy] Multiple branches contain the commit SHA ${{ env.SHA }}."
+          echo "##[error][deploy] Multiple branches contain commit ${{ env.SHA }}."
           exit 43
         fi
-        echo "##[debug][deploy] setting branch name from SHA"
-        echo "##[debug][deploy] github.ref is ${{ github.ref }}"
-        SHA_BRANCH=${BRANCHES_CONTAINING_COMMIT#refs/heads/}
-        if [[ -z "$SHA_BRANCH" ]]; then
-          echo "##[error][extract] Branch name is not populated."
-          exit 44
-        fi
-        echo "##[debug][extract] Branch Name: $SHA_BRANCH"
-        echo "##[debug][extract] setting environment name from branch name $SHA_BRANCH"
-        environment=${SHA_BRANCH#code-}
-        if [[ -z "$environment" ]]; then
-          echo "##[error][extract] Environment is not populated."
+
+        echo "##[debug][deploy] Branch Name: $BRANCH_LIST"
+        envirn=${BRANCH_LIST#code-}
+        if [[ -z "$envirn" ]]; then
+          echo "##[error][extract] environment $envirn is not populated."
           exit 45
         fi
-        echo "##[debug][extract] Environment: $environment"
-        echo "SHA_BRANCH=$SHA_BRANCH" >> $GITHUB_ENV
-        echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
+        echo "##[debug][extract] Environment Name: $envirn"
+    
+        echo "SHA_BRANCH=$BRANCH_LIST" >> $GITHUB_ENV
+        echo "ENVIRN=$envirn" >> $GITHUB_ENV
 
     - name: Retrieve Commit SHA from Lock File # Step 5
       run: |
  
-        lock_file_path=$(find . -name "${{ env.ENVIRONMENT }}.lock" | head -n 1)
+        lock_file_path=$(find . -name "${{ env.ENVIRN }}.lock" | head -n 1)
         echo "##[debug][lockfile] Lock file path $lock_file_path"
         if [[ -n "$lock_file_path" ]]; then
           sha=$(cat "$lock_file_path")
@@ -151,7 +152,7 @@ jobs:
           echo "##[debug][lockfile] Lock File SHA: $sha"
           echo "SHA=$sha" >> $GITHUB_ENV
         else
-          echo "##[error][lockfile] Lock file not found for the ${{ env.ENVIRONMENT }} environment."
+          echo "##[error][lockfile] Lock file not found for the ${{ env.ENVIRN }} environment."
           exit 47
         fi
 
