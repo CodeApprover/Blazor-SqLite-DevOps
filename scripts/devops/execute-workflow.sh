@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# This script automates the process of updating and pushing changes to specific branches.
+# This script automates the process of updating and pushing changes to specific branches
+# and assumes that the user has the necessary permissions to perform the git operations.
+
 # It performs the following tasks:
 # 1. Verifies the directory from which it is run.
 # 2. Accepts a branch name as an argument.
@@ -20,9 +22,10 @@
 set -e      # Exit if any command fails
 
 # Check if the script is being run from the correct directory
-CURRENT_DIR=$(basename "$(pwd)")
-if [[ "$CURRENT_DIR" != "scripts" ]]; then
-    echo "Error: Please run this script from within its own directory (scripts/)."
+CURRENT_DIR=$(pwd)
+EXPECTED_DIR="scripts/devops"
+if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
+    echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
     exit 1
 fi
 
@@ -42,10 +45,19 @@ WAIT_DURATION=120   # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-DevOps"
+CURRENT_DIR=$(pwd)  # Fetching the current directory path
 
 # Available branches
 BRANCHES=("main" "code-development" "code-staging" "code-production")
-MAIN_DIRS=("development" "staging" "production") # Directories in 'main' branch
+
+# Extract MAIN_DIRS from BRANCHES
+for branch in "${BRANCHES[@]}"; do
+    case "$branch" in
+        main)
+            MAIN_DIRS=("development" "staging" "production")
+        ;;
+    esac
+done
 
 # Check if no argument is provided
 if [ $# -ne 1 ]; then
@@ -94,24 +106,9 @@ case "$branch" in
                 ;;
             esac
         done
-        FILE_PATH="$dir/$PROJ_NAME/workflow.driver"
+        FILE_PATH="$CURRENT_DIR/../$dir/$PROJ_NAME/workflow.driver"
         USER_NAME=$MAIN_USER
         USER_EMAIL=$MAIN_EMAIL
-    ;;
-    code-development)
-        FILE_PATH="development/$PROJ_NAME/workflow.driver"
-        USER_NAME="Code-Backups"
-        USER_EMAIL="404bot@pm.me"
-    ;;
-    code-staging)
-        FILE_PATH="staging/$PROJ_NAME/workflow.driver"
-        USER_NAME="ScriptShifters"
-        USER_EMAIL="lodgings@pm.me"
-    ;;
-    code-production)
-        FILE_PATH="production/$PROJ_NAME/workflow.driver"
-        USER_NAME="ScriptShifters"
-        USER_EMAIL="lodgings@pm.me"
     ;;
 esac
 
@@ -143,4 +140,4 @@ done
 git config user.name "$MAIN_USER"
 git config user.email "$MAIN_EMAIL"
 git checkout main
-cd -
+cd "$CURRENT_DIR"
