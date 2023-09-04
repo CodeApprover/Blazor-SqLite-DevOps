@@ -1,26 +1,27 @@
 #!/bin/bash
 
-set -e  # Exit on any command failure
-set -x  # Print all commands
-
-# Branch Information
-TARGET_BRANCH="code-development"
-PROJ_NAME="Blazor-SqLite-DevOps"
+set -e  # Exit on any command failure.
+set -x  # Print all commands.
 
 # Constants
-NUM_COMMITS=3
-WAIT_DURATION=120 # seconds
+TARGET_BRANCH="code-development"
+PROJ_NAME="Blazor-SqLite-Golf-Club"
 
-# Set the current directory to the script's location
-CURRENT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Set branch information.
+BRANCH="${TARGET_BRANCH//code-}"
+
+# Constants.
+NUM_COMMITS=1
+WAIT_DURATION=100 # seconds.
 
 # Check if the script is being run from the correct directory
-EXPECTED_DIR="$CURRENT_DIR/scripts/$TARGET_BRANCH"
-if [[ "$CURRENT_DIR" != "$EXPECTED_DIR" ]]; then
+EXPECTED_DIR="scripts/$BRANCH"
+if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR)."
     exit 1
 fi
 
+# function to update the workflow.driver file.
 function update_workflow_driver() {
     {
         echo "Push iteration: $1 of $2"
@@ -32,7 +33,7 @@ function update_workflow_driver() {
     } > "../development/$PROJ_NAME/workflow.driver"
 }
 
-# Determine user based on the selected branch
+# Determine user based on the selected branch.
 case "$TARGET_BRANCH" in
     main)
         USER_NAME="CodeApprover"
@@ -56,7 +57,7 @@ case "$TARGET_BRANCH" in
     ;;
 esac
 
-# WARNING message
+# WARNING message.
 echo "CAUTION:"
 echo "This script will perform the following operations:"
 echo "Commits workflow.driver files"
@@ -66,25 +67,25 @@ echo "Three workflow.driver files will be committed to the '$TARGET_BRANCH' bran
 echo ""
 read -p "Do you wish to proceed? (y/n): " -r
 
-# Check for the user's response
+# Check for the user's response.
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Exiting without making changes."
     exit 2
 fi
 
-# Inform user about the operations
+# Inform user about the operations.
 echo "Updating file for branch: $TARGET_BRANCH"
 
-# Configure git
-git config user.name "$USER_NAME"
-git config user.email "$USER_EMAIL"
+# Configure git globally.
+git config --global user.name "$USER_NAME"
+git config --global user.email "$USER_EMAIL"
 
-# Checkout the branch
+# Checkout the branch.
 git fetch --all
 git checkout "$TARGET_BRANCH"
 git pull
 
-# Committing and pushing in a loop
+# Committing and pushing in a loop.
 for i in $(seq 1 $NUM_COMMITS); do
     update_workflow_driver "$i" "$NUM_COMMITS"
     git add "../development/$PROJ_NAME/workflow.driver"
@@ -93,9 +94,9 @@ for i in $(seq 1 $NUM_COMMITS); do
     sleep $WAIT_DURATION
 done
 
-# Return to main branch and reset user
-git config user.name "CodeApprover"
-git config user.email "pucfada@pm.me"
+# Return to main branch and reset user.
+git config --global user.name "CodeApprover"
+git config --global user.email "pucfada@pm.me"
 git checkout main
 git fetch --all
 git pull
