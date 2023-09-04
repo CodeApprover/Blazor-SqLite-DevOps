@@ -52,7 +52,7 @@ echo "$WARNING_MESSAGE"
 
 # Check if script is run from correct directory.
 CURRENT_DIR=$(pwd)
-EXPECTED_DIR="scripts/devops"
+EXPECTED_DIR="scripts/.devops"
 if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
     exit 1

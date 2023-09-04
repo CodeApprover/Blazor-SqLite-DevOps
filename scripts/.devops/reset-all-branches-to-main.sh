@@ -28,6 +28,7 @@ Consequences:
     2. The deleted branches on the remote could impact other collaborators' work.
     3. The operations are irreversible. Ensure you have a backup if needed.
     4. All stashes will be dropped and lost.
+
 Exit Codes:
 
     0. Script executed successfully without errors.
@@ -39,6 +40,7 @@ Exit Codes:
 
 EOM
 )
+
 # Issue warning.
 echo "$WARNING_MESSAGE"
 
@@ -50,13 +52,25 @@ then
     exit 1
 fi
 
+# Check if script is run from correct directory.
+CURRENT_DIR=$(pwd)
+EXPECTED_DIR="scripts/.devops"
+if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
+    echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
+    exit 2
+fi
+
 # Configure git user.
-git config user.name "CodeApprover"
-git config user.email "pucfada@pm.me"
+git config user.name "CodeApprover" --local
+git config user.email "pucfada@pm.me" --local
+
+# Navigate to repository root
+cd "$CURRENT_DIR/../../"
 
 # Checkout and update the main branch.
 git checkout main
-git stash
+git stash # Prevents uncommitted changes error.
+git fetch --all --tags --prune
 git pull
 
 # Set branch names.
