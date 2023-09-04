@@ -14,6 +14,13 @@ ERROR_INVALID_BRANCH=3
 
 BRANCHES=("main" "code-development" "code-staging" "code-production")
 
+# User information for different branches
+USER_INFO=(
+    ["code-development"]="Code-Backups 404bot@pm.me"
+    ["code-staging"]="ScriptShifters lodgings@pm.me"
+    ["code-production"]="CodeApprover pucfada@pm.me"
+)
+
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
 CAUTION:
@@ -46,6 +53,7 @@ Exit Codes:
 EOM
 )
 
+# Disaplay caveat.
 echo "$WARNING_MESSAGE"
 
 # Verify script execution directory
@@ -141,14 +149,16 @@ case "$branch" in
             esac
         done
         FILE_PATH="$CURRENT_DIR/../../$dir/$PROJ_NAME/workflow.driver"
-        USER_NAME=$MAIN_USER
-        USER_EMAIL=$MAIN_EMAIL
+        USER_INFO_STR=${USER_INFO["$branch"]}
+        USER_NAME=${USER_INFO_STR%% *}
+        USER_EMAIL=${USER_INFO_STR#* }
         ;;
     code-*)
         dir="${branch#code-}"
         FILE_PATH="$CURRENT_DIR/../../$dir/$PROJ_NAME/workflow.driver"
-        USER_NAME=$MAIN_USER
-        USER_EMAIL=$MAIN_EMAIL
+        USER_INFO_STR=${USER_INFO["$branch"]}
+        USER_NAME=${USER_INFO_STR%% *}
+        USER_EMAIL=${USER_INFO_STR#* }
         ;;
 esac
 
@@ -178,7 +188,7 @@ function update_workflow_driver() {
 for i in $(seq 1 "$num_commits"); do
     update_workflow_driver "$i" "$num_commits"
     git add "$FILE_PATH"
-    git commit -m "Running $branch push #$i of $num_commits at $wait_duration second intervals to $branch branch."
+    git commit -m "Running push $i of $num_commits at $wait_duration second intervals to $branch branch."
     git push
 
     # Countdown timer
