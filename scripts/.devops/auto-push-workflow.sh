@@ -178,16 +178,18 @@ function update_workflow_driver() {
 for i in $(seq 1 "$num_commits"); do
     update_workflow_driver "$i" "$num_commits"
     git add "$FILE_PATH"
-    git commit -m "Running $branch push #$i"
+    git commit -m "Running $branch push #$i of $num_commits at $wait_duration second intervals to $branch branch."
     git push
 
     # Countdown timer
-    echo "Waiting for the next push..."
-    for j in $(seq "$wait_duration" -1 1); do
-        echo -ne "$j seconds remaining...\r"
-        sleep 1
-    done
-    echo
+    if [ "$i" -lt "$num_commits" ]; then
+        echo "Waiting for the next push..."
+        for j in $(seq "$wait_duration" -1 1); do
+            echo -ne "$j seconds remaining...\r"
+            sleep 1
+        done
+        echo
+    fi
 done
 
 # Return to main and reset user and dir.
