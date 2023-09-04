@@ -1,7 +1,7 @@
 #!/bin/bash
 
-set -e  # Exit if a command fails.
-set -x  # Print commands for debugging.
+set -e   # Exit if a command fails.
+#set -x  # Print commands for debugging.
 
 # Determine operating system.
 OS=$(uname)
