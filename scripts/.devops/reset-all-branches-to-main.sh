@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e  # Exit if a command fails.
-
 set -x # Print commands for debugging.
 
 # Set caveat.
@@ -99,10 +98,12 @@ development=$(find "$CURRENT_DIR/../../" -type d -name "development" | head -n 1
 if [[ -n "$development" ]]; then
     # Extract parent directory of development directory.
     parent_dir=$(dirname "$development")
+
     # Use parent directory to locate the other directories.
     production="$parent_dir/production"
     staging="$parent_dir/staging"
     scripts="$parent_dir/scripts"
+
     # Check if required directories exist.
     ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 3
     ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 4
@@ -124,23 +125,24 @@ safe_git_rm() {
 
 # Function to process the scripts directory for each branch.
 process_scripts_dir() {
+
     local branch="$1"
     subdir=${branch//code-/}
 
     # Check if the specific subdir exists.
     if [[ ! -d "$scripts/$subdir" ]]; then
         echo "Error: $subdir directory not found in $scripts. Exiting..."
-        exit 7  # Using exit code 7 to indicate this specific error.
+        exit 7
     fi
 
     # Copy the subdir to a temporary location.
-    cp -r "$scripts/$subdir" "$scripts/${subdir}_tmp"
+    cp -r "$scripts/$subdir" "$CURRENT_DIR/$subdir"
 
     # Remove the entire scripts directory.
     git rm -r "$scripts"
 
     # Rename the copied directory to "scripts".
-    mv "$scripts/${subdir}_tmp" "$scripts"
+    mv "$CURRENT_DIR/$subdir" "$scripts"
 
     # Add the new scripts directory to git.
     git add "$scripts"/*
@@ -151,7 +153,9 @@ git checkout -b code-development main
 safe_git_rm "$production"
 safe_git_rm "$staging"
 process_scripts_dir "code-development"
-git add .  # Add all changes
+
+# Add all changes,
+git add .
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
 git reset --hard HEAD
@@ -161,7 +165,9 @@ git checkout main
 git checkout -b code-staging main
 safe_git_rm "$production"
 process_scripts_dir "code-staging" "staging"
-git add .  # Add all changes
+
+ # Add all changes,
+git add .
 git commit -m "Setup new code-staging branch. [skip ci]"
 git push -u --set-upstream origin code-staging
 git reset --hard HEAD
@@ -171,7 +177,9 @@ git checkout main
 git checkout -b code-production main
 safe_git_rm "$development"
 process_scripts_dir "code-production" "production"
-git add .  # Add all changes
+
+# Add all changes,
+git add .
 git commit -m "Setup new code-production branch. [skip ci]"
 git push -u --set-upstream origin code-production
 git reset --hard HEAD
