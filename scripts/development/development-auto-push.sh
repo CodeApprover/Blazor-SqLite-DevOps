@@ -6,6 +6,9 @@ set -x  # Print all commands.
 # Constants
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 
+# Remember the current branch to revert to it later.
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
 # Constants with default values.
 DEFAULT_BRANCH="code-development"
 NUM_COMMITS_DEFAULT=1
@@ -80,10 +83,12 @@ git pull
 
 # Committing and pushing in a loop.
 for i in $(seq 1 $NUM_COMMITS); do
-    echo "Push iteration: $i of $NUM_COMMITS"
-    echo "Branch: $TARGET_BRANCH"
-    echo "Username: $USER_NAME"
-    echo "Email: $USER_EMAIL"
+    echo "Push iteration: $i of $NUM_COMMITS" >> "../../development/$PROJ_NAME/workflow.driver"
+    echo "Branch: $TARGET_BRANCH" >> "../../development/$PROJ_NAME/workflow.driver"
+    echo "Username: $USER_NAME" >> "../../development/$PROJ_NAME/workflow.driver"
+    echo "Email: $USER_EMAIL" >> "../../development/$PROJ_NAME/workflow.driver"
+    echo "Date: $(date)" >> "../../development/$PROJ_NAME/workflow.driver"
+
     git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
     git push
@@ -99,9 +104,9 @@ for i in $(seq 1 $NUM_COMMITS); do
     fi
 done
 
-# Return to main branch and reset user.
+# Return to the original branch and reset user.
 git config --global user.name "CodeApprover"
 git config --global user.email "pucfada@pm.me"
-git checkout main
+git checkout "$CURRENT_BRANCH"
 git fetch --all
 git pull
