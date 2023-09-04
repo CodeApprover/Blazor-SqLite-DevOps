@@ -127,21 +127,23 @@ process_scripts_dir() {
     local branch="$1"
     subdir=${branch//code-/}
 
-    # Delete any files at the root of scripts dir.
-    find "$scripts" -maxdepth 1 -type f -exec git rm {} \;
-
-    # Remove the .devops/ directory if it exists.
-    [[ -d "$scripts/.devops" ]] && git rm -r "$scripts/.devops"
-
     # Check if the specific subdir exists.
-    if [[ -d "$scripts/$subdir" ]]; then
-        # Copy the contents of the subdir to the scripts directory.
-        cp -r "$scripts/$subdir/*" "$scripts/"
-        # Remove all other subdirs (apart from the one that matches the current branch).
-        find "$scripts" -maxdepth 1 -type d | grep -v "$scripts/$subdir" | xargs -I {} git rm -r {}
-        # Add the copied files to git.
-        git add "$scripts"/*
+    if [[ ! -d "$scripts/$subdir" ]]; then
+        echo "Error: $subdir directory not found in $scripts. Exiting..."
+        exit 7  # Using exit code 7 to indicate this specific error.
     fi
+
+    # Copy the subdir to a temporary location.
+    cp -r "$scripts/$subdir" "$scripts/${subdir}_tmp"
+
+    # Remove the entire scripts directory.
+    git rm -r "$scripts"
+
+    # Rename the copied directory to "scripts".
+    mv "$scripts/${subdir}_tmp" "$scripts"
+
+    # Add the new scripts directory to git.
+    git add "$scripts"/*
 }
 
 # Set up code-development dirs.
