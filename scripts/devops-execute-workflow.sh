@@ -1,72 +1,83 @@
 #!/bin/bash
 
-# Array of available options
-available_options=("code-development" "code-staging" "code-production" "main")
+# Constants
+NUM_COMMITS=3
+WAIT_DURATION=120 # seconds
+MAIN_USER="CodeApprover"
+MAIN_EMAIL="pucfada@pm.me"
+PROJ_NAME="YourProjectName" # Set this to your project name or use environment variable
 
-# Set the number of commits and pause duration
-num_commits=3
-wait=180 # seconds
+# Array of available branches
+BRANCHES=("main" "code-development" "code-staging" "code-production")
+MAIN_DIRS=("development" "staging" "production") # Directories in the 'main' branch
 
-# Check if no argument is provided
-if [ $# -ne 1 ]; then
+# Validate the parameter
+if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <branch>"
-    echo "Available options: ${available_options[*]}"
     exit 1
 fi
 
-branch=$1
+branch="$1"
 
-# Check if the provided branch option is valid
-if [[ ! " ${available_options[*]} " =~ "$branch" ]]; then
-    echo "Error: Invalid branch option. Available options are: ${available_options[*]}"
+# Validate branch
+if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
+    echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
     exit 2
 fi
 
-# Configure git user based on the branch
-git config user.name "CodeApprover"
-git config user.email "pucfada@pm.me"
-case $branch in
+# Set directory and user info based on branch
+case "$branch" in
+    main)
+        # If running for 'main', let's choose which directory to use
+        echo "Available directories in main: ${MAIN_DIRS[*]}"
+        read -r -p "Which directory do you want to update in main? " dir
+        if [[ ! " ${MAIN_DIRS[*]} " =~ $dir ]]; then
+            echo "Invalid directory. Exiting."
+            exit 3
+        fi
+        FILE_PATH="$dir/$PROJ_NAME/workflow.driver"
+        USER_NAME=$MAIN_USER
+        USER_EMAIL=$MAIN_EMAIL
+    ;;
     code-development)
-        git config user.name "Code-Backups"
-        git config user.email "404bot@pm.me"
+        FILE_PATH="development/$PROJ_NAME/workflow.driver"
+        USER_NAME="Code-Backups"
+        USER_EMAIL="404bot@pm.me"
     ;;
     code-staging)
-        git config user.name "ScriptShifters"
-        git config user.email "lodgings@pm.me"
+        FILE_PATH="staging/$PROJ_NAME/workflow.driver"
+        USER_NAME="ScriptShifters"
+        USER_EMAIL="lodgings@pm.me"
+    ;;
+    code-production)
+        FILE_PATH="production/$PROJ_NAME/workflow.driver"
+        USER_NAME="ScriptShifters"
+        USER_EMAIL="lodgings@pm.me"
     ;;
 esac
 
-# WARNING message
-echo "CAUTION:"
-echo "This script will perform the following operations:"
-echo "1. Commits workflow.driver files to"
-echo "   the '$branch' branch ${branch#code-} directory"
-echo "   $num times every $wait seconds."
-echo "- Three workflow.driver files will be committed to the '$branch' branch."
-echo ""
-read -p "Do you wish to proceed? (y/n): " -r
+# Inform user about the operations
+echo "Updating file: $FILE_PATH for branch: $branch"
 
-# Check for the user's response
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Exiting without making changes."
-    exit 1
-fi
+# Configure git
+git config user.name "$USER_NAME"
+git config user.email "$USER_EMAIL"
 
-# Checkout and update branch
+# Checkout the branch
 git fetch --all
-git checkout $branch
+git checkout "$branch"
 git pull
 
-# Commit and push to test workflows
-for num in $(seq 1 $num_commits); do
-    echo "$num" >> workflow.driver
-    git add workflow.driver
-    git commit -m "Running $branch push #$num"
+# Committing and pushing in a loop
+for i in $(seq 1 $NUM_COMMITS); do
+    echo "Environment updating the workflow driver file - push #$i" >> "$FILE_PATH"
+    git add "$FILE_PATH"
+    git commit -m "Running $branch push #$i"
     git push
-    sleep $wait
+    sleep $WAIT_DURATION
 done
 
-# return to main branch and reset git user
-git config user.name "CodeApprover"
-git config user.email "pucfada@pm.me"
+# Return to main branch and reset user
+git config user.name "$MAIN_USER"
+git config user.email "$MAIN_EMAIL"
 git checkout main
