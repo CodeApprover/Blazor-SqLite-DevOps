@@ -12,7 +12,29 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 # Constants with default values.
 DEFAULT_BRANCH="code-development"
 NUM_COMMITS_DEFAULT=1
-WAIT_DURATION_DEFAULT=100 # seconds.
+WAIT_DURATION_DEFAULT=0 # seconds.
+
+# Check the number of parameters passed and assign values accordingly.
+case $# in
+    0)
+        # Use default values.
+    ;;
+    1)
+        NUM_COMMITS_DEFAULT=$1
+    ;;
+    2)
+        NUM_COMMITS_DEFAULT=$1
+        WAIT_DURATION_DEFAULT=$2
+    ;;
+    *)
+        echo "Error: Too many arguments. Expected 0, 1, or 2 arguments, but got $#."
+        echo "Usage:"
+        echo "$0 no args uses default values of $NUM_COMMITS_DEFAULT commits repeated every $WAIT_DURATION_DEFAULT seconds."
+        echo "$0 [num_commits] one arg specifies the number of commits. The wait duration is $WAIT_DURATION_DEFAULT seconds."
+        echo "$0 [num_commits] [wait_duration] two args specifies the number of commits and the wait duration in seconds."
+        exit 1
+    ;;
+esac
 
 # Check and parse command-line arguments
 TARGET_BRANCH=${1:-$DEFAULT_BRANCH}
@@ -26,7 +48,7 @@ BRANCH="${TARGET_BRANCH//code-}"
 EXPECTED_DIR="scripts/$BRANCH"
 if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR)."
-    exit 1
+    exit 2
 fi
 
 # Determine user based on the selected branch.
@@ -49,7 +71,7 @@ case "$TARGET_BRANCH" in
     ;;
     *)
         echo "Invalid branch: $TARGET_BRANCH"
-        exit 1
+        exit 3
     ;;
 esac
 
@@ -91,7 +113,7 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         echo "Date: $(date)"
     } >> "../../development/$PROJ_NAME/workflow.driver"
 
-    git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
+    git add "../../development/$PROJ_NAME/workflow.driver"
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS every $WAIT_DURATION seconds."
     git push
 
