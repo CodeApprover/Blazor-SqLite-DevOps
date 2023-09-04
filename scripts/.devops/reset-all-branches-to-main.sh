@@ -153,7 +153,8 @@ process_scripts_dir() {
     fi
 
     # Add the new scripts directory to git.
-    git add "$CURRENT_DIR/toolbox/"*
+    cd "$CURRENT_DIR/toolbox"
+    git add -A
 }
 
 # Set up code-development dirs.
