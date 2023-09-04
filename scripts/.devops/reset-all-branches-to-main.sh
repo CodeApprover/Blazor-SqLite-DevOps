@@ -146,7 +146,7 @@ process_scripts_dir() {
 
     # Remove the entire scripts directory from git and the file system.
     git rm -r "$scripts"
-    
+
     # Ensure the directory is removed from the file system.
     if [[ -d "$scripts" ]]; then
         rm -rf "$scripts"
@@ -157,7 +157,6 @@ process_scripts_dir() {
     git add -A
     cd -  # Navigate back to the original directory to ensure the rest of the script runs correctly.
 }
-
 
 # Set up code-development dirs.
 git checkout -b code-development main
