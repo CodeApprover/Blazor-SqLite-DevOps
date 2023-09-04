@@ -124,9 +124,9 @@ safe_git_rm() {
 # Function to process the scripts directory for each branch.
 process_scripts_dir() {
     local branch="$1"
-    local subdir="$2"
+    subdir="branch" ; echo "${subdir//code-/}"
 
-    # Delete any files at the root of scripts/.
+    # Delete any files at the root of scripts dir.
     find "$scripts" -maxdepth 1 -type f -exec git rm {} \;
 
     # Remove the .devops/ directory if it exists.
@@ -135,11 +135,11 @@ process_scripts_dir() {
     # Check if the specific subdir exists.
     if [[ -d "$scripts/$subdir" ]]; then
         # Copy the contents of the subdir to the scripts directory.
-        cp -r "$scripts/$subdir/." "$scripts/"
-        # Add the copied files to git.
-        git add "$scripts/"*
+        cp -r "$scripts/$subdir/*" "$scripts/"
         # Remove all other subdirs (apart from the one that matches the current branch).
         find "$scripts" -maxdepth 1 -type d | grep -v "$scripts/$subdir" | xargs -I {} git rm -r {}
+        # Add the copied files to git.
+        git add "$scripts/"*
     fi
 }
 
@@ -147,7 +147,7 @@ process_scripts_dir() {
 git checkout -b code-development main
 safe_git_rm "$production"
 safe_git_rm "$staging"
-process_scripts_dir "code-development" "development"
+process_scripts_dir "code-development"
 git add .  # Add all changes
 git commit -m "Setup new code-development branch. [skip ci]"
 git push -u --set-upstream origin code-development
