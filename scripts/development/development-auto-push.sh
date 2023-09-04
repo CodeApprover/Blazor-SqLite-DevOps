@@ -4,15 +4,20 @@ set -e  # Exit on any command failure.
 set -x  # Print all commands.
 
 # Constants
-TARGET_BRANCH="code-development"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
+
+# Constants with default values.
+DEFAULT_BRANCH="code-development"
+NUM_COMMITS_DEFAULT=1
+WAIT_DURATION_DEFAULT=100 # seconds.
+
+# Check and parse command-line arguments
+TARGET_BRANCH=${1:-$DEFAULT_BRANCH}
+NUM_COMMITS=${2:-$NUM_COMMITS_DEFAULT}
+WAIT_DURATION=${3:-$WAIT_DURATION_DEFAULT}
 
 # Set branch information.
 BRANCH="${TARGET_BRANCH//code-}"
-
-# Constants.
-NUM_COMMITS=1
-WAIT_DURATION=100 # seconds.
 
 # Check if the script is being run from the correct directory
 EXPECTED_DIR="scripts/$BRANCH"
@@ -82,7 +87,16 @@ for i in $(seq 1 $NUM_COMMITS); do
     git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
     git push
-    sleep $WAIT_DURATION
+
+    # Countdown timer
+    if [ "$i" -lt "$NUM_COMMITS" ]; then
+        echo "Waiting for the next push..."
+        for j in $(seq "$WAIT_DURATION" -1 1); do
+            echo -ne "$j seconds remaining...\r"
+            sleep 1
+        done
+        echo
+    fi
 done
 
 # Return to main branch and reset user.
