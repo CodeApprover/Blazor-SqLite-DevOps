@@ -28,8 +28,8 @@ fi
 # Process line ending conversion.
 find "$CURRENT_DIR" -type f -exec "$LINE_ENDING_TOOL" {} \;
 
-# Remove trailing whitespaces.
-find "$CURRENT_DIR" -type f -exec sed -i 's/[ \t]*$//' {} \;
+# Remove trailing whitespaces without removing empty lines.
+find "$CURRENT_DIR" -type f -exec sed -i 's/\([^\t ]\)[ \t]*$/\1/' {} \;
 
-# Modify empty lines as per requirements.
+# Modify empty lines as per requirements without affecting other empty lines.
 find "$CURRENT_DIR" -type f -exec sed -i '/^run: |/{n; s/^[[:space:]]*$/ /}' {} \;
