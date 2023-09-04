@@ -142,6 +142,6 @@ for i in $(seq 1 "$NUM_COMMITS"); do
 done
 
 # Restore stashed changes and fetch latest changes.
+git stash pop
 git fetch --all --tags --prune --prune-tags
 git pull
-git stash pop
