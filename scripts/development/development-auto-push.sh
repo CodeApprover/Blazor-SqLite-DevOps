@@ -1,17 +1,43 @@
 #!/bin/bash
 
-set -e # Exit nonzero if anything fails.
-set -x # Echo all commands.
+set -e  # Exit nonzero if anything fails.
+#set -x # Echo all commands.
 
 # Set constants.
 BRANCH="code-development"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 
-# Set defaults.
+# Set defaults without the USER_NAME variable.
 NUM_COMMITS_DEFAULT=1
 WAIT_DURATION_DEFAULT=100
-DEFAULT_COMMIT_MSG="Automated $BRANCH push by $USER_NAME"
 DEFAULT_EXTRA_MSG=""
+
+# Assign Git username and email based on branch.
+case "$BRANCH" in
+    main)
+        USER_NAME="CodeApprover"
+        USER_EMAIL="pucfada@pm.me"
+    ;;
+    code-development)
+        USER_NAME="Code-Backups"
+        USER_EMAIL="404bot@pm.me"
+    ;;
+    code-staging)
+        USER_NAME="ScriptShifters"
+        USER_EMAIL="lodgings@pm.me"
+    ;;
+    code-production)
+        USER_NAME="CodeApprover"
+        USER_EMAIL="pucfada@pm.me"
+    ;;
+    *)
+        echo "Invalid branch: $BRANCH"
+        exit 3
+    ;;
+esac
+
+# Now set DEFAULT_COMMIT_MSG after USER_NAME has a value.
+DEFAULT_COMMIT_MSG="Automated $BRANCH push by $USER_NAME"
 
 # Parse the number of command line arguments and assign values accordingly.
 case $# in
@@ -61,30 +87,6 @@ if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     exit 2
 fi
 
-# Assign Git username and email based on branch.
-case "$BRANCH" in
-    main)
-        USER_NAME="CodeApprover"
-        USER_EMAIL="pucfada@pm.me"
-    ;;
-    code-development)
-        USER_NAME="Code-Backups"
-        USER_EMAIL="404bot@pm.me"
-    ;;
-    code-staging)
-        USER_NAME="ScriptShifters"
-        USER_EMAIL="lodgings@pm.me"
-    ;;
-    code-production)
-        USER_NAME="CodeApprover"
-        USER_EMAIL="pucfada@pm.me"
-    ;;
-    *)
-        echo "Invalid branch: $BRANCH"
-        exit 3
-    ;;
-esac
-
 # Warning before executing the script.
 echo "WARNING:"
 echo "This script will:"
@@ -116,11 +118,23 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         echo "Date: $(date)"
         echo "$EXTRA_MSG"
     } >> "../../development/$PROJ_NAME/workflow.driver"
-    
+
+    # Echo the commit message.
+    if [ "$COMMIT_MSG" != "$DEFAULT_COMMIT_MSG" ]; then
+        echo "Custom Commit Message: $COMMIT_MSG"
+    else
+        echo "Default Commit Message: $DEFAULT_COMMIT_MSG"
+    fi
+
+    # Echo the workflow.driver file.
+    cat ../../development/$PROJ_NAME/workflow.driver
+
+    # Commit and push the changes.
     git add "../../development/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-    
+
+    # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
         sleep "$WAIT_DURATION"
