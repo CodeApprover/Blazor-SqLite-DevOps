@@ -141,26 +141,19 @@ process_scripts_dir() {
         exit 7  # Using exit code 7 to indicate this specific error.
     fi
 
-    # Copy the subdir to a temporary location.
-    cp -r "$scripts/$subdir" "$CURRENT_DIR/$subdir"
+    # Copy the subdir directly to the project root as 'toolbox'.
+    cp -r "$scripts/$subdir" "$CURRENT_DIR/toolbox"
 
-    # Remove the entire scripts directory.
+    # Remove the entire scripts directory from git and the file system.
     git rm -r "$scripts"
+    
+    # Ensure the directory is removed from the file system.
     if [[ -d "$scripts" ]]; then
-      rm -rf "$scripts"
+        rm -rf "$scripts"
     fi
 
-    # Create a new scripts directory.
-    mkdir "$scripts"
-
-    # Move the contents of the copied subdir into the newly created scripts directory.
-    mv "$CURRENT_DIR/$subdir/"* "$scripts/"
-
-    # Cleanup: Remove the now-empty copied subdir.
-    rmdir "$CURRENT_DIR/$subdir"
-
     # Add the new scripts directory to git.
-    git add "$scripts"/*
+    git add "$CURRENT_DIR/toolbox/"*
 }
 
 # Set up code-development dirs.
