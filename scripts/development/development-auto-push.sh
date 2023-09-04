@@ -82,12 +82,14 @@ git checkout "$TARGET_BRANCH"
 git pull
 
 # Committing and pushing in a loop.
-for i in $(seq 1 $NUM_COMMITS); do
-    echo "Push iteration: $i of $NUM_COMMITS" >> "../../development/$PROJ_NAME/workflow.driver"
-    echo "Branch: $TARGET_BRANCH" >> "../../development/$PROJ_NAME/workflow.driver"
-    echo "Username: $USER_NAME" >> "../../development/$PROJ_NAME/workflow.driver"
-    echo "Email: $USER_EMAIL" >> "../../development/$PROJ_NAME/workflow.driver"
-    echo "Date: $(date)" >> "../../development/$PROJ_NAME/workflow.driver"
+for i in $(seq 1 "$NUM_COMMITS"); do
+    {
+        echo "Push iteration: $i of $NUM_COMMITS every $WAIT_DURATION seconds."
+        echo "Branch: $TARGET_BRANCH"
+        echo "Username: $USER_NAME"
+        echo "Email: $USER_EMAIL"
+        echo "Date: $(date)"
+    } >> "../../development/$PROJ_NAME/workflow.driver"
 
     git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
