@@ -1,16 +1,39 @@
 #!/bin/bash
 
 set -e  # Exit if any command fails.
-set -x # Print commands for debugging.
+set -x  # Print commands for debugging.
+
+# Exit Codes:
+# 1: Incorrect script execution directory.
+# 2: Incorrect number of iterations.
+# 3: Incorrect wait duration.
+# 4: Incorrect usage or missing argument.
+# 5: Invalid branch name as argument.
+# 6: User cancelled the operation after warning message.
+# 7: User cancelled during directory selection for the main branch.
 
 # Constants
-NUM_COMMITS=3
-WAIT_DURATION=120  # seconds
+DEFAULT_NUM_COMMITS=3
+DEFAULT_WAIT_DURATION=45  # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 CURRENT_DIR=$(pwd)
 BRANCHES=("main" "code-development" "code-staging" "code-production")
+
+# Number of iterations
+NUM_COMMITS=${2:-$DEFAULT_NUM_COMMITS}
+if ! [[ "$NUM_COMMITS" =~ ^[0-9]+$ ]]; then
+    echo "Error: The number of iterations must be an integer."
+    exit 2
+fi
+
+# Wait duration
+WAIT_DURATION=${3:-$DEFAULT_WAIT_DURATION}
+if ! [[ "$WAIT_DURATION" =~ ^[0-9]+$ ]]; then
+    echo "Error: The wait duration must be an integer."
+    exit 3
+fi
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
@@ -35,15 +58,6 @@ Consequences:
     2. Incorrect usage or misconfiguration can lead to unexpected changes and loss of data.
     3. Use with caution and ensure you have backup copies of important files.
 
-Exit Codes:
-
-    0. Script executed successfully without errors.
-    1. Incorrect script execution directory.
-    2. Incorrect usage or missing argument.
-    3. Invalid branch name as argument.
-    4. User cancelled the operation after warning message.
-    5. User cancelled during directory selection for the main branch.
-
 EOM
 )
 
@@ -56,23 +70,24 @@ if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
     exit 1
 fi
 
-# Check if no argument is provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <branch>"
-    echo "Available options: ${BRANCHES[*]}"
-    exit 2
+# Check if no argument is provided for the branch name
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <branch> [number_of_iterations] [wait_duration]"
+    echo "e.g., $0 code-development 5 60"
+    echo "Available options for <branch>: ${BRANCHES[*]}"
+    exit 4
 fi
 
 branch=$1
 if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
     echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
-    exit 3
+    exit 5
 fi
 
 echo && read -p "Do you wish to proceed? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Exiting without making changes."
-    exit 4
+    exit 6
 fi
 
 # Stash uncommitted changes in the current branch.
@@ -114,7 +129,7 @@ case "$branch" in
                 ;;
                 cancel)
                     echo "User cancelled. Exiting."
-                    exit 5
+                    exit 7
                 ;;
             esac
         done
