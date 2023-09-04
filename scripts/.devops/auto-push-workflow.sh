@@ -157,7 +157,14 @@ for i in $(seq 1 $NUM_COMMITS); do
     git add "$FILE_PATH"
     git commit -m "Running $branch push #$i"
     git push
-    sleep $WAIT_DURATION
+
+    # Countdown timer
+    echo "Waiting for the next push..."
+    for j in $(seq $WAIT_DURATION -1 1); do
+        echo -ne "$j seconds remaining...\r"
+        sleep 1
+    done
+    echo
 done
 
 # Return to main and reset user and dir.
