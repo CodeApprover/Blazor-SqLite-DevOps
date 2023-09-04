@@ -124,7 +124,7 @@ safe_git_rm() {
 process_scripts_dir() {
     local branch="$1"
     local subdir="$2"
-    
+
     # Delete all files residing directly in the scripts directory.
     find "$scripts" -maxdepth 1 -type f -exec git rm {} \;
 
@@ -132,7 +132,7 @@ process_scripts_dir() {
     if [[ -d "$scripts/$subdir" ]]; then
         # Copy the contents of the subdir to the scripts directory.
         cp -r "$scripts/$subdir/"* "$scripts/"
-        
+
         # Remove the subdir.
         git rm -r "$scripts/$subdir"
     fi
