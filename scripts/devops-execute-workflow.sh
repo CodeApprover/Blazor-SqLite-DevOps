@@ -1,7 +1,7 @@
 #!/bin/bash
 
-set -e  # Exit if any command fails
-set -x  # Print all commands for debugging
+set -e      # Exit if any command fails
+# set -x    # Print all commands for debugging
 
 function update_workflow_driver() {
     {
@@ -15,7 +15,7 @@ function update_workflow_driver() {
 
 # Constants
 NUM_COMMITS=3
-WAIT_DURATION=120 # seconds
+WAIT_DURATION=120   # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-DevOps"
@@ -95,6 +95,9 @@ esac
 # Inform user about the operations
 echo "Updating file: $FILE_PATH for branch: $branch"
 
+# Move up one dir level
+cd ..
+
 # Configure git
 git config user.name "$USER_NAME"
 git config user.email "$USER_EMAIL"
@@ -113,7 +116,8 @@ for i in $(seq 1 $NUM_COMMITS); do
     sleep $WAIT_DURATION
 done
 
-# Return to main branch and reset user
+# Return to main and reset user and dir
 git config user.name "$MAIN_USER"
 git config user.email "$MAIN_EMAIL"
 git checkout main
+cd -
