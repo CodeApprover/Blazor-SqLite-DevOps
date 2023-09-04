@@ -16,7 +16,6 @@ BRANCHES=("main" "code-development" "code-staging" "code-production")
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
-
 CAUTION:
 
 This script assumes that required users have the necessary permissions.
@@ -24,30 +23,26 @@ This script assumes that required users have the necessary permissions.
 The script automates pushing workflow.driver changes
 to a specific branch.
 
-    It performs the following tasks:
+It performs the following tasks:
+    1. Verifies the directory from which it is run.
+    2. Accepts a branch name as an argument.
+    3. Updates the 'workflow.driver' file with predefined content.
+    4. Commits the updated file to the specified branch multiple times at a defined interval.
+    5. Offers branch-specific directory selection for the 'main' branch.
+    6. Restores the git environment after execution.
 
-        1. Verifies the directory from which it is run.
-        2. Accepts a branch name as an argument.
-        3. Updates the 'workflow.driver' file with predefined content.
-        4. Commits the updated file to the specified branch multiple times at a defined interval.
-        5. Offers branch-specific directory selection for the 'main' branch.
-        6. Restores the git environment after execution.
+Consequences:
+    1. The script will automate git operations that may affect the repository's branches and files.
+    2. Incorrect usage or misconfiguration can lead to unexpected changes and loss of data.
+    3. Use with caution and ensure you have backup copies of important files.
 
-    Consequences:
-
-        1. The script will automate git operations that may affect the repository's branches and files.
-        2. Incorrect usage or misconfiguration can lead to unexpected changes and loss of data.
-        3. Use with caution and ensure you have backup copies of important files.
-
-    Exit Codes:
-
-        0. Script executed successfully without errors.
-        1. Incorrect script execution directory.
-        2. Incorrect usage or missing argument.
-        3. Invalid branch name as argument.
-        4. User cancelled the operation after warning message.
-        5. User cancelled during directory selection for the main branch.
-
+Exit Codes:
+    0. Script executed successfully without errors.
+    1. Incorrect script execution directory.
+    2. Incorrect usage or missing argument.
+    3. Invalid branch name as argument.
+    4. User cancelled the operation after warning message.
+    5. User cancelled during directory selection for the main branch.
 EOM
 )
 
@@ -62,22 +57,22 @@ if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
 fi
 
 # Check and parse command-line arguments
-if [ $# -gt 2 ]; then
+if [ $# -lt 1 ] || [ $# -gt 3 ]; then
     echo && echo "Usage: $0 <branch> [number_of_iterations] [wait_duration]"
     echo "Available options for <branch>: ${BRANCHES[*]}"
     exit $ERROR_USAGE
 fi
 
+# Verify the branch name provided as the first argument
+branch=$1
+if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
+    echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
+    exit $ERROR_INVALID_BRANCH
+fi
+
+# Parse the remaining command-line arguments
 num_commits=$NUM_COMMITS_DEFAULT
 wait_duration=$WAIT_DURATION_DEFAULT
-
-if [ $# -ge 1 ]; then
-    branch=$1
-    if [[ ! " ${BRANCHES[*]} " =~ $branch ]]; then
-        echo "Invalid branch: $branch. Available branches are: ${BRANCHES[*]}"
-        exit $ERROR_INVALID_BRANCH
-    fi
-fi
 
 if [ $# -ge 2 ]; then
     if ! [[ $2 =~ ^[0-9]+$ ]]; then
@@ -124,10 +119,10 @@ for branch_item in "${BRANCHES[@]}"; do
     case "$branch_item" in
         main)
             MAIN_DIRS=("development" "staging" "production")
-        ;;
+            ;;
         code-*)
             MAIN_DIRS=("${branch_item#code-}")
-        ;;
+            ;;
     esac
 done
 
@@ -138,23 +133,23 @@ case "$branch" in
             case $dir in
                 development|staging|production)
                     break
-                ;;
+                    ;;
                 cancel)
                     echo "User cancelled. Exiting."
                     exit 5
-                ;;
+                    ;;
             esac
         done
         FILE_PATH="$CURRENT_DIR/../../$dir/$PROJ_NAME/workflow.driver"
         USER_NAME=$MAIN_USER
         USER_EMAIL=$MAIN_EMAIL
-    ;;
+        ;;
     code-*)
         dir="${branch#code-}"
         FILE_PATH="$CURRENT_DIR/../../$dir/$PROJ_NAME/workflow.driver"
         USER_NAME=$MAIN_USER
         USER_EMAIL=$MAIN_EMAIL
-    ;;
+        ;;
 esac
 
 # Inform user about the operations.
