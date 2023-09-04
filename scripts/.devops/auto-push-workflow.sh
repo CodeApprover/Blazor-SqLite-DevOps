@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# set -x    # Print commands for debugging
+set -x    # Print commands for debugging
 set -e      # Exit if any command fails
 
 # Constants
