@@ -142,7 +142,7 @@ process_scripts_dir() {
     fi
 
     # Copy the subdir directly to the project root as 'toolbox'.
-    cp -r "$scripts/$subdir" "$CURRENT_DIR/toolbox"
+    cp -r "$scripts/$subdir" "toolbox"
 
     # Remove the entire scripts directory from git and the file system.
     git rm -r "$scripts"
@@ -153,9 +153,11 @@ process_scripts_dir() {
     fi
 
     # Add the new scripts directory to git.
-    cd "$CURRENT_DIR/toolbox"
+    cd "toolbox"
     git add -A
+    cd -  # Navigate back to the original directory to ensure the rest of the script runs correctly.
 }
+
 
 # Set up code-development dirs.
 git checkout -b code-development main
