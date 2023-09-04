@@ -21,18 +21,6 @@ if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
     exit 1
 fi
 
-# function to update the workflow.driver file.
-function update_workflow_driver() {
-    {
-        echo "Push iteration: $1 of $2"
-        echo "Branch: $TARGET_BRANCH"
-        echo "Username: $USER_NAME"
-        echo "Email: $USER_EMAIL"
-        echo "Automated push identifying push $1 of $2 iterations."
-        cat bot.ascii
-    } > "../development/$PROJ_NAME/workflow.driver"
-}
-
 # Determine user based on the selected branch.
 case "$TARGET_BRANCH" in
     main)
@@ -87,8 +75,11 @@ git pull
 
 # Committing and pushing in a loop.
 for i in $(seq 1 $NUM_COMMITS); do
-    update_workflow_driver "$i" "$NUM_COMMITS"
-    git add "../development/$PROJ_NAME/workflow.driver"
+    echo "Push iteration: $i of $NUM_COMMITS"
+    echo "Branch: $TARGET_BRANCH"
+    echo "Username: $USER_NAME"
+    echo "Email: $USER_EMAIL"
+    git add "../../development/$PROJ_NAME/workflow.driver" # Corrected path
     git commit -m "Automated $TARGET_BRANCH push by $USER_NAME #$i of $NUM_COMMITS"
     git push
     sleep $WAIT_DURATION
