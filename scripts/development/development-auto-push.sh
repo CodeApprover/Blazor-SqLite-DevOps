@@ -140,8 +140,13 @@ for i in $(seq 1 "$NUM_COMMITS"); do
     # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
-        sleep "$WAIT_DURATION"
+        for (( j=WAIT_DURATION; j>0; j-- )); do
+            echo -ne "$j seconds remaining...\r"
+            sleep 1
+        done
+        echo "" # Clear counter line.
     fi
+
 done
 
 # Restore stashed changes and fetch latest changes.
