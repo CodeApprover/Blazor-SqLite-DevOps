@@ -5,6 +5,7 @@ set -e  # Exit nonzero if anything fails.
 
 # Set constants.
 BRANCH="code-development"
+BRANCH_DIR="${branch//code-/}"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 
 # Set defaults without the USER_NAME variable.
@@ -91,7 +92,7 @@ fi
 # Warning before executing the script.
 echo "WARNING:"
 echo "This script will:"
-echo "- Commit workflow.driver files to the '$BRANCH' branch ${branch//code-/} directory."
+echo "- Commit workflow.driver files to the '$BRANCH' branch $BRANCH_DIR directory."
 echo "- Make $NUM_COMMITS commits at intervals of $WAIT_DURATION seconds."
 echo "Please ensure you are aware of the changes this script will make."
 read -p "Do you wish to proceed? (y/n): " -r
@@ -129,10 +130,10 @@ for i in $(seq 1 "$NUM_COMMITS"); do
     fi
 
     # Echo the workflow.driver file.
-    cat "../../${branch//code-/}/$PROJ_NAME/workflow.driver" && echo
+    cat "../../$BRANCH_DIR/$PROJ_NAME/workflow.driver" && echo
 
     # Commit and push the changes.
-    git add "../../${branch//code-/}/$PROJ_NAME/workflow.driver"
+    git add "../../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
 
