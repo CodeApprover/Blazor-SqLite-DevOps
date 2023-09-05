@@ -84,19 +84,19 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         echo "$COMMIT_MSG"
         echo "Username: $USER_NAME push #$i/$NUM_COMMITS to $BRANCH branch."
     } > "../${BRANCH//code-/}/$PROJ_NAME/workflow.driver"
-    
+
     # Echo the commit message.
     echo "Commit Message: $COMMIT_MSG"
-    
+
     # Echo the workflow.driver file.
     echo "Workflow Driver File:"
     cat "../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
-    
+
     # Commit and push the changes.
     git add "../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-    
+
     # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
@@ -106,7 +106,7 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         done
         echo " " # Clear the countdown line.
     fi
-    
+
 done
 
 # Restore stashed changes and fetch latest changes.
