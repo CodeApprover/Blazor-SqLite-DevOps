@@ -81,8 +81,7 @@ echo # Log readability.
 for i in $(seq 1 "$NUM_COMMITS"); do
     COMMIT_MSG="$USER_NAME $BRANCH push $i of $NUM_COMMITS every $WAIT_DURATION seconds."
     {
-        echo "$COMMIT_MSG"
-        echo "Username: $USER_NAME push #$i/$NUM_COMMITS to $BRANCH branch."
+        echo "$USER_NAME push #$i/$NUM_COMMITS to $BRANCH branch."
     } > "../${BRANCH//code-/}/$PROJ_NAME/workflow.driver"
 
     # Echo the commit message.
