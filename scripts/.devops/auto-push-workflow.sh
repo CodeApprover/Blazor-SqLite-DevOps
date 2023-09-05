@@ -1,11 +1,11 @@
 #!/bin/bash
 
 set -e  # Exit if any command fails.
-set -x  # Print commands for debugging.
+#set -x # Print commands for debugging.
 
 # Constants
-NUM_COMMITS_DEFAULT=3
-WAIT_DURATION_DEFAULT=45 # seconds
+NUM_COMMITS_DEFAULT=1
+WAIT_DURATION_DEFAULT=0 # seconds
 MAIN_USER="CodeApprover"
 MAIN_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
