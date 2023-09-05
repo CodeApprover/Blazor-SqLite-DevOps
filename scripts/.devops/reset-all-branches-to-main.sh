@@ -218,3 +218,8 @@ find "$CURRENT_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
 
 # Replace multiple consecutive empty lines with one.
 find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
+
+# Add all changes, commit and push.
+git add -A
+git commit -m "Finalising scripts [skip ci]"
+git push
