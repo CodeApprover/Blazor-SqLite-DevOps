@@ -36,8 +36,8 @@ case "$BRANCH" in
     ;;
 esac
 
-# Set DEFAULT_COMMIT_MSG after USER_NAME has a value.
-DEFAULT_COMMIT_MSG="Automated $BRANCH push by $USER_NAME"
+# Set DEFAULT_COMMIT_MSG
+DEFAULT_COMMIT_MSG="Commit iteration: $i of $NUM_COMMITS (every $WAIT_DURATION seconds)."
 COMMIT_MSG=$DEFAULT_COMMIT_MSG
 
 # Parse the number of command line arguments and assign values accordingly.
@@ -111,31 +111,30 @@ git pull
 
 # Commit workflow.driver in a loop.
 for i in $(seq 1 "$NUM_COMMITS"); do
-    ITERATION_MSG="Commit iteration: $i of $NUM_COMMITS (every $WAIT_DURATION seconds)."
     {
-        echo "$ITERATION_MSG"
+        echo "$COMMIT_MSG"
         echo "Branch: $BRANCH"
         echo "Username: $USER_NAME"
         echo "Email: $USER_EMAIL"
         echo "Date: $(date)"
         echo "$EXTRA_MSG"
     } >> "../../development/$PROJ_NAME/workflow.driver"
-    
+
     # Echo the commit message.
     if [ "$COMMIT_MSG" != "$DEFAULT_COMMIT_MSG" ]; then
         echo "Custom Commit Message: $COMMIT_MSG"
     else
         echo "Default Commit Message: $DEFAULT_COMMIT_MSG"
     fi
-    
+
     # Echo the workflow.driver file.
     cat ../../development/$PROJ_NAME/workflow.driver
-    
+
     # Commit and push the changes.
     git add "../../development/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-    
+
     # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
