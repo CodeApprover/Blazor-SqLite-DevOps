@@ -5,7 +5,6 @@ set -e  # Exit if a command fails.
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
-
 CAUTION:
 
 This script assumes that required users have the necessary permissions.
@@ -38,7 +37,6 @@ using main as the source.
         4. Staging directory not found in the parent directory.
         5. Scripts directory not found in the parent directory.
         6. Development directory not found in the specified search path.
-
 EOM
 )
 
@@ -61,7 +59,6 @@ if [[ "$OS" != "Linux" ]]; then # Windows/MinGW.
 fi
 
 # Check if script is run from correct directory.
-CURRENT_DIR=$(pwd)
 EXPECTED_DIR="scripts/.devops"
 if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
@@ -156,45 +153,53 @@ process_scripts_dir() {
     cd -  # Navigate back to the original directory to ensure the rest of the script runs correctly.
 }
 
-# Set up code-development dirs.
-git checkout -b code-development main
-safe_git_rm "$production"
-safe_git_rm "$staging"
-process_scripts_dir "code-development"
-safe_git_rm "scripts"
+# Function to set up code branches.
+setup_code_branch() {
+    local branch="$1"
 
-# Add all changes,
-git add .
-git commit -m "Setup new code-development branch. [skip ci]"
-git push -u --set-upstream origin code-development
-git reset --hard HEAD
-git checkout main
+    # Create a new branch and check it out.
+    git checkout -b "$branch"
 
-# Set up code-staging dirs.
-git checkout -b code-staging main
-safe_git_rm "$production"
-process_scripts_dir "code-staging"
-safe_git_rm "scripts"
+    # Process the directory based on the branch type.
+    case "$branch" in
+        "code-development")
+            safe_git_rm "$production"
+            safe_git_rm "$staging"
+            ;;
+        "code-staging")
+            safe_git_rm "$production"
+            ;;
+        "code-production")
+            safe_git_rm "$development"
+            ;;
+    esac
 
-# Add all changes,
-git add .
-git commit -m "Setup new code-staging branch. [skip ci]"
-git push -u --set-upstream origin code-staging
-git reset --hard HEAD
-git checkout main
+    # Process the scripts directory.
+    process_scripts_dir "$branch"
+    safe_git_rm "scripts"
 
-# Set up code-production dirs.
-git checkout -b code-production main
-safe_git_rm "$development"
-process_scripts_dir "code-production"
-safe_git_rm "scripts"
+    # Add all changes and push to create a new remote branch.
+    git add .
+    git commit -m "Setup new $branch branch. [skip ci]"
 
-# Add all changes,
-git add .
-git commit -m "Setup new code-production branch. [skip ci]"
-git push -u --set-upstream origin code-production
-git reset --hard HEAD
-git checkout main
+    # Push the branch to remote.
+    git push origin "$branch"
+
+    # Fetch the new branch from remote.
+    git fetch origin "$branch"
+
+    # Set up the local branch to track the remote branch.
+    git branch -u "origin/$branch" "$branch"
+
+    # Reset and return to main branch.
+    git reset --hard HEAD
+    git checkout main
+}
+
+# Set up the code branches.
+for branch in "${branches[@]}"; do
+    setup_code_branch "$branch"
+done
 
 # Switch back to main branch.
 git checkout main
