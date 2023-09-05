@@ -82,8 +82,8 @@ case $# in
 esac
 
 # Check the directory from which the script is being run.
-EXPECTED_DIR="toolbox/${BRANCH#code-}"
-if [[ ! "$PWD" =~ $EXPECTED_DIR ]]; then
+EXPECTED_DIR="toolbox"
+if [[ ! "$PWD" == *"$EXPECTED_DIR"* ]]; then
     echo "Error: Please run this script from its directory ($EXPECTED_DIR)."
     exit 3
 fi
@@ -120,22 +120,22 @@ for i in $(seq 1 "$NUM_COMMITS"); do
         echo "Date: $(date)"
         echo "$EXTRA_MSG"
     } >> "../../development/$PROJ_NAME/workflow.driver"
-
+    
     # Echo the commit message.
     if [ "$COMMIT_MSG" != "$DEFAULT_COMMIT_MSG" ]; then
         echo "Custom Commit Message: $COMMIT_MSG"
     else
         echo "Default Commit Message: $DEFAULT_COMMIT_MSG"
     fi
-
+    
     # Echo the workflow.driver file.
     cat ../../development/$PROJ_NAME/workflow.driver
-
+    
     # Commit and push the changes.
     git add "../../development/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-
+    
     # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
