@@ -37,7 +37,7 @@ case "$BRANCH" in
 esac
 
 # Set DEFAULT_COMMIT_MSG
-DEFAULT_COMMIT_MSG="Commit iteration: $i of $NUM_COMMITS (every $WAIT_DURATION seconds)."
+DEFAULT_COMMIT_MSG="Commit iteration: $i of $NUM_COMMITS every $WAIT_DURATION seconds."
 COMMIT_MSG=$DEFAULT_COMMIT_MSG
 
 # Parse the number of command line arguments and assign values accordingly.

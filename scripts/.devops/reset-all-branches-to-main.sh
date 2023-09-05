@@ -136,8 +136,11 @@ process_scripts_dir() {
         exit 7  # Using exit code 7 to indicate this specific error.
     fi
 
-    # Copy the subdir directly to the project root as 'toolbox'.
-    cp -r "$scripts/$subdir" "toolbox"
+    # Create the toolbox directory if it doesn't exist.
+    mkdir -p "toolbox"
+
+    # Copy the contents of the subdir to 'toolbox' in the project root.
+    cp -r "$scripts/$subdir/"* "toolbox/"
 
     # Remove the entire scripts directory from git and the file system.
     git rm -r "$scripts"
