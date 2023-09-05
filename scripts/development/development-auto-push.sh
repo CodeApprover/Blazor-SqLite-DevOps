@@ -9,9 +9,8 @@ BRANCH_DIR="${BRANCH//code-/}"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 
 # Set defaults without the USER_NAME variable.
-NUM_COMMITS_DEFAULT=1
-WAIT_DURATION_DEFAULT=100
-DEFAULT_EXTRA_MSG=""
+NUM_COMMITS=1
+WAIT_DURATION=100
 
 # Assign Git username and email based on branch.
 case "$BRANCH" in
@@ -37,50 +36,17 @@ case "$BRANCH" in
     ;;
 esac
 
-# Set DEFAULT_COMMIT_MSG
-DEFAULT_COMMIT_MSG="Commit iteration: $i of $NUM_COMMITS every $WAIT_DURATION seconds."
-COMMIT_MSG=$DEFAULT_COMMIT_MSG
+# Check the number of arguments.
+if [[ $# -gt 2 ]]; then
+    echo "Error: Invalid number of arguments. Expected 0 to 2 arguments, but got $#."
+    echo "Usage:"
+    echo "$0 [num_commits] [wait_duration]"
+    exit 2
+fi
 
-# Parse the number of command line arguments and assign values accordingly.
-case $# in
-    0)
-        NUM_COMMITS=$NUM_COMMITS_DEFAULT
-        WAIT_DURATION=$WAIT_DURATION_DEFAULT
-        COMMIT_MSG=$DEFAULT_COMMIT_MSG
-        EXTRA_MSG=$DEFAULT_EXTRA_MSG
-    ;;
-    1)
-        NUM_COMMITS=$1
-        WAIT_DURATION=$WAIT_DURATION_DEFAULT
-        COMMIT_MSG=$DEFAULT_COMMIT_MSG
-        EXTRA_MSG=$DEFAULT_EXTRA_MSG
-    ;;
-    2)
-        NUM_COMMITS=$1
-        WAIT_DURATION=$2
-        COMMIT_MSG=$DEFAULT_COMMIT_MSG
-        EXTRA_MSG=$DEFAULT_EXTRA_MSG
-    ;;
-    3)
-        NUM_COMMITS=$1
-        WAIT_DURATION=$2
-        COMMIT_MSG=$3  # Override the default commit message
-        EXTRA_MSG=$DEFAULT_EXTRA_MSG
-    ;;
-    4)
-        NUM_COMMITS=$1
-        WAIT_DURATION=$2
-        COMMIT_MSG=$3  # Override the default commit message
-        EXTRA_MSG=$4
-    ;;
-    *)
-        # Provide usage instructions
-        echo "Error: Invalid number of arguments. Expected 0 to 4 arguments, but got $#."
-        echo "Usage:"
-        echo "$0 [num_commits] [wait_duration] [commit_msg] [extra_msg]"
-        exit 2
-    ;;
-esac
+# Override defaults with command line arguments.
+NUM_COMMITS=${1:-$NUM_COMMITS}
+WAIT_DURATION=${2:-$WAIT_DURATION}
 
 # Check the directory from which the script is being run.
 EXPECTED_DIR="toolbox"
@@ -108,48 +74,42 @@ git config --global user.email "$USER_EMAIL"
 git fetch --all --tags --prune --prune-tags
 git checkout "$BRANCH"
 git stash
-git pull
+
+echo # Log readability.
 
 # Commit workflow.driver in a loop.
 for i in $(seq 1 "$NUM_COMMITS"); do
+    COMMIT_MSG="$USER_NAME $BRANCH push $i of $NUM_COMMITS every $WAIT_DURATION seconds."
     {
         echo "$COMMIT_MSG"
-        echo "BRANCH: $BRANCH"
-        echo "Username: $USER_NAME"
-        echo "Email: $USER_EMAIL"
-        echo "Date: $(date)"
-        echo "$EXTRA_MSG"
-    } >> "../${BRANCH//code-/}/$PROJ_NAME/workflow.driver"
-
+        echo "Username: $USER_NAME push #$i/$NUM_COMMITS to $BRANCH branch."
+    } > "../${BRANCH//code-/}/$PROJ_NAME/workflow.driver"
+    
     # Echo the commit message.
-    echo
-    if [ "$COMMIT_MSG" != "$DEFAULT_COMMIT_MSG" ]; then
-        echo "Custom Commit Message: $COMMIT_MSG"
-    else
-        echo "Default Commit Message: $DEFAULT_COMMIT_MSG"
-    fi
-
+    echo "Commit Message: $COMMIT_MSG"
+    
     # Echo the workflow.driver file.
-    cat "../$BRANCH_DIR/$PROJ_NAME/workflow.driver" && echo
-
+    echo "Workflow Driver File:"
+    cat "../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
+    
     # Commit and push the changes.
     git add "../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
-
+    
     # Wait for the next commit.
     if [ "$i" -lt "$NUM_COMMITS" ]; then
         echo "Waiting for the next commit..."
         for (( j=WAIT_DURATION; j>0; j-- )); do
-            echo -ne "$j seconds remaining...\r"
+            echo -ne "Seconds remaining... $j\r"
             sleep 1
         done
-        echo "" # Clear counter line.
+        echo " " # Clear the countdown line.
     fi
-
+    
 done
 
 # Restore stashed changes and fetch latest changes.
-git stash pop
+git stash drop
 git fetch --all --tags --prune --prune-tags
 git pull
