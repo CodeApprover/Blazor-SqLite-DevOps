@@ -5,7 +5,7 @@ set -e  # Exit nonzero if anything fails.
 
 # Set constants.
 BRANCH="code-development"
-BRANCH_DIR="${branch//code-/}"
+BRANCH_DIR="${BRANCH//code-/}"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 
 # Set defaults without the USER_NAME variable.
@@ -114,12 +114,12 @@ git pull
 for i in $(seq 1 "$NUM_COMMITS"); do
     {
         echo "$COMMIT_MSG"
-        echo "Branch: $BRANCH"
+        echo "BRANCH: $BRANCH"
         echo "Username: $USER_NAME"
         echo "Email: $USER_EMAIL"
         echo "Date: $(date)"
         echo "$EXTRA_MSG"
-    } >> "../${branch//code-/}/$PROJ_NAME/workflow.driver"
+    } >> "../${BRANCH//code-/}/$PROJ_NAME/workflow.driver"
 
     # Echo the commit message.
     echo
