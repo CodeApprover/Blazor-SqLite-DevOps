@@ -130,10 +130,10 @@ for i in $(seq 1 "$NUM_COMMITS"); do
     fi
 
     # Echo the workflow.driver file.
-    cat "../../$BRANCH_DIR/$PROJ_NAME/workflow.driver" && echo
+    cat "../$BRANCH_DIR/$PROJ_NAME/workflow.driver" && echo
 
     # Commit and push the changes.
-    git add "../../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
+    git add "../$BRANCH_DIR/$PROJ_NAME/workflow.driver"
     git commit -m "$COMMIT_MSG"
     git push
 
