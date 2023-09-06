@@ -22,7 +22,8 @@ MAX_WAIT=86400  # 24 hours
 MAX_PUSHES=5
 
 # Set usage message
-USAGE="Usage: $0 <branch> [<num_pushes> <wait_duration>] # Branches: ${BRANCHES[*]}"
+USAGE="Usage: $0 <branch-name> [<pushes> <wait_seconds>]
+Branches: ${BRANCHES[*]}"
 
 # Warn user
 cat <<EOM
@@ -36,19 +37,21 @@ The first argument must be a valid branch name.
 
 PARAMETERS:
 
-First arg (mandatory):
+First arg (mandatory) "branch-name":
 
-  - "main"
-  - "code-development"
-  - "code-staging"
-  - "code-production"
+  - main
+  - code-development
+  - code-staging
+  - code-production
 
 The script can take two additional optional arguments:
 
-  - Optional Second arg "pushes" sets the number of pushes.
+  - Optional Second arg: "pushes":
+      Sets the number of pushes.
       If unset this defaults to 1
 
-  - Optional third arg "wait seconds" sets the interval between pushes.
+  - Optional third arg "wait seconds":
+      Sets the interval between pushes.
       If unset this defaults to 0
 
 USERS:
@@ -87,10 +90,10 @@ wait_duration="${3:-0}"  # default 0
 # Set user
 declare -A USER_INFO
 USER_INFO=(
-  ["${BRANCHES[0]}"]="$DEV_USER $DEV_EMAIL"
-  ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
-  ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-  ["${BRANCHES[3]}"]="$DEV_USER $DEV_EMAIL"
+    ["${BRANCHES[0]}"]="$DEV_USER $DEV_EMAIL"
+    ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
+    ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
+    ["${BRANCHES[3]}"]="$DEV_USER $DEV_EMAIL"
 )
 USER=${USER_INFO["$branch"]}
 USER_NAME=${USER%% *}
@@ -109,27 +112,27 @@ git config user.email "$USER_EMAIL"
 ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
-  if ! git stash; then
-    echo "Stash error for $CURRENT_BRANCH."
-    exit "$STASH_ORIG_ERR"
-  fi
-  ORIGIN_STASHED=true
+    if ! git stash; then
+        echo "Stash error for $CURRENT_BRANCH."
+        exit "$STASH_ORIG_ERR"
+    fi
+    ORIGIN_STASHED=true
 fi
 
 # Checkout target branch
 if ! git checkout "$branch"; then
-  echo "Checkout error for $branch."
-  exit "$TARGET_CHECKOUT_ERR"
+    echo "Checkout error for $branch."
+    exit "$TARGET_CHECKOUT_ERR"
 fi
 
 # Stash target branch
 TARGET_STASHED=false
 if [[ $(git status --porcelain) ]]; then
-  if ! git stash; then
-    echo "Stash error for $branch."
-    exit "$STASH_TARG_ERR"
-  fi
-  TARGET_STASHED=true
+    if ! git stash; then
+        echo "Stash error for $branch."
+        exit "$STASH_TARG_ERR"
+    fi
+    TARGET_STASHED=true
 fi
 
 # Set workflow driver file
@@ -138,7 +141,7 @@ DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
 
 # Function to update workflow.driver
 update_workflow_driver() {
-  echo "
+    echo "
     Push iteration: $1 of $num_pushes
     Commit Message: $2
     Wait interval: $wait_duration
@@ -152,46 +155,46 @@ update_workflow_driver() {
 
 # Add, commit and push in a loop.
 for i in $(seq 1 "$num_pushes"); do
-  commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
-  update_workflow_driver "$i" "$commit_msg"
-
-  if ! git add "$DRIVER"; then
-    echo "Add error."
-    exit "$ADD_ERR"
-  fi
-
-  if ! git commit -m "$commit_msg"; then
-    echo "Commit error for $branch push $i of $num_pushes."
-    exit "$COMMIT_ERR"
-  fi
-
-  if ! git push; then
-    echo "Push error."
-    exit "$PUSH_ERR"
-  fi
-
-  # Wait if required
-  [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
+    commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
+    update_workflow_driver "$i" "$commit_msg"
+    
+    if ! git add "$DRIVER"; then
+        echo "Add error."
+        exit "$ADD_ERR"
+    fi
+    
+    if ! git commit -m "$commit_msg"; then
+        echo "Commit error for $branch push $i of $num_pushes."
+        exit "$COMMIT_ERR"
+    fi
+    
+    if ! git push; then
+        echo "Push error."
+        exit "$PUSH_ERR"
+    fi
+    
+    # Wait if required
+    [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
 done
 
 # Pop target branch
 if $TARGET_STASHED && ! git stash pop; then
-  echo "Stash pop error for $branch."
-  exit "$TARGET_POP_ERR"
+    echo "Stash pop error for $branch."
+    exit "$TARGET_POP_ERR"
 fi
 
 # Switch to original user and branch
 git config user.name "$DEV_USER"
 git config user.email "$DEV_EMAIL"
 if ! git checkout "$CURRENT_BRANCH"; then
-  echo "Checkout error for $CURRENT_BRANCH."
-  exit "$ORIGIN_CHECKOUT_ERR"
+    echo "Checkout error for $CURRENT_BRANCH."
+    exit "$ORIGIN_CHECKOUT_ERR"
 fi
 
 # Pop original branch
 if $ORIGIN_STASHED && ! git stash pop; then
-  echo "Stash pop error for $CURRENT_BRANCH."
-  exit "$ORIGIN_POP_ERR"
+    echo "Stash pop error for $CURRENT_BRANCH."
+    exit "$ORIGIN_POP_ERR"
 fi
 
 # Exit successfully
