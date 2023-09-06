@@ -12,7 +12,6 @@ ITER_ERR=24
 WAIT_ERR=25
 CSPROJ_ERR=26
 
-
 # Constants
 DEV_USER="CodeApprover"
 DEV_EMAIL="pucfada@pm.me"
