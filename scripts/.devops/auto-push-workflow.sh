@@ -21,6 +21,15 @@ BRANCHES=("main" "code-development" "code-staging" "code-production")
 MAX_WAIT=86400  # 24 hours
 MAX_PUSHES=5
 
+# Set user
+declare -A USER_INFO
+USER_INFO=(
+    ["${BRANCHES[0]}"]="$DEV_USER $DEV_EMAIL"
+    ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
+    ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
+    ["${BRANCHES[3]}"]="$DEV_USER $DEV_EMAIL"
+)
+
 # Set usage message
 USAGE="Usage: $0 <branch-name> [<pushes> <wait_seconds>]
 Branches: ${BRANCHES[*]}"
@@ -37,29 +46,23 @@ The first argument must be a valid branch name.
 
 PARAMETERS:
 
-First arg (mandatory) "branch-name":
+  First parameter (mandatory) "branch-name":
+      main | code-development | code-staging | code-production
 
-  - main
-  - code-development
-  - code-staging
-  - code-production
+  Second parameter (optional) "pushes":
+      Sets the number of pushes. If unset default is 1.
 
-The script can take two additional optional arguments:
+  Third parameter (optional) "wait seconds":
+      Sets the interval between pushes. If unset default is 0.
 
-  - Second arg (optional) "pushes":
-      Sets the number of pushes.
-      If unset this defaults to 1
+GIT USERS:
 
-  - Third arg (optional) "wait seconds":
-      Sets the interval between pushes.
-      If unset this defaults to 0
+  The script presumes the following git users are authorised:
 
-USERS:
-
-- Main: $DEV_USER (Email: $DEV_EMAIL)
-- Development: ${USER_INFO["${code-}development"]}
-- Staging: ${USER_INFO["${code-}staging"]}
-- Production: ${USER_INFO["${code-}production"]}
+  main:              ${BRANCHES[0]}: ${USER_INFO["${BRANCHES[0]}"]}
+  code-development:  ${BRANCHES[1]}: ${USER_INFO["${BRANCHES[1]}"]}
+  code-staging:      ${BRANCHES[2]}: ${USER_INFO["${BRANCHES[2]}"]}
+  code-production:   ${BRANCHES[3]}: ${USER_INFO["${BRANCHES[3]}"]}
 
 CAUTION:
 
@@ -87,14 +90,7 @@ wait_duration="${3:-0}"  # default 0
 [[ "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]] && echo "$USAGE" && echo "Invalid iteration count." && exit "$ITER_ERR"
 [[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_WAIT" ]] && echo "$USAGE" && echo "Invalid wait duration." && exit "$WAIT_ERR"
 
-# Set user
-declare -A USER_INFO
-USER_INFO=(
-    ["${BRANCHES[0]}"]="$DEV_USER $DEV_EMAIL"
-    ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
-    ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-    ["${BRANCHES[3]}"]="$DEV_USER $DEV_EMAIL"
-)
+# Set user info
 USER=${USER_INFO["$branch"]}
 USER_NAME=${USER%% *}
 USER_EMAIL=${USER#* }
