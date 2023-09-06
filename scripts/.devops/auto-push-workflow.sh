@@ -31,9 +31,25 @@ WARNING:
 
 - You are about to execute $0
 
-This script makes commits and pushes to the specified branch # no defaults.
-for a an optional number of iterations # defaults to one.
-waiting for optional duration seconds between pushes # defaults to zero.
+This script makes commits and pushes them to a specified branch.
+The first argument must be a valid branch name.
+
+PARAMETERS:
+
+First arg (mandatory):
+
+  - "main"
+  - "code-development"
+  - "code-staging"
+  - "code-production"
+
+The script can take two additional optional arguments:
+
+  - Optional Second arg "pushes" sets the number of pushes.
+      If unset this defaults to 1
+
+  - Optional third arg "wait seconds" sets the interval between pushes.
+      If unset this defaults to 0
 
 USERS:
 
