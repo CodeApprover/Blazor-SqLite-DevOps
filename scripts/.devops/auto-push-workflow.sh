@@ -43,30 +43,35 @@ WARNING:
   The first argument must be a valid branch name.
 
 PARAMETERS:
-  First parameter (mandatory) "branch-name":
-    Sets the target branch. Valid branches:
-    ${BRANCHES[0]} | ${BRANCHES[1]} | ${BRANCHES[2]} | ${BRANCHES[3]}
+  First parameter (mandatory) "branch-name" [string]:
+  Sets the target branch. Valid branches:
 
-  Second parameter (optional) "pushes":
-    Sets the number of pushes.
-    If unset default is 1.
+    - ${BRANCHES[0]}
+    - ${BRANCHES[1]}
+    - ${BRANCHES[2]}
+    - ${BRANCHES[3]}
 
-  Third parameter (optional) "wait seconds":
-    Sets the interval between pushes.
-    If unset default is 0.
+  Second parameter (optional) "pushes" [int]:
+  Sets the number of pushes.
+    - If unset default is 1.
+
+  Third parameter (optional) "wait seconds" [int]:
+  Sets the interval between pushes.
+    - If unset default is 0.
 
 GIT USERS:
   The script presumes the following git users are authorised:
 
-    ${BRANCHES[0]}: ${USER_INFO["${BRANCHES[0]}"]}
-    ${BRANCHES[1]}: ${USER_INFO["${BRANCHES[1]}"]}
-    ${BRANCHES[2]}: ${USER_INFO["${BRANCHES[2]}"]}
-    ${BRANCHES[3]}: ${USER_INFO["${BRANCHES[3]}"]}
+    - ${BRANCHES[0]} ${USER_INFO["${BRANCHES[0]}"]}
+    - ${BRANCHES[1]} ${USER_INFO["${BRANCHES[1]}"]}
+    - ${BRANCHES[2]} ${USER_INFO["${BRANCHES[2]}"]}
+    - ${BRANCHES[3]} ${USER_INFO["${BRANCHES[3]}"]}
 
 CAUTION:
   This script stashes and pops any stashes (if created)
   to restore any changes in the current branch.
-    - Consider making a backup before running this script.
+
+    - Consider making a backup before execution.
 
 $USAGE
 
@@ -151,22 +156,22 @@ update_workflow_driver() {
 for i in $(seq 1 "$num_pushes"); do
     commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
     update_workflow_driver "$i" "$commit_msg"
-
+    
     if ! git add "$DRIVER"; then
         echo "Add error."
         exit "$ADD_ERR"
     fi
-
+    
     if ! git commit -m "$commit_msg"; then
         echo "Commit error for $branch push $i of $num_pushes."
         exit "$COMMIT_ERR"
     fi
-
+    
     if ! git push; then
         echo "Push error."
         exit "$PUSH_ERR"
     fi
-
+    
     # Wait if required
     [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
 done
