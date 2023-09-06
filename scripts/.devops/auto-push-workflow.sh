@@ -46,11 +46,11 @@ First arg (mandatory) "branch-name":
 
 The script can take two additional optional arguments:
 
-  - Optional Second arg: "pushes":
+  - Second arg (optional) "pushes":
       Sets the number of pushes.
       If unset this defaults to 1
 
-  - Optional third arg "wait seconds":
+  - Third arg (optional) "wait seconds":
       Sets the interval between pushes.
       If unset this defaults to 0
 
@@ -157,22 +157,22 @@ update_workflow_driver() {
 for i in $(seq 1 "$num_pushes"); do
     commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
     update_workflow_driver "$i" "$commit_msg"
-
+    
     if ! git add "$DRIVER"; then
         echo "Add error."
         exit "$ADD_ERR"
     fi
-
+    
     if ! git commit -m "$commit_msg"; then
         echo "Commit error for $branch push $i of $num_pushes."
         exit "$COMMIT_ERR"
     fi
-
+    
     if ! git push; then
         echo "Push error."
         exit "$PUSH_ERR"
     fi
-
+    
     # Wait if required
     [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
 done
