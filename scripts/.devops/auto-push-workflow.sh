@@ -31,54 +31,60 @@ USER_INFO=(
 )
 
 # Set usage message
-USAGE="Usage: $0 <branch-name> [<pushes> <wait_seconds>]
-Branches: ${BRANCHES[*]}"
+USAGE_ARR=$(cat <<EOM
+  Usage:   $0  + branch-name (string) [ + pushes (int) + wait_seconds (int) ]
+  Example: $0 ${BRANCHES[1]} 3 600
+
+  Branch-name: ${BRANCHES[*]}
+  Pushes: 1 to $MAX_PUSHES
+  Wait Seconds: 0 to $MAX_WAIT
+
+  Branch Options:
+  ${BRANCHES[*]}
+
+EOM
+)
+USAGE=$USAGE_ARR
 
 # Warn user
 cat <<EOM
 
-WARNING:
-  You are about to execute $0
+WARNING: You are about to execute $0
+
   This script makes commits and pushes them to a specified branch.
   The first argument must be a valid branch name.
 
 PARAMETERS:
-  First parameter (mandatory) "branch-name" [string]:
-  Sets the target branch. Valid branches:
 
-    - ${BRANCHES[0]}
-    - ${BRANCHES[1]}
-    - ${BRANCHES[2]}
-    - ${BRANCHES[3]}
+  First parameter (mandatory) 'branch-name' [string] sets the target branch.
+  Valid branches:
+                    ${BRANCHES[0]}
+                    ${BRANCHES[1]}
+                    ${BRANCHES[2]}
+                    ${BRANCHES[3]}
 
-  Second parameter (optional) "pushes" [int]:
-  Sets the number of pushes.
-    - If unset default is 1.
+  Second parameter (optional) 'pushes' [int] sets the number of pushes.
+  If unset default is 1.
 
-  Third parameter (optional) "wait seconds" [int]:
-  Sets the interval between pushes.
-    - If unset default is 0.
+  Third parameter (optional) 'wait seconds' [int] sets the interval between pushes.
+  If unset default is 0.
 
-GIT USERS:
-  The script presumes the following git users are authorised:
+GIT USERS: The script presumes the following git users are authorised:
 
-    - ${BRANCHES[0]} ${USER_INFO["${BRANCHES[0]}"]}
-    - ${BRANCHES[1]} ${USER_INFO["${BRANCHES[1]}"]}
-    - ${BRANCHES[2]} ${USER_INFO["${BRANCHES[2]}"]}
-    - ${BRANCHES[3]} ${USER_INFO["${BRANCHES[3]}"]}
+                  ${USER_INFO[${BRANCHES[0]}]}
+                  ${USER_INFO[${BRANCHES[1]}]}
+                  ${USER_INFO[${BRANCHES[2]}]}
+                  ${USER_INFO[${BRANCHES[3]}]}
 
-CAUTION:
-  This script stashes and pops any stashes (if created)
+CAUTION: Consider making a backup before execution.
+
+  Note: This script stashes and pops any stashes (if created)
   to restore any changes in the current branch.
-
-    - Consider making a backup before execution.
-
-$USAGE
 
 EOM
 
 # Parse user response
-read -r -p "Continue? [yes/no] " response
+read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && echo "Aborted." && exit "$USER_ABORT"
 
@@ -156,22 +162,22 @@ update_workflow_driver() {
 for i in $(seq 1 "$num_pushes"); do
     commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
     update_workflow_driver "$i" "$commit_msg"
-
+    
     if ! git add "$DRIVER"; then
         echo "Add error."
         exit "$ADD_ERR"
     fi
-
+    
     if ! git commit -m "$commit_msg"; then
         echo "Commit error for $branch push $i of $num_pushes."
         exit "$COMMIT_ERR"
     fi
-
+    
     if ! git push; then
         echo "Push error."
         exit "$PUSH_ERR"
     fi
-
+    
     # Wait if required
     [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
 done
