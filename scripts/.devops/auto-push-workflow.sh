@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e  # Exit for any error
+set -e  # Exit on error
 #set -x # Display commands
 
 # Exits
@@ -17,13 +17,12 @@ DEV_USER="CodeApprover"
 DEV_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 CUR_DIR=$(realpath "$(pwd)")
-PREFIX="code-"
-BRANCHES=("main" "${PREFIX}development" "${PREFIX}staging" "${PREFIX}production")
+BRANCHES=("main" "code-development" "code-staging" "code-production")
 MAX_WAIT=86400  # 24 hours
 MAX_PUSHES=5
 
 # Set usage message
-USAGE="Usage: $0 <branch> [<num_pushes> <wait_duration>]"
+USAGE="Usage: $0 <branch> [<num_pushes> <wait_duration>] # Branches: ${BRANCHES[*]}"
 
 # Warn user
 cat <<EOM
@@ -32,22 +31,22 @@ WARNING:
 
 - You are about to execute $0
 
-This script makes commits and pushes to a specified branch
-for a specific number of iterations
-waiting for a specific duration between pushes.
+This script makes commits and pushes to the specified branch # no defaults.
+for a an optional number of iterations # defaults to one.
+waiting for optional duration seconds between pushes # defaults to zero.
 
-USERS INVOLVED:
+USERS:
 
 - Main: $DEV_USER (Email: $DEV_EMAIL)
-- Development: ${USER_INFO["${PREFIX}development"]}
-- Staging: ${USER_INFO["${PREFIX}staging"]}
-- Production: ${USER_INFO["${PREFIX}production"]}
+- Development: ${USER_INFO["${code-}development"]}
+- Staging: ${USER_INFO["${code-}staging"]}
+- Production: ${USER_INFO["${code-}production"]}
 
 CAUTION:
 
 The script stashes and pops any stashes (if created)
 to restore any changes in the current branch.
-Consoder making a repo backup before running this script.
+Consider making a backup before running this script.
 
 $USAGE
 
