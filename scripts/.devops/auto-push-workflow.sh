@@ -11,6 +11,15 @@ INV_BRANCH=23
 ITER_ERR=24
 WAIT_ERR=25
 CSPROJ_ERR=26
+STASH_ORIG_ERR=27
+TARGET_CHECKOUT_ERR=28
+STASH_TARG_ERR=29
+ADD_ERR=30
+COMMIT_ERR=31
+PUSH_ERR=32
+TARGET_POP_ERR=33
+ORIGIN_CHECKOUT_ERR=34
+ORIGIN_POP_ERR=35
 
 # Constants
 DEV_USER="CodeApprover"
@@ -87,15 +96,30 @@ EOM
 read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && echo "Aborted." && exit "$USER_ABORT"
+echo
 
 # Set local variables
 branch="$1"
 num_pushes="${2:-1}"     # default 1
 wait_duration="${3:-0}"  # default 0
 
+# Validate branch name
+valid_branch=false
+for valid_branch_name in "${BRANCHES[@]}"; do
+    if [ "$branch" == "$valid_branch_name" ]; then
+        valid_branch=true
+        break
+    fi
+done
+
+if [ "$valid_branch" == "false" ]; then
+    echo "$USAGE"
+    echo "Invalid branch: $branch"
+    exit "$INV_BRANCH"
+fi
+
 # Validate variables
-[[ $# -lt 1 || $# -gt 3 || ! "$branch" =~ ^[a-zA-Z]+$ || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && echo "$USAGE" && echo "Invalid params." && exit "$USAGE_ERR"
-[[ ! " ${BRANCHES[*]} " =~ $branch ]] && echo "$USAGE" && echo "Invalid branch." && exit "$INV_BRANCH"
+[[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && echo "$USAGE" && echo "Invalid params." && exit "$USAGE_ERR"
 [[ "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]] && echo "$USAGE" && echo "Invalid iteration count." && exit "$ITER_ERR"
 [[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_WAIT" ]] && echo "$USAGE" && echo "Invalid wait duration." && exit "$WAIT_ERR"
 
@@ -158,28 +182,45 @@ update_workflow_driver() {
     Email: $USER_EMAIL" > "$DRIVER"
 }
 
-# Add, commit and push in a loop.
+# Add, commit, and push in a loop.
 for i in $(seq 1 "$num_pushes"); do
-    commit_msg="Automated push $i of $num_pushes to $branch ($env) by $USER_NAME."
+    commit_msg="Automated push $i of $num_pushes to $branch $env environment by $USER_NAME."
     update_workflow_driver "$i" "$commit_msg"
 
+    # git add
     if ! git add "$DRIVER"; then
         echo "Add error."
         exit "$ADD_ERR"
     fi
 
+    # git commit
     if ! git commit -m "$commit_msg"; then
         echo "Commit error for $branch push $i of $num_pushes."
         exit "$COMMIT_ERR"
     fi
 
+    # git push
     if ! git push; then
         echo "Push error."
         exit "$PUSH_ERR"
     fi
 
+    # Display driver file
+    cat "$DRIVER" && echo
+
     # Wait if required
-    [ "$i" -lt "$num_pushes" ] && sleep "$wait_duration"
+    if [ "$i" -lt "$num_pushes" ]; then
+        echo "Waiting for $wait_duration seconds..."
+        for ((j = wait_duration; j > 0; j--)); do
+            days=$((j / 86400))
+            hours=$(( (j % 86400) / 3600 ))
+            minutes=$(( (j % 3600) / 60 ))
+            seconds=$((j % 60))
+            printf "Time remaining: %02d:%02d:%02d:%02d\r" "$days" "$hours" "$minutes" "$seconds"
+            sleep 1
+        done
+        echo "Time remaining: 00:00:00:00"
+    fi
 done
 
 # Pop target branch
@@ -188,7 +229,7 @@ if $TARGET_STASHED && ! git stash pop; then
     exit "$TARGET_POP_ERR"
 fi
 
-# Switch to original user and branch
+# Switch to the original user and branch
 git config user.name "$DEV_USER"
 git config user.email "$DEV_EMAIL"
 if ! git checkout "$CURRENT_BRANCH"; then
@@ -196,7 +237,7 @@ if ! git checkout "$CURRENT_BRANCH"; then
     exit "$ORIGIN_CHECKOUT_ERR"
 fi
 
-# Pop original branch
+# Pop the original branch
 if $ORIGIN_STASHED && ! git stash pop; then
     echo "Stash pop error for $CURRENT_BRANCH."
     exit "$ORIGIN_POP_ERR"
