@@ -22,21 +22,21 @@ ORIGIN_CHECKOUT_ERR=34
 ORIGIN_POP_ERR=35
 
 # Constants
-DEV_USER="CodeApprover"
-DEV_EMAIL="pucfada@pm.me"
+DEVOPS_USER="CodeApprover"
+DEVOPS_EMAIL="pucfada@pm.me"
 PROJ_NAME="Blazor-SqLite-Golf-Club"
 CUR_DIR=$(realpath "$(pwd)")
 BRANCHES=("main" "code-development" "code-staging" "code-production")
 MAX_WAIT=86400  # 24 hours
-MAX_PUSHES=5
+MAX_PUSHES=6
 
 # Set user
 declare -A USER_INFO
 USER_INFO=(
-    ["${BRANCHES[0]}"]="$DEV_USER $DEV_EMAIL"
+    ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
     ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
     ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-    ["${BRANCHES[3]}"]="$DEV_USER $DEV_EMAIL"
+    ["${BRANCHES[3]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
 )
 
 # Set usage message
@@ -133,9 +133,11 @@ env="${branch#code-}"
 CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
 [ ! -f "$CSPROJ" ] && echo "No file at $CSPROJ." && exit "$CSPROJ_ERR"
 
-# Set git login
-git config user.name "$USER_NAME"
-git config user.email "$USER_EMAIL"
+# Set git user info if different from current git config
+if [[ "$USER_NAME" != "$DEVOPS_USER" ]]; then
+    git config user.name "$USER_NAME"
+    git config user.email "$USER_EMAIL"
+fi
 
 # Stash original, current branch
 ORIGIN_STASHED=false
@@ -230,8 +232,8 @@ if $TARGET_STASHED && ! git stash pop; then
 fi
 
 # Switch to the original user and branch
-git config user.name "$DEV_USER"
-git config user.email "$DEV_EMAIL"
+git config user.name "$DEVOPS_USER"
+git config user.email "$DEVOPS_EMAIL"
 if ! git checkout "$CURRENT_BRANCH"; then
     echo "Checkout error for $CURRENT_BRANCH."
     exit "$ORIGIN_CHECKOUT_ERR"
