@@ -242,5 +242,19 @@ git add -A
 git commit -m "Finalising scripts [skip ci]"
 git push
 
+# Check for duplicate user.name in git config
+if [[ $(git config --get-all user.name | wc -l) -gt 1 ]]; then
+  last_user_name=$(git config --get-all user.name | tail -n 1)
+  git config --unset-all user.name
+  git config user.name "$last_user_name"
+fi
+
+# Check for duplicate user.email in git config
+if [[ $(git config --get-all user.email | wc -l) -gt 1 ]]; then
+  last_user_email=$(git config --get-all user.email | tail -n 1)
+  git config --unset-all user.email
+  git config user.email "$last_user_email"
+fi
+
 # Exit successfully
 exit "$SUCCESS"
