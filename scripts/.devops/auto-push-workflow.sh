@@ -41,7 +41,7 @@ USER_INFO=(
 
 # Set usage message
 USAGE_ARR=$(cat <<EOM
-  Usage:   $0  + branch-name (string) [ + pushes (int) + wait_seconds (int) ]
+  Usage:   $0 [ + branch-name (string) ] [ + pushes (int) + wait_seconds (int) ]
   Example: $0 ${BRANCHES[1]} 3 600
 
   Branch-name: ${BRANCHES[*]}
@@ -186,7 +186,7 @@ update_workflow_driver() {
 
 # Add, commit, and push in a loop.
 for i in $(seq 1 "$num_pushes"); do
-    commit_msg="Automated push $i of $num_pushes to $branch $env environment by $USER_NAME."
+    commit_msg="Auto-push $i of $num_pushes to $branch by $USER_NAME."
     update_workflow_driver "$i" "$commit_msg"
 
     # git add
