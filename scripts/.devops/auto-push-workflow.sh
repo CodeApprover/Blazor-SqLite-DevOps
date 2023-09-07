@@ -1,9 +1,6 @@
 #!/bin/bash
 
-set -e  # Exit on error
-#set -x # Display commands
-
-# Exits
+# Exit codes
 SUCCESS=0
 USER_ABORT=21
 USAGE_ERR=22
@@ -33,23 +30,23 @@ MAX_PUSHES=6
 # Set user
 declare -A USER_INFO
 USER_INFO=(
-    ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
-    ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
-    ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-    ["${BRANCHES[3]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
+  ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
+  ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
+  ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
+  ["${BRANCHES[3]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
 )
 
 # Set usage message
 USAGE_ARR=$(cat <<EOM
-  Usage:   $0 [ + branch-name (string) ] [ + pushes (int) + wait_seconds (int) ]
-  Example: $0 ${BRANCHES[1]} 3 600
+Usage:   $0 [ + branch-name (string) ] [ + pushes (int) + wait_seconds (int) ]
+Example: $0 ${BRANCHES[1]} 3 600
 
-  Branch-name: ${BRANCHES[*]}
-  Pushes: 1 to $MAX_PUSHES
-  Wait Seconds: 0 to $MAX_WAIT
+Branch-name: ${BRANCHES[*]}
+Pushes: 1 to $MAX_PUSHES
+Wait Seconds: 0 to $MAX_WAIT
 
-  Branch Options:
-  ${BRANCHES[*]}
+Branch Options:
+${BRANCHES[*]}
 
 EOM
 )
@@ -60,35 +57,35 @@ cat <<EOM
 
 WARNING: You are about to execute $0
 
-  This script makes commits and pushes them to a specified branch.
-  The first argument must be a valid branch name.
+This script makes commits and pushes them to a specified branch.
+The first argument must be a valid branch name.
 
 PARAMETERS:
 
-  First parameter (mandatory) 'branch-name' [string] sets the target branch.
-  Valid branches:
-                    ${BRANCHES[0]}
-                    ${BRANCHES[1]}
-                    ${BRANCHES[2]}
-                    ${BRANCHES[3]}
+First parameter (mandatory) 'branch-name' [string] sets the target branch.
+Valid branches:
+              ${BRANCHES[0]}
+              ${BRANCHES[1]}
+              ${BRANCHES[2]}
+              ${BRANCHES[3]}
 
-  Second parameter (optional) 'pushes' [int] sets the number of pushes.
-  If unset default is 1.
+Second parameter (optional) 'pushes' [int] sets the number of pushes.
+If unset default is 1.
 
-  Third parameter (optional) 'wait seconds' [int] sets the interval between pushes.
-  If unset default is 0.
+Third parameter (optional) 'wait seconds' [int] sets the interval between pushes.
+If unset default is 0.
 
 GIT USERS: The script presumes the following git users are authorised:
 
-                  ${USER_INFO[${BRANCHES[0]}]}
-                  ${USER_INFO[${BRANCHES[1]}]}
-                  ${USER_INFO[${BRANCHES[2]}]}
-                  ${USER_INFO[${BRANCHES[3]}]}
+            ${USER_INFO[${BRANCHES[0]}]}
+            ${USER_INFO[${BRANCHES[1]}]}
+            ${USER_INFO[${BRANCHES[2]}]}
+            ${USER_INFO[${BRANCHES[3]}]}
 
 CAUTION: Consider making a backup before execution.
 
-  Note: This script stashes and pops any stashes (if created)
-  to restore any changes in the current branch.
+Note: This script stashes and pops any stashes (if created)
+to restore any changes in the current branch.
 
 EOM
 
@@ -97,6 +94,20 @@ read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && echo "Aborted." && exit "$USER_ABORT"
 echo
+
+# Check for duplicate user.name in git config
+if [[ $(git config --get-all user.name | wc -l) -gt 1 ]]; then
+  last_user_name=$(git config --get-all user.name | tail -n 1)
+  git config --unset-all user.name
+  git config user.name "$last_user_name"
+fi
+
+# Check for duplicate user.email in git config
+if [[ $(git config --get-all user.email | wc -l) -gt 1 ]]; then
+  last_user_email=$(git config --get-all user.email | tail -n 1)
+  git config --unset-all user.email
+  git config user.email "$last_user_email"
+fi
 
 # Set local variables
 branch="$1"
