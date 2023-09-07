@@ -210,6 +210,7 @@ jobs:
           echo "##[error][csproj] Failed to find the .csproj file $CSPROJ_PATH."
           exit 29
         fi
+        echo "CSPROJ=$CSPROJ_PATH" >> $GITHUB_ENV
 
     - name: Check for Pre-Existent .lock Files # Step 8
       run: |
