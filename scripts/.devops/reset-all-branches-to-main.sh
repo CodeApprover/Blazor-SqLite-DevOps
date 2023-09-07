@@ -1,7 +1,15 @@
 #!/bin/bash
 
-set -e  # Exit if a command fails.
-#set -x # Print commands for debugging.
+# Define exit codes
+SUCCESS=0
+USER_ABORT=1
+INCORRECT_DIRECTORY=2
+PRODUCTION_DIR_NOT_FOUND=3
+STAGING_DIR_NOT_FOUND=4
+SCRIPTS_DIR_NOT_FOUND=5
+DEVELOPMENT_DIR_NOT_FOUND=6
+MISSING_SUBDIR=7
+FINALIZE_ERROR=8
 
 # Set caveat.
 WARNING_MESSAGE=$(cat << EOM
@@ -30,13 +38,15 @@ using main as the source.
 
     Exit Codes:
 
-        0. Script executed successfully without errors.
-        1. User chose to exit without making changes.
-        2. Run script from the correct directory.
-        3. Production directory not found in the parent directory.
-        4. Staging directory not found in the parent directory.
-        5. Scripts directory not found in the parent directory.
-        6. Development directory not found in the specified search path.
+        $SUCCESS. Script executed successfully without errors.
+        $USER_ABORT. User chose to exit without making changes.
+        $INCORRECT_DIRECTORY. Run script from the correct directory.
+        $PRODUCTION_DIR_NOT_FOUND. Production directory not found in the parent directory.
+        $STAGING_DIR_NOT_FOUND. Staging directory not found in the parent directory.
+        $SCRIPTS_DIR_NOT_FOUND. Scripts directory not found in the parent directory.
+        $DEVELOPMENT_DIR_NOT_FOUND. Development directory not found in the specified search path.
+        $MISSING_SUBDIR. Subdirectory not found in the scripts directory.
+        $FINALIZE_ERROR. Error occurred during finalizing scripts.
 EOM
 )
 
@@ -48,7 +58,7 @@ echo && read -p "Do you wish to proceed? (y/n): " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     echo "Exiting without making changes."
-    exit 1
+    exit "$USER_ABORT"
 fi
 
 # Normalise path separators based on operating system.
@@ -62,7 +72,7 @@ fi
 EXPECTED_DIR="scripts/.devops"
 if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR" ]]; then
     echo "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-    exit 2
+    exit "$INCORRECT_DIRECTORY"
 fi
 
 # Configure git user.
@@ -109,12 +119,12 @@ if [[ -n "$development" ]]; then
     scripts="$parent_dir/scripts"
 
     # Check if required directories exist.
-    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit 3
-    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit 4
-    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit 5
+    ! [[ -d "$production" ]] && echo "Production directory not found at: $production" && exit "$PRODUCTION_DIR_NOT_FOUND"
+    ! [[ -d "$staging" ]] && echo "Staging directory not found at: $staging" && exit "$STAGING_DIR_NOT_FOUND"
+    ! [[ -d "$scripts" ]] && echo "Scripts directory not found at: $scripts" && exit "$SCRIPTS_DIR_NOT_FOUND"
 else
     ls -la "$CURRENT_DIR/../../"
-    echo "Development directory not found." && exit 6
+    echo "Development directory not found." && exit "$DEVELOPMENT_DIR_NOT_FOUND"
 fi
 
 # Function to git remove files or dirs safely.
@@ -133,7 +143,7 @@ process_scripts_dir() {
     # Check if the specific subdir exists.
     if [[ ! -d "$scripts/$subdir" ]]; then
         echo "Error: $subdir directory not found in $scripts. Exiting..."
-        exit 7  # Using exit code 7 to indicate this specific error.
+        exit "$MISSING_SUBDIR"
     fi
 
     # Create the toolbox directory if it doesn't exist.
@@ -231,3 +241,6 @@ find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
 git add -A
 git commit -m "Finalising scripts [skip ci]"
 git push
+
+# Exit successfully
+exit "$SUCCESS"
