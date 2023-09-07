@@ -1,28 +1,46 @@
-# This configuration file provides parameters for the devops script.
-# The values are read in order, so please ensure the order is maintained.
+# This configuration file provides parameters for the devops script
+# The values are read in order, so please ensure the order is maintained
 
-# Name of the user responsible for DevOps tasks.
+# Name of the user responsible for DevOps tasks
 CodeApprover
 
-# Email of the user responsible for DevOps tasks.
+# Email of the user responsible for DevOps tasks
 pucfada@pm.me
 
-# The project name, usually coinciding with the repository name.
+# The project name, not the repository name
 Blazor-SqLite-Golf-Club
 
-# Expected directory from where the script should run.
+# Expected directory from where the script should run
 scripts/.devops
 
-# Name of the main branch.
+# Name of the main branch
 main
 
-# Names of the three 'code-' branches. Used for development, staging, and production.
+# Names of the three 'code-' branches
 code-development
 code-staging
 code-production
 
-# Maximum wait time in seconds between pushes.
+# Maximum wait time in seconds between pushes
 86400
 
-# Maximum number of pushes allowed in a single run.
+# Maximum number of pushes allowed in a single run
 6
+
+# Name of the development user
+Code-Backups
+
+# Email of the development user
+404bot@pm.me
+
+# Name of the staging user
+ScriptShifters
+
+# Email of the staging user
+lodgings@pm.me
+
+# Name of the production user
+CodeApprover
+
+# Email of the production user
+pucfada@pm.me

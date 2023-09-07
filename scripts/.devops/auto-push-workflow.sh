@@ -113,9 +113,9 @@ echo
 declare -A USER_INFO
 USER_INFO=(
   ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
-  ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
-  ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-  ["${BRANCHES[3]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
 )
 
 # Ensure correct number of arguments and that they are of the right type

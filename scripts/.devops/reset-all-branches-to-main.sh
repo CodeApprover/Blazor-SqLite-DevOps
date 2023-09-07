@@ -30,7 +30,7 @@ ORIGIN_POP_ERR=120
 # ===============================================
 
 # Read configuration file
-mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config_reset)
+mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 
 # Constants
 DEVOPS_USER="${CONFIG_VALUES[0]}"
