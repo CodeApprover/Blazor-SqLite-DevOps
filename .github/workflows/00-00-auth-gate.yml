@@ -77,7 +77,7 @@ jobs:
             exit 21
         fi
         echo "##[debug][sanitise] Sanitising commit message."
-        forbidden_chars="|*]>)}<{([S"
+        forbidden_chars="|*]>)}<{([$"
         echo "##[debug][sanitise] Forbidden characters: $forbidden_chars"
         commit_msg="${{ github.event.head_commit.message }}"
         for (( i=0; i<${#forbidden_chars}; i++ )); do
