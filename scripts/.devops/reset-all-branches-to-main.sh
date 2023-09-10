@@ -48,8 +48,8 @@ EOM
 
 # Logging function
 log_entry() {
-    local message="$1"
-    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+  local message="$1"
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
 # Issue warning and parse user response
@@ -80,47 +80,50 @@ git reset --hard origin/main || { log_entry "Git reset error."; exit "$GIT_MAIN_
 # Recreate each code- branch
 for branch in "${BRANCHES[@]:0:3}"; do
 
-    # Checkout, stash and delete local branch
-    if git show-ref --verify --quiet "refs/heads/$branch"; then
-        git checkout "$branch" || { log_entry "Checkout $branch error."; exit "$GIT_CHECKOUT_ERR"; }
-        git stash || { log_entry "Stash error on $branch."; exit "$GIT_STASH_ERR"; }
-        git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit "$GIT_CHECKOUT_ERR"; }
-        git branch -D "$branch" || { log_entry "Deleting branch $branch error."; exit "$BRANCH_ERR"; }
-    fi
+  # Checkout, stash and delete local branch
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    git checkout "$branch" || { log_entry "Checkout $branch error."; exit "$GIT_CHECKOUT_ERR"; }
+    git stash || { log_entry "Stash error on $branch."; exit "$GIT_STASH_ERR"; }
+    git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit "$GIT_CHECKOUT_ERR"; }
+    git branch -D "$branch" || { log_entry "Deleting branch $branch error."; exit "$BRANCH_ERR"; }
+  fi
 
-    # Delete remote branch if it exists
-    git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null && git push origin --delete "$branch" || { log_entry "Deleting remote branch $branch error."; exit "$GIT_DELETE_ERR"; }
+  # Delete remote branch if it exists
+  if git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null; then
+    git push origin --delete "$branch" || { log_entry "Deleting remote branch $branch error."; exit "$GIT_DELETE_ERR"; }
+  else
+    log_entry "Remote branch $branch does not exist. Skipping deletion."
 
-    # Create a new branch from main
-    git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit "$GIT_CREATE_ERR"; }
+  # Create a new branch from main
+  git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit "$GIT_CREATE_ERR"; }
 
-    # Debug info
-    log_entry "Current branch: $(git branch --show-current)"
-    log_entry "Current directory: $(pwd)"
+  # Debug info
+  log_entry "Current branch: $(git branch --show-current)"
+  log_entry "Current directory: $(pwd)"
 
-    # Confirm the directory exists and has content before copying
-    env_name="${branch#code-}"
-    if [[ -d "scripts/$env_name/" && $(ls -A "scripts/$env_name/") ]]; then
-        cp -r "scripts/$env_name/"* toolbox/ || { log_entry "Error copying scripts to toolbox."; exit "$CP_ERR"; }
-    else
-        log_entry "Directory scripts/$env_name/ does not exist or is empty."
-        exit "$CD_ERR"
-    fi
+  # Confirm the directory exists and has content before copying
+  env_name="${branch#code-}"
+  if [[ -d "scripts/$env_name/" && $(ls -A "scripts/$env_name/") ]]; then
+    cp -r "scripts/$env_name/"* toolbox/ || { log_entry "Error copying scripts to toolbox."; exit "$CP_ERR"; }
+  else
+    log_entry "Directory scripts/$env_name/ does not exist or is empty."
+    exit "$CD_ERR"
+  fi
 
-    # Cleanup directories based on branch
-    case "$branch" in
-        "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[0]}."; exit "$RM_ERR"; } ;;
-        "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[1]}."; exit "$RM_ERR"; } ;;
-        "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[2]}."; exit "$RM_ERR"; } ;;
-    esac
+  # Cleanup directories based on branch
+  case "$branch" in
+    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[0]}."; exit "$RM_ERR"; } ;;
+    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[1]}."; exit "$RM_ERR"; } ;;
+    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[2]}."; exit "$RM_ERR"; } ;;
+  esac
 
-    # Remove scripts
-    rm -rf scripts || { log_entry "Error removing scripts."; exit "$RM_ERR"; }
+  # Remove scripts
+  rm -rf scripts || { log_entry "Error removing scripts."; exit "$RM_ERR"; }
 
-    # Add, commit, and push to remote
-    git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
-    git commit -m "Updated $branch from main" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
-    git push -u origin "$branch" || { log_entry "Git push error."; exit "$GIT_PUSH_ERR"; }
+  # Add, commit, and push to remote
+  git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
+  git commit -m "Updated $branch from main" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
+  git push -u origin "$branch" || { log_entry "Git push error."; exit "$GIT_PUSH_ERR"; }
 
 done
 
