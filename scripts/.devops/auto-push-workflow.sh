@@ -40,7 +40,6 @@ EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
-CUR_DIR=$(pwd)
 
 # Set user info from config
 declare -A USER_INFO
@@ -56,7 +55,7 @@ USER_INFO=(
 # ===============================================
 
 # Set warning message
-WARNING_=$(cat << EOM
+WARNING=$(cat << EOM
 
 WARNING: You are about to execute $0
 This script makes commits and pushes them to a specified branch.
@@ -81,16 +80,14 @@ CAUTION: Consider making a backup before execution.
 
 EOM
 )
-WARNING=$WARNING_
 
 # Set usage message
-USAGE_=$(cat << EOM
+USAGE=$(cat << EOM
 Usage:   $0 branch-name (mandatory string) + pushes ( optional int) + wait_seconds ( optional int)
 Example: $0 ${BRANCHES[1]} 3 600
 Branch Options: ${BRANCHES[1]} ${BRANCHES[2]} ${BRANCHES[3]}
 EOM
 )
-USAGE=$USAGE_
 
 # ===============================================
 # Helper Functions
@@ -107,13 +104,13 @@ log_entry() {
 
 # Check script is running from correct directory
 EXPECTED_DIR="scripts/.devops"
-if [[ "$CUR_DIR" != *"$EXPECTED_DIR" ]]; then
+if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
   exit "$USAGE_ERR"
 fi
 
 # Issue warning and parse user response
-echo && $WARNING
+echo && echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
@@ -253,5 +250,5 @@ if $ORIGIN_STASHED && ! git stash pop; then
 fi
 
 # Exit successfully
-log_entry "Completed."
+log_entry "$0 completed successfully."
 exit "$SUCCESS"
