@@ -33,6 +33,7 @@ ORIGIN_POP_ERR=108
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 
 # Constants
+CUR_DIR=$(pwd)
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 PROJ_NAME="${CONFIG_VALUES[2]}"
@@ -118,7 +119,7 @@ USER_INFO=(
   ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
 )
 
-# Ensure correct number of arguments and that they are of the right type
+# Ensure correct number of arguments, of the right type
 [[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
 
 # Set local variables

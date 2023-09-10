@@ -33,6 +33,7 @@ ORIGIN_POP_ERR=120
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 
 # Constants
+CUR_DIR=$(pwd)
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 PROJ_NAME="${CONFIG_VALUES[2]}"
