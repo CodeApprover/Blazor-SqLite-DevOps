@@ -9,14 +9,15 @@
 
 # Exit codes
 SUCCESS=0
-USER_ABORT=61
-USAGE_ERR=62
-RM_ERR=127
-CP_ERR=128
-MKDIR_ERR=129
+USER_ABORT=60
+USAGE_ERR=61
+RM_ERR=62
+CP_ERR=63
+NAV_ERR=64
+MKDIR_ERR=65
 
 # Git exit codes
-GIT_CONFIG_ERR=111
+GIT_CONFIG_ERR=120
 GIT_MAIN_ERR=121
 GIT_BRANCH_DEL_ERR=122
 GIT_BRANCH_CREATE_ERR=123
@@ -30,6 +31,7 @@ DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
+CUR_DIR=$(pwd)
 
 # Warning message
 WARNING=$(cat << EOM
@@ -41,7 +43,7 @@ and then resets the ${BRANCHES[0]}, ${BRANCHES[1]} and ${BRANCHES[2]}
 branches both locally and remotely.
 
 The script reads parameters from:
-$(pwd)/.config
+$CUR_DIR/.config
 
 USAGE: $0
 
@@ -69,6 +71,9 @@ if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Must run from $EXPECTED_DIR."
   exit "$USAGE_ERR"
 fi
+
+# Navigate to root directory
+cd ../.. || { log_entry "Error: Could not navigate to root directory."; exit "$NAV_ERR"; }
 
 # ===============================================
 # Main Script Logic
@@ -112,7 +117,7 @@ for branch in "${BRANCHES[@]:0:3}"; do
   env_name="${branch#code-}"
   case "$branch" in
     "${BRANCHES[0]}")
-      cp -r "../development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
+      cp -r "./development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
       ;;
     "${BRANCHES[1]}")
       cp -r "./development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
@@ -120,13 +125,13 @@ for branch in "${BRANCHES[@]:0:3}"; do
       ;;
     "${BRANCHES[2]}")
       cp -r "./staging" . || { log_entry "Copy operation for staging failed."; exit "$CP_ERR"; }
-      cp -r "../production" . || { log_entry "Copy operation for production failed."; exit "$CP_ERR"; }
+      cp -r "./production" . || { log_entry "Copy operation for production failed."; exit "$CP_ERR"; }
       ;;
   esac
 
   # Copy required scripts to code- toolbox dir
   mkdir -p toolbox || { log_entry "Toolbox directory creation failed."; exit "$MKDIR_ERR"; }
-  cp -r "../scripts/$env_name/*" toolbox/ || { log_entry "Copy operation for toolbox failed."; exit "$CP_ERR"; }
+  cp -r "./scripts/$env_name/*" toolbox/ || { log_entry "Copy operation for toolbox failed."; exit "$CP_ERR"; }
 
   # Add, commit and push code- branch to remote
   git add . || { log_entry "Git add failed for $branch."; exit "$GIT_MAIN_ERR"; }
@@ -138,6 +143,7 @@ done
 # Cleanup
 git checkout main || { log_entry "Git checkout main failed."; exit "$GIT_CHECKOUT_ERR"; }
 git stash drop || { log_entry "Git stash drop failed."; exit "$GIT_STASH_ERR"; }
+CD "$CUR_DIR" || { log_entry "Error: Could not navigate to $CUR_DIR."; exit "$NAV_ERR"; }
 
 # Finish
 log_entry "$0 completed successfully."
