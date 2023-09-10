@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ext -e
+set -x
+
 # Script Description: Resets local main to remote main and updates the specific branches.
 # Reads a configuration file (.config) for branch names, user details, and more.
 
