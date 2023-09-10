@@ -201,8 +201,8 @@ for i in $(seq 1 "$MAX_PUSHES"); do
   Email: $USER_EMAIL
   " > "$DRIVER"
 
-  # git Git ag
-  git add "$DRIVER" || { log_entry "Git add error."; exit $GIT_ADD; }
+  # git add
+  git add -A || { log_entry "Git add error."; exit $GIT_ADD; }
 
   # git commit
   git commit -m "$commit_msg" || { log_entry "Commit error for $branch push $i of $MAX_PUSHES."; exit $GIT_COMMIT; }
