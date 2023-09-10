@@ -32,27 +32,24 @@ ORIGIN_POP_ERR=120
 # Read configuration file
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 
-# Constants
+# Set constants from config
+DEVOPS_USER="${CONFIG_VALUES[0]}"
+DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
+PROJ_NAME="${CONFIG_VALUES[2]}"
+EXPECTED_DIR="${CONFIG_VALUES[3]}"
+BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
+MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
+MAX_PUSHES="${CONFIG_VALUES[9]}"
 CUR_DIR=$(pwd)
-DEVOPS_USER="${CONFIG_VALUES[0]}"
-DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
-PROJ_NAME="${CONFIG_VALUES[2]}"
-EXPECTED_DIR="${CONFIG_VALUES[3]}"
-BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
-MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
-MAX_PUSHES="${CONFIG_VALUES[9]}"
 
-# Read config file
-mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
-
-# Constants
-DEVOPS_USER="${CONFIG_VALUES[0]}"
-DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
-PROJ_NAME="${CONFIG_VALUES[2]}"
-EXPECTED_DIR="${CONFIG_VALUES[3]}"
-BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
-MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
-MAX_PUSHES="${CONFIG_VALUES[9]}"
+# Set user info from config
+declare -A USER_INFO
+USER_INFO=(
+  ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+)
 
 # ===============================================
 # Warning & Usage
@@ -139,15 +136,6 @@ echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
 echo
-
-# Set user
-declare -A USER_INFO
-USER_INFO=(
-  ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
-  ["${BRANCHES[1]}"]="Code-Backups 404bot@pm.me"
-  ["${BRANCHES[2]}"]="ScriptShifters lodgings@pm.me"
-  ["${BRANCHES[3]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
-)
 
 # Ensure correct number of arguments of the right type
 [[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
