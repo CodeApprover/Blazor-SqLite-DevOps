@@ -1,7 +1,8 @@
 #!/bin/bash
 
-ext -e
+set -e
 set -x
+trap exit_handler ERR
 
 # Script Description: Resets local main to remote main and updates the specific branches.
 # Reads a configuration file (.config) for branch names, user details, and more.
@@ -50,6 +51,16 @@ EOM
 log_entry() {
   local message="$1"
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+}
+
+# Exit handler function
+exit_handler() {
+  local exit_code="$?"
+  local line_num="$1"
+  local cmd="$2"
+  echo "Error on line $line_num: $cmd"
+  echo "Exit code: $exit_code"
+  exit $exit_code
 }
 
 # Issue warning and parse user response
