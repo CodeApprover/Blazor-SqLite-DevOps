@@ -7,16 +7,15 @@
 # It read a configuration file (.config)
 # to populate parameters such as branch names, user details, etc.
 
-# ===============================
-# Exit Codes
-# ===============================
-
+# Exit codes
 SUCCESS=0
 USER_ABORT=61
 USAGE_ERR=62
 RM_ERR=127
 CP_ERR=128
 MKDIR_ERR=129
+
+# Git exit codes
 GIT_CONFIG_ERR=111
 GIT_MAIN_ERR=121
 GIT_BRANCH_DEL_ERR=122
@@ -25,7 +24,7 @@ GIT_CHECKOUT_ERR=124
 GIT_STASH_ERR=125
 GIT_PUSH_ERR=126
 
-# Read configuration from .config
+# Set constants from .config
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
@@ -34,14 +33,19 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 
 # Warning message
 WARNING=$(cat << EOM
-WARNING: You are about to execute $0.
+
+WARNING:
+
+You are about to execute $0
+
 This script reads parameters from:
 $(pwd)/.config
 
-- The script resets local main to remote main.
-- It then resets and updates the
-- code-development, code-staging and code-production
-- branches locally and remotely.
+The script replaces local ${BRANCHES[3]} with remote ${BRANCHES[3]},
+and then resets the ${BRANCHES[0]}, ${BRANCHES[1]} and ${BRANCHES[2]}
+branches both locally and remotely.
+
+USAGE: $0
 
 EOM
 )
@@ -52,19 +56,22 @@ log_entry() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
+# Issue warning and parse user response
+echo && echo "$WARNING"
+echo && read -r -p "CONTINUE ??? [yes/no] " response
+responses=("y" "Y" "yes" "YES" "Yes")
+[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
+echo
+
 # Ensure correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Must run from $EXPECTED_DIR."
   exit "$USAGE_ERR"
 fi
 
-# Confirm action with user
-echo "$WARNING"
-read -r -p "CONTINUE ??? [yes/no] " response
-if [[ ! "y Y yes YES Yes" =~ $response ]]; then
-  log_entry "Aborted by user."
-  exit "$USER_ABORT"
-fi
+# ===============================================
+# Main Script Logic
+# ===============================================
 
 # Set Git User
 git config user.name "$DEVOPS_USER" || { log_entry "Git config user.name failed."; exit "$GIT_CONFIG_ERR"; }

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# ===============================================
-# Exit Codes
-# ===============================================
-
 # Exit codes
 SUCCESS=0
 USER_ABORT=21
@@ -25,14 +21,8 @@ TARGET_POP_ERR=106
 ORIGIN_CHECKOUT_ERR=107
 ORIGIN_POP_ERR=108
 
-# ===============================================
-# Configuration & Constants
-# ===============================================
-
-# Read configuration file
+# Set constants from .config
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
-
-# Set constants from config
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 PROJ_NAME="${CONFIG_VALUES[2]}"
@@ -49,10 +39,6 @@ USER_INFO=(
   ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
   ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
 )
-
-# ===============================================
-# Warning & Usage Messages
-# ===============================================
 
 # Set warning message
 WARNING=$(cat << EOM
@@ -89,18 +75,18 @@ Branch Options: ${BRANCHES[1]} ${BRANCHES[2]} ${BRANCHES[3]}
 EOM
 )
 
-# ===============================================
-# Helper Functions
-# ===============================================
-
+# Logging function
 log_entry() {
   local message="$1"
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
-# ===============================================
-# Main Script Logic
-# ===============================================
+# Issue warning and parse user response
+echo && echo "$WARNING"
+echo && read -r -p "CONTINUE ??? [yes/no] " response
+responses=("y" "Y" "yes" "YES" "Yes")
+[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
+echo
 
 # Check script is running from correct directory
 EXPECTED_DIR="scripts/.devops"
@@ -109,12 +95,9 @@ if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   exit "$USAGE_ERR"
 fi
 
-# Issue warning and parse user response
-echo && echo "$WARNING"
-echo && read -r -p "CONTINUE ??? [yes/no] " response
-responses=("y" "Y" "yes" "YES" "Yes")
-[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
-echo
+# ===============================================
+# Main Script Logic
+# ===============================================
 
 # Set local variables
 branch="$1"
