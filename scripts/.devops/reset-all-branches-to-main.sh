@@ -137,7 +137,7 @@ for branch in "${BRANCHES[@]:0:3}"; do
 
     # Add, commit, and push to remote
     git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
-    git commit -m "Updated $branch from main" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
+    git commit -m "Updated $branch from main [skip ci]" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
     git push -u origin "$branch" || { log_entry "Git push error."; exit "$GIT_PUSH_ERR"; }
 
 done
