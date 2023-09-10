@@ -42,12 +42,18 @@ CAUTION: This can lead to loss of unsaved work. Consider backups before executin
 USAGE: $0
 EOM
 
+# Logging function
+log_entry() {
+  local message="$1"
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+}
+
 # User confirmation
 read -r -p "CONTINUE? [yes/no]: " response
 [[ ! "yes" =~ ^$response$ ]] && log_entry "Aborted." && exit "$USER_ABORT"
 
 # Ensure we're in the correct directory
-[ "$(pwd)" != *"$EXPECTED_DIR" ] && log_entry "Please run from $EXPECTED_DIR." && exit "$USAGE_ERR"
+[[ "$(pwd)" != *"$EXPECTED_DIR" ]] && log_entry "Please run from $EXPECTED_DIR." && exit "$USAGE_ERR"
 
 # Move to root directory
 cd ../.. || { log_entry "Navigation error."; exit "$NAV_ERR"; }
