@@ -114,11 +114,11 @@ fi
 
 # Set local variables
 branch="$1"
-MAX_PUSHES="${2:-1}"     # default 1
+num_pushes="${2:-1}"     # default 1
 wait_duration="${3:-0}"  # default 0
 
 # Ensure correct number of arguments, of the right type
-[[ $# -lt 1 || $# -gt 3 || ! "$MAX_PUSHES" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
+[[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
 
 # Validate branch
 valid_branch=false
@@ -136,7 +136,7 @@ if [ "$valid_branch" == "false" ]; then
 fi
 
 # Validate iteration count
-[[ "$MAX_PUSHES" -lt 1 || "$MAX_PUSHES" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER_ERR"
+[[ "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER_ERR"
 
 # Validate wait duration
 [[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]] && log_entry "Invalid wait duration." && echo "$USAGE" && exit "$WAIT_ERR"
@@ -214,9 +214,9 @@ for i in $(seq 1 "$MAX_PUSHES"); do
   cat "$DRIVER" && echo
 
   # Wait if required
-  if [ "$i" -lt "$MAX_PUSHES" ]; then
-    log_entry "Waiting for $MAX_SECS_WAIT seconds..."
-    for ((j = MAX_SECS_WAIT; j > 0; j--)); do
+  if [ "$i" -lt "$num_pushes" ]; then
+    log_entry "Waiting for $wait_duration seconds..."
+    for ((j = wait_duration; j > 0; j--)); do
       days=$((j / 86400))
       hours=$(( (j % 86400) / 3600 ))
       minutes=$(( (j % 3600) / 60 ))
