@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+#set -x
 trap exit_handler ERR
 
 # Script Description: Resets local main to remote main and updates the specific branches.
