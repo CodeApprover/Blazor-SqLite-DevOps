@@ -133,6 +133,7 @@ for branch in "${BRANCHES[@]:0:3}"; do
 
     # Remove scripts
     rm -rf scripts || { log_entry "Error removing scripts."; exit "$RM_ERR"; }
+    rm -rf .github/workflows || { log_entry "Error removing .github/workflows."; exit "$RM_ERR"; }
 
     # Add, commit, and push to remote
     git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
@@ -143,7 +144,12 @@ done
 
 # Final steps
 git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit "$GIT_CHECKOUT_ERR"; }
-git stash drop || { log_entry "Stash drop error."; exit "$GIT_STASH_ERR"; }
+# Check if there are stashes to drop
+if git stash list | grep -q 'stash@'; then
+    git stash drop || { log_entry "Stash drop error."; exit "$GIT_STASH_ERR"; }
+fi
+
+# Navigate back to original directory
 cd "$CUR_DIR" || { log_entry "Error navigating back to $CUR_DIR."; exit "$CD_ERR"; }
 
 # Completion message
