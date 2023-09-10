@@ -89,10 +89,11 @@ git reset --hard origin/main || { log_entry "Git reset main failed."; exit "$GIT
 # Branch Operations
 for branch in "${BRANCHES[@]:0:3}"; do
 
-  # Check if the branch exists locally, check it out, stash changes, and delete it
+  # Check if the branch exists locally, stash changes, switch to main, delete branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { log_entry "Git checkout $branch failed."; exit "$GIT_CHECKOUT_ERR"; }
     git stash || { log_entry "Git stash failed for $branch."; exit "$GIT_STASH_ERR"; }
+    git checkout "${BRANCHES[3]}" || { log_entry "Git checkout main failed."; exit "$GIT_CHECKOUT_ERR"; } # Switch to main branch
     git branch -D "$branch" || { log_entry "Git delete $branch failed."; exit "$GIT_BRANCH_DEL_ERR"; }
   fi
 
