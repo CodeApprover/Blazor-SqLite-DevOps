@@ -134,7 +134,7 @@ if [[ "$CUR_DIR" != *"$EXPECTED_DIR" ]]; then
 fi
 
 # Issue warning and parse user response
-echo && $WARNING
+echo && echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
