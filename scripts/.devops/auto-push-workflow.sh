@@ -8,11 +8,11 @@
 # Exit codes
 SUCCESS=0
 USER_ABORT=21
-USAGE=22
-INV_BRANCH=23
-ITER=24
-WAIT=25
-CSPROJ=26
+USAGE_ERR=22
+BRANCH_ERR=23
+ITER_ERR=24
+WAIT_ERR=25
+CSPROJ_ERR=26
 
 # Git exit codes
 GIT_CONFIG=90
@@ -100,7 +100,7 @@ echo
 EXPECTED_DIR="scripts/.devops"
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-  exit "$USAGE"
+  exit "$USAGE_ERR"
 fi
 
 # ===============================================
@@ -113,7 +113,7 @@ MAX_PUSHES="${2:-1}"     # default 1
 wait_duration="${3:-0}"  # default 0
 
 # Ensure correct number of arguments, of the right type
-[[ $# -lt 1 || $# -gt 3 || ! "$MAX_PUSHES" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE"
+[[ $# -lt 1 || $# -gt 3 || ! "$MAX_PUSHES" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
 
 # Validate branch
 valid_branch=false
@@ -127,14 +127,14 @@ done
 if [ "$valid_branch" == "false" ]; then
   log_entry "Invalid branch: $branch"
   echo "$USAGE"
-  exit $INV_BRANCH
+  exit $BRANCH_ERR
 fi
 
 # Validate iteration count
-[[ "$MAX_PUSHES" -lt 1 || "$MAX_PUSHES" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER"
+[[ "$MAX_PUSHES" -lt 1 || "$MAX_PUSHES" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER_ERR"
 
 # Validate wait duration
-[[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]] && log_entry "Invalid wait duration." && echo "$USAGE" && exit "$WAIT"
+[[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]] && log_entry "Invalid wait duration." && echo "$USAGE" && exit "$WAIT_ERR"
 
 # Set user info
 USER=${USER_INFO["$branch"]}
@@ -146,7 +146,7 @@ env="${branch#code-}"
 CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
 if [ ! -f "$CSPROJ" ]; then
   log_entry "No file at $CSPROJ."
-  exit "$CSPROJ"
+  exit "$CSPROJ_ERR"
 fi
 
 # Set git user info if different from current git config
