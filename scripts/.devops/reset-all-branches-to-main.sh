@@ -137,13 +137,13 @@ responses=("y" "Y" "yes" "YES" "Yes")
 [[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
 echo
 
-# Ensure correct number of arguments of the right type
-[[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
-
 # Set local variables
 branch="$1"
 num_pushes="${2:-1}"     # default 1
 wait_duration="${3:-0}"  # default 0
+
+# Ensure correct number of arguments of the right type
+[[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE_ERR"
 
 # Validate branch
 valid_branch=false
