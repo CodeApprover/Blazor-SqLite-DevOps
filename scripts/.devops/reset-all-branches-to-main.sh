@@ -112,15 +112,15 @@ for branch in "${BRANCHES[@]:0:3}"; do
   env_name="${branch#code-}"
   case "$branch" in
     "${BRANCHES[0]}")
-      cp -r "../main/development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
+      cp -r "./development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
       ;;
     "${BRANCHES[1]}")
-      cp -r "../main/development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
-      cp -r "../main/staging" . || { log_entry "Copy operation for staging failed."; exit "$CP_ERR"; }
+      cp -r "./development" . || { log_entry "Copy operation for development failed."; exit "$CP_ERR"; }
+      cp -r "./staging" . || { log_entry "Copy operation for staging failed."; exit "$CP_ERR"; }
       ;;
     "${BRANCHES[2]}")
-      cp -r "../main/staging" . || { log_entry "Copy operation for staging failed."; exit "$CP_ERR"; }
-      cp -r "../main/production" . || { log_entry "Copy operation for production failed."; exit "$CP_ERR"; }
+      cp -r "./staging" . || { log_entry "Copy operation for staging failed."; exit "$CP_ERR"; }
+      cp -r "./production" . || { log_entry "Copy operation for production failed."; exit "$CP_ERR"; }
       ;;
   esac
 
