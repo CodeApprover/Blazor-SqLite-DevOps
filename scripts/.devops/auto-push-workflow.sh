@@ -1,4 +1,8 @@
 #!/bin/bash
+
+set -e
+set -x
+
 # This script automates a specific number of pushes at an optional interval, to a specified branch.
 
 # It read a configuration file (.config)
@@ -40,10 +44,10 @@ CUR_DIR="$(dirname "$0")"
 # Set user info from config
 declare -A USER_INFO
 USER_INFO=(
-  ["${BRANCHES[0]}"]="$DEVOPS_USER $DEVOPS_EMAIL"
-  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
-  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
-  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+  ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
 )
 
 # Set warning message
@@ -178,7 +182,7 @@ fi
 DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
-# GIT_ADD, commit and push in a loop.
+# Git add, commit and push in a loop.
 for i in $(seq 1 "$MAX_PUSHES"); do
 
   # Set commit message
@@ -198,7 +202,7 @@ for i in $(seq 1 "$MAX_PUSHES"); do
   " > "$DRIVER"
 
   # git Git ag
-  git git add "$DRIVER" || { log_entry "Git add error."; exit $GIT_ADD; }
+  git add "$DRIVER" || { log_entry "Git add error."; exit $GIT_ADD; }
 
   # git commit
   git commit -m "$commit_msg" || { log_entry "Commit error for $branch push $i of $MAX_PUSHES."; exit $GIT_COMMIT; }
