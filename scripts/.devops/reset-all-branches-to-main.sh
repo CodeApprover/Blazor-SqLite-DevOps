@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# The script reset local main to remote main.
+# The script resets local main to remote main.
 # It then resets and updates the code-development, code-staging and code-production branches,
 # both locally and remotely.
 
@@ -36,12 +36,12 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 WARNING=$(cat << EOM
 WARNING: You are about to execute $0.
 This script reads parameters from:
- - $(pwd)/.config
+$(pwd)/.config
 
-- The script reset local main to remote main.
+- The script resets local main to remote main.
 - It then resets and updates the
 - code-development, code-staging and code-production
-- branches, both locally and remotely.
+- branches locally and remotely.
 
 EOM
 )
