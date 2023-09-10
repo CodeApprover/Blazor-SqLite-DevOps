@@ -34,18 +34,19 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 # Warning message
 WARNING=$(cat << EOM
 
-WARNING:
+WARNING: You are about to execute $0
 
-You are about to execute $0
-
-This script reads parameters from:
-$(pwd)/.config
-
-The script replaces local ${BRANCHES[3]} with remote ${BRANCHES[3]},
+This script replaces local ${BRANCHES[3]} with remote ${BRANCHES[3]},
 and then resets the ${BRANCHES[0]}, ${BRANCHES[1]} and ${BRANCHES[2]}
 branches both locally and remotely.
 
+The script reads parameters from:
+$(pwd)/.config
+
 USAGE: $0
+
+CAUTION: This script could result in losing unsaved work.
+         Consider making a backup of all branches before execution.
 
 EOM
 )
@@ -79,6 +80,7 @@ git config user.email "$DEVOPS_EMAIL" || { log_entry "Git config user.email fail
 
 # Ensure main branch
 git checkout "${BRANCHES[3]}" || { log_entry "Git checkout main failed."; exit "$GIT_CHECKOUT_ERR"; }
+git stash || { log_entry "Git stash failed for main."; exit "$GIT_STASH_ERR"; } # Stash changes to prevent issues
 
 # Reset Main
 git fetch origin || { log_entry "Git fetch failed."; exit "$GIT_MAIN_ERR"; }
@@ -86,23 +88,26 @@ git reset --hard origin/main || { log_entry "Git reset main failed."; exit "$GIT
 
 # Branch Operations
 for branch in "${BRANCHES[@]:0:3}"; do
-  # Check if the branch exists locally
+
+  # Check if the branch exists locally, check it out, stash changes, and delete it
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { log_entry "Git checkout $branch failed."; exit "$GIT_CHECKOUT_ERR"; }
     git stash || { log_entry "Git stash failed for $branch."; exit "$GIT_STASH_ERR"; }
     git branch -D "$branch" || { log_entry "Git delete $branch failed."; exit "$GIT_BRANCH_DEL_ERR"; }
   fi
+
   # Check if the branch exists remotely and delete it
   if git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null; then
     git push origin --delete "$branch" || { log_entry "Git delete remote $branch failed."; exit "$GIT_BRANCH_DEL_ERR"; }
   fi
-  # Create the branch anew from main, copy directories, and push to remote
+
+  # Create new code- branch from main
   git checkout -b "$branch" || { log_entry "Git checkout new $branch failed."; exit "$GIT_BRANCH_CREATE_ERR"; }
 
-  # Cleanup all files in the branch, including hidden ones
+  # Remove all files in the branch, including hidden ones
   rm -rf ./* ./.[^.]* || { log_entry "Directory cleanup failed."; exit "$RM_ERR"; }
 
-  # Copy required directories to branches.
+  # Copy only required directories to branch
   env_name="${branch#code-}"
   case "$branch" in
     "${BRANCHES[0]}")
@@ -118,14 +123,15 @@ for branch in "${BRANCHES[@]:0:3}"; do
       ;;
   esac
 
-  # Copy required scripts to toolbox dirs
+  # Copy required scripts to code- toolbox dir
   mkdir -p toolbox || { log_entry "Toolbox directory creation failed."; exit "$MKDIR_ERR"; }
   cp -r "../scripts/$env_name/*" toolbox/ || { log_entry "Copy operation for toolbox failed."; exit "$CP_ERR"; }
 
-  # Add, commit and push branches to remote
+  # Add, commit and push code- branch to remote
   git add . || { log_entry "Git add failed for $branch."; exit "$GIT_MAIN_ERR"; }
   git commit -m "Updated $branch from main"
   git push -u origin "$branch" || { log_entry "Git push to $branch failed."; exit "$GIT_PUSH_ERR"; }
+
 done
 
 # Cleanup
