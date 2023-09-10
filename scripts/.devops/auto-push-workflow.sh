@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+#set -x
 
 # This script automates a specific number of pushes at an optional interval, to a specified branch.
 
