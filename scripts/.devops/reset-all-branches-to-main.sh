@@ -102,7 +102,10 @@ for branch in "${BRANCHES[@]:0:3}"; do
   log_entry "Current branch: $(git branch --show-current)"
   log_entry "Current directory: $(pwd)"
 
-  # Confirm the directory exists and has content before copying
+  # Create toolbox directory
+  mkdir -p toolbox || { log_entry "Error creating toolbox."; exit "$MKDIR_ERR"; }
+
+  # Confirm the required scripts directory exists and has content before copying
   env_name="${branch#code-}"
   if [[ -d "scripts/$env_name/" && $(ls -A "scripts/$env_name/") ]]; then
     cp -r "scripts/$env_name/"* toolbox/ || { log_entry "Error copying scripts to toolbox."; exit "$CP_ERR"; }
