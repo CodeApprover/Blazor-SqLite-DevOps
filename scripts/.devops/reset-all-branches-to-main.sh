@@ -93,6 +93,7 @@ for branch in "${BRANCHES[@]:0:3}"; do
     git push origin --delete "$branch" || { log_entry "Deleting remote branch $branch error."; exit "$GIT_DELETE_ERR"; }
   else
     log_entry "Remote branch $branch does not exist. Skipping deletion."
+  fi
 
   # Create a new branch from main
   git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit "$GIT_CREATE_ERR"; }
