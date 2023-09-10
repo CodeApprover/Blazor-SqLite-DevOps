@@ -21,10 +21,10 @@ GIT_TARGET_CHECKOUT=101
 GIT_STASH_TARGET=102
 GIT_ADD=103
 GIT_COMMIT=104
-PUSH=105
-TARGET_POP=106
-ORIGIN_CHECKOUT=107
-ORIGIN_POP=108
+GIT_PUSH=105
+GIT_TARGET_POP=106
+GIT_ORIGIN_CHECKOUT=107
+GIT_ORIGIN_POP=108
 
 # Set constants from .config
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
@@ -93,7 +93,7 @@ log_entry() {
 echo && echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
-[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
+[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit $USER_ABORT
 echo
 
 # Check script is running from correct directory
@@ -109,11 +109,11 @@ fi
 
 # Set local variables
 branch="$1"
-num_pushes="${2:-1}"     # default 1
+MAX_PUSHES="${2:-1}"     # default 1
 wait_duration="${3:-0}"  # default 0
 
 # Ensure correct number of arguments, of the right type
-[[ $# -lt 1 || $# -gt 3 || ! "$num_pushes" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE"
+[[ $# -lt 1 || $# -gt 3 || ! "$MAX_PUSHES" =~ ^[0-9]+$ || ! "$wait_duration" =~ ^[0-9]+$ ]] && log_entry "Invalid params." && echo "$USAGE" && exit "$USAGE"
 
 # Validate branch
 valid_branch=false
@@ -127,11 +127,11 @@ done
 if [ "$valid_branch" == "false" ]; then
   log_entry "Invalid branch: $branch"
   echo "$USAGE"
-  exit "$INV_BRANCH"
+  exit $INV_BRANCH
 fi
 
 # Validate iteration count
-[[ "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER"
+[[ "$MAX_PUSHES" -lt 1 || "$MAX_PUSHES" -gt "$MAX_PUSHES" ]] && log_entry "Invalid iteration count." && echo "$USAGE" && exit "$ITER"
 
 # Validate wait duration
 [[ "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]] && log_entry "Invalid wait duration." && echo "$USAGE" && exit "$WAIT"
@@ -151,25 +151,25 @@ fi
 
 # Set git user info if different from current git config
 if [[ "$USER_NAME" != "$DEVOPS_USER" ]]; then
-  git config user.name "$USER_NAME" || { log_entry "Git config user.name failed."; exit "$GIT_CONFIG"; }
-  git config user.email "$USER_EMAIL" || { log_entry "Git config user.email failed."; exit "$GIT_CONFIG"; }
+  git config user.name "$USER_NAME" || { log_entry "Git config user.name failed."; exit $GIT_CONFIG; }
+  git config user.email "$USER_EMAIL" || { log_entry "Git config user.email failed."; exit $GIT_CONFIG; }
 fi
 
 # Stash original, current branch
 ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
-  git stash || { log_entry "Stash error for $CURRENT_BRANCH."; exit "$GIT_STASH_ORIG"; }
+  git stash || { log_entry "Stash error for $CURRENT_BRANCH."; exit $GIT_STASH_ORIG; }
   ORIGIN_STASHED=true
 fi
 
 # Checkout target branch
-git checkout "$branch" || { log_entry "Checkout error for $branch."; exit "$GIT_TARGET_CHECKOUT"; }
+git checkout "$branch" || { log_entry "Checkout error for $branch."; exit $GIT_TARGET_CHECKOUT; }
 
 # Stash target branch
 TARGET_STASHED=false
 if [[ $(git status --porcelain) ]]; then
-  git stash || { log_entry "Stash error for $branch."; exit "$GIT_STASH_TARGET"; }
+  git stash || { log_entry "Stash error for $branch."; exit $GIT_STASH_TARGET; }
   TARGET_STASHED=true
 fi
 
@@ -178,16 +178,16 @@ DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
 # GIT_ADD, commit and push in a loop.
-for i in $(seq 1 "$num_pushes"); do
+for i in $(seq 1 "$MAX_PUSHES"); do
 
   # Set commit message
-  commit_msg="Auto-push $i of $num_pushes to $branch by $USER_NAME."
+  commit_msg="Auto-push $i of $MAX_PUSHES to $branch by $USER_NAME."
 
   # Set workflow.driver file
   echo "
-  Push iteration: $i of $num_pushes
-  Commit Message: $GIT_COMMIT_msg
-  Wait interval: $wait_duration
+  Push iteration: $i of $MAX_PUSHES
+  Commit Message: $commit_msg
+  Wait interval: $MAX_SECS_WAIT
   Target branch: $branch
   Environment: $env
   Driver: $DRIVER
@@ -197,21 +197,21 @@ for i in $(seq 1 "$num_pushes"); do
   " > "$DRIVER"
 
   # git Git ag
-  git git add "$DRIVER" || { log_entry "Git add error."; exit "$GIT_ADD"; }
+  git git add "$DRIVER" || { log_entry "Git add error."; exit $GIT_ADD; }
 
   # git commit
-  git commit -m "$GIT_COMMIT_msg" || { log_entry "Commit error for $branch push $i of $num_pushes."; exit "$GIT_COMMIT"; }
+  git commit -m "$commit_msg" || { log_entry "Commit error for $branch push $i of $MAX_PUSHES."; exit $GIT_COMMIT; }
 
   # git push
-  git push || { log_entry "Push error."; exit "$PUSH"; }
+  git push || { log_entry "Push error."; exit $GIT_PUSH; }
 
   # Display driver file
   cat "$DRIVER" && echo
 
   # Wait if required
-  if [ "$i" -lt "$num_pushes" ]; then
-    log_entry "Waiting for $wait_duration seconds..."
-    for ((j = wait_duration; j > 0; j--)); do
+  if [ "$i" -lt "$MAX_PUSHES" ]; then
+    log_entry "Waiting for $MAX_SECS_WAIT seconds..."
+    for ((j = MAX_SECS_WAIT; j > 0; j--)); do
       days=$((j / 86400))
       hours=$(( (j % 86400) / 3600 ))
       minutes=$(( (j % 3600) / 60 ))
@@ -226,20 +226,20 @@ done
 # Pop target branch
 if $TARGET_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $branch."
-  exit "$TARGET_POP"
+  exit $GIT_TARGET_POP
 fi
 
 # Switch to the original user and branch
-git config user.name "$DEVOPS_USER" || { log_entry "Git config user.name failed."; exit "$GIT_CONFIG"; }
-git config user.email "$DEVOPS_EMAIL" || { log_entry "Git config user.email failed."; exit "$GIT_CONFIG"; }
-git checkout "$CURRENT_BRANCH" || { log_entry "Checkout error for $CURRENT_BRANCH."; exit "$ORIGIN_CHECKOUT"; }
+git config user.name "$DEVOPS_USER" || { log_entry "Git config user.name failed."; exit $GIT_CONFIG; }
+git config user.email "$DEVOPS_EMAIL" || { log_entry "Git config user.email failed."; exit $GIT_CONFIG; }
+git checkout "$CURRENT_BRANCH" || { log_entry "Checkout error for $CURRENT_BRANCH."; exit $GIT_ORIGIN_CHECKOUT; }
 
 # Pop the original branch
 if $ORIGIN_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $CURRENT_BRANCH."
-  exit "$ORIGIN_POP"
+  exit $GIT_ORIGIN_POP
 fi
 
 # Exit successfully
 log_entry "$0 completed successfully."
-exit "$SUCCESS"
+exit $SUCCESS
