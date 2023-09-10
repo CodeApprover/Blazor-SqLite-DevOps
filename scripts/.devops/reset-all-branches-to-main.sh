@@ -44,13 +44,16 @@ EOM
 
 # Logging function
 log_entry() {
-  local message="$1"
-  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+    local message="$1"
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
-# User confirmation
-read -r -p "CONTINUE? [yes/no]: " response
-[[ ! "yes" =~ ^$response$ ]] && log_entry "Aborted." && exit "$USER_ABORT"
+# Issue warning and parse user response
+echo && echo "$WARNING"
+echo && read -r -p "CONTINUE ??? [yes/no] " response
+responses=("y" "Y" "yes" "YES" "Yes")
+[[ ! "${responses[*]}" =~ $response ]] && log_entry "Aborted." && exit "$USER_ABORT"
+echo
 
 # Ensure we're in the correct directory
 [[ "$(pwd)" != *"$EXPECTED_DIR" ]] && log_entry "Please run from $EXPECTED_DIR." && exit "$USAGE_ERR"
@@ -73,41 +76,41 @@ git reset --hard origin/main || { log_entry "Git reset error."; exit "$GIT_MAIN_
 # Recreate each code- branch
 for branch in "${BRANCHES[@]:0:3}"; do
 
-  # Checkout, stash and delete local branch
-  if git show-ref --verify --quiet "refs/heads/$branch"; then
-    git checkout "$branch"
-    git stash
-    git checkout "${BRANCHES[3]}"
-    git branch -D "$branch"
-  fi
+    # Checkout, stash and delete local branch
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+        git checkout "$branch"
+        git stash
+        git checkout "${BRANCHES[3]}"
+        git branch -D "$branch"
+    fi
 
-  # Delete remote branch if it exists
-  git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null && git push origin --delete "$branch"
+    # Delete remote branch if it exists
+    git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null && git push origin --delete "$branch"
 
-  # Create a new branch from main
-  git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit "$GIT_CREATE_ERR"; }
+    # Create a new branch from main
+    git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit "$GIT_CREATE_ERR"; }
 
-  # Create toolbox directory
-  mkdir -p toolbox || { log_entry "Error creating toolbox."; exit "$MKDIR_ERR"; }
+    # Create toolbox directory
+    mkdir -p toolbox || { log_entry "Error creating toolbox."; exit "$MKDIR_ERR"; }
 
-  # Copy required scripts to toolbox dir
-  env_name="${branch#code-}"
-  cp -r "scripts/$env_name/*" toolbox/ || { log_entry "Error copying scripts to toolbox."; exit "$CP_ERR"; }
+    # Copy required scripts to toolbox dir
+    env_name="${branch#code-}"
+    cp -r "scripts/$env_name/*" toolbox/ || { log_entry "Error copying scripts to toolbox."; exit "$CP_ERR"; }
 
-  # Cleanup directories based on branch
-  case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production || { log_entry "Error removing directories from ${BRANCHES[0]}."; exit "$RM_ERR"; } ;;
-    "${BRANCHES[1]}") rm -rf production || { log_entry "Error removing directories from ${BRANCHES[1]}."; exit "$RM_ERR"; } ;;
-    "${BRANCHES[2]}") rm -rf development || { log_entry "Error removing directories from ${BRANCHES[2]}."; exit "$RM_ERR"; } ;;
-  esac
+    # Cleanup directories based on branch
+    case "$branch" in
+        "${BRANCHES[0]}") rm -rf staging production || { log_entry "Error removing directories from ${BRANCHES[0]}."; exit "$RM_ERR"; } ;;
+        "${BRANCHES[1]}") rm -rf production || { log_entry "Error removing directories from ${BRANCHES[1]}."; exit "$RM_ERR"; } ;;
+        "${BRANCHES[2]}") rm -rf development || { log_entry "Error removing directories from ${BRANCHES[2]}."; exit "$RM_ERR"; } ;;
+    esac
 
-  # Remove scripts
-  rm -rf scripts || { log_entry "Error removing scripts."; exit "$RM_ERR"; }
+    # Remove scripts
+    rm -rf scripts || { log_entry "Error removing scripts."; exit "$RM_ERR"; }
 
-  # Add, commit, and push to remote
-  git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
-  git commit -m "Updated $branch from main" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
-  git push -u origin "$branch" || { log_entry "Git push error."; exit "$GIT_PUSH_ERR"; }
+    # Add, commit, and push to remote
+    git add . || { log_entry "Git add error."; exit "$GIT_ADD_ERR"; }
+    git commit -m "Updated $branch from main" || { log_entry "Git commit error."; exit "$GIT_COMMIT_ERR"; }
+    git push -u origin "$branch" || { log_entry "Git push error."; exit "$GIT_PUSH_ERR"; }
 
 done
 
