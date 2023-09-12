@@ -242,7 +242,7 @@ DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
 # Git add, commit and push in a loop.
 for i in $(seq 1 "$num_pushes"); do
   # Set commit message
-  commit_msg="Auto-push $i of $num_pushes to $branch by $USER_NAME."
+  commit_msg="DevOps auto-push $i of $num_pushes to $branch"
 
   # Set workflow.driver file
   echo "
@@ -253,8 +253,8 @@ for i in $(seq 1 "$num_pushes"); do
   Environment:    $env
   Driver:         $DRIVER
   Csproj:         $CSPROJ
-  Username:       $USER_NAME
-  Email:          $USER_EMAIL
+  DevOps User:       $DEVOPS_USER as $USER_NAME
+  DevOps Email:          $DEVOPS_EMAIL
   Date:           $(date +'%Y-%m-%d %H:%M:%S')
   " > "$DRIVER"
 
