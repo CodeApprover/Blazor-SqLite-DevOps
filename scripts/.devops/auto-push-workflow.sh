@@ -121,20 +121,16 @@ USER_INFO=(
 
 # Set usage message
 USAGE=$(cat << EOM
-
 Usage:    $0  <branch-name>  <number-of-pushes>  <wait-seconds>
 Example:  $0  ${BRANCHES[0]}  3  600
 Branches: ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
-
 Number of pushes is optional and defaults to 1.
 Wait seconds is optional and defaults to 0.
-
 EOM
 )
 
 # Set warning message
 WARNING=$(cat << EOM
-
 WARNING: You are about to execute $0
 This script makes commits and pushes them to a specified branch.
 
@@ -155,7 +151,6 @@ GIT USERS: The script presumes authourisation for DevOps git user:
 CAUTION: Consider making a backup before execution.
     Note: This script stashes and pops any stashes (if created)
     to restore any changes in the current branch.
-
 EOM
 )
 
@@ -174,16 +169,20 @@ if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
     exit 2
 fi
 
-# Check mandatory branch parameter
+# Check for mandatory branch parameter
 if [[ -z "${1:-}" ]]; then
     log_entry "Error: No branch specified."
     echo "$USAGE"
     exit 3
 fi
+
+# Set branch
 branch="${1:-}"
 valid_branches_string=" ${BRANCHES[*]} "
 
+# Validate branch
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
+    log_entry "Error: Invalid branch specified."
     echo "$USAGE"
     exit 4
 fi
