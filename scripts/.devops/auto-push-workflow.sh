@@ -121,11 +121,14 @@ USER_INFO=(
 
 # Set usage message
 USAGE=$(cat << EOM
-Usage:    $0  <branch-name>  <number-of-pushes>  <wait-seconds>
-Example:  $0  ${BRANCHES[0]}  3  600
-Branches: ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
-Number of pushes is optional and defaults to 1.
-Wait seconds is optional and defaults to 0.
+Usage:    $0 <branch-name>  <number-of-pushes>  <wait-seconds>
+Example:  $0 ${BRANCHES[0]} 3 600
+
+Branches: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
+Branch parameter is mandatory.
+
+Number of pushes is optional, default is 1.
+Wait seconds is optional, default is 0.
 EOM
 )
 
