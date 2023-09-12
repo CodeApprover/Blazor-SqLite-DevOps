@@ -14,7 +14,7 @@ set -o pipefail   # exit on fail of any command in a pipe
 
 # Register trap commands
 trap cleanup EXIT
-trap error_handler ERR
+trap exit_handler ERR
 
 # Set constants
 CUR_DIR="$(dirname "$0")"
@@ -52,8 +52,9 @@ log_entry() {
 
 # Exit error function
 # shellcheck disable=SC2317
-error_handler() {
+exit_handler() {
   local exit_code=$?
+  echo "exit_code is... $exit_code"
   local last_cmd="${BASH_COMMAND}"
   local script_name="${0}"  # Name of the current script
   if [ "$exit_code" -ne 0 ]; then
@@ -73,7 +74,7 @@ cleanup() {
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
     if ! git checkout "$ORIG_BRANCH"; then
-      exit 17
+      exit_handler 17
     fi
   fi
 
@@ -87,7 +88,7 @@ cleanup() {
   # Pop changes from the stash if they exist
   if git stash list | grep -q "stash@{0}"; then
     if ! git stash pop; then
-      exit 18
+      exit_handler 18
     fi
   fi
 }
@@ -96,7 +97,7 @@ cleanup() {
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
   log_entry "Error reading .config file."
-  exit 3
+  exit_handler 3
 fi
 
 # Set Constants from .config file
@@ -159,21 +160,21 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-  exit 1
+  exit_handler 1
 fi
 echo
 
 # Check script is running from correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-  exit 2
+  exit_handler 2
 fi
 
 # Check for mandatory branch parameter
 if [[ -z "${1:-}" ]]; then
   log_entry "Error: No branch specified."
   echo "$USAGE"
-  exit 3
+  exit_handler 3
 fi
 
 # Set branch
@@ -183,7 +184,7 @@ valid_branches_string=" ${BRANCHES[*]} "
 # Validate branch
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
   echo "$USAGE"
-  exit 4
+  exit_handler 4
 fi
 
 # Set iteration count and wait seconds
@@ -193,20 +194,20 @@ wait_duration="${3:-0}"  # default 0
 # Validate iteration count
 if [[ -z "$num_pushes" || "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]]; then
   echo "$USAGE"
-  exit 5
+  exit_handler 5
 fi
 
 # Validate wait duration
 if [[ -z "$wait_duration" || "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]]; then
   echo "$USAGE"
-  exit 6
+  exit_handler 6
 fi
 
 # Set environment and csproj file
 env="${branch#code-}"
 CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
 if [ ! -f "$CSPROJ" ]; then
-  exit 7
+  exit_handler 7
 fi
 
 # Set git user info if different from current git config
@@ -215,25 +216,25 @@ USER_EMAIL="${USER_INFO["$branch"]#* }"  # Extract user email
 current_git_user=$(git config user.name)
 
 if [[ "$current_git_user" != "$USER_NAME" ]]; then
-  git config user.name "$USER_NAME" || { exit 8; }
-  git config user.email "$USER_EMAIL" || { exit 9; }
+  git config user.name "$USER_NAME" || { exit_handler 8; }
+  git config user.email "$USER_EMAIL" || { exit_handler 9; }
 fi
 
 # Stash original, current branch
 ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
-  git stash || { exit 10 ; }
+  git stash || { exit_handler 10 ; }
   ORIGIN_STASHED=true
 fi
 
 # Checkout target branch
-git checkout "$branch" || { exit 11; }
+git checkout "$branch" || { exit_handler 11; }
 
 # Stash target branch
 TARGET_STASHED=false
 if [[ $(git status --porcelain) ]]; then
-  git stash || { exit 12; }
+  git stash || { exit_handler 12; }
   TARGET_STASHED=true
 fi
 
@@ -260,18 +261,18 @@ for i in $(seq 1 "$num_pushes"); do
   " > "$DRIVER"
 
   # git add
-  git add -A || { exit 13; }
+  git add -A || { exit_handler 13; }
 
   # git commit
   git commit -m "$commit_msg" || {
   log_entry "Commit error for $branch commit $i of $MAX_PUSHES"
-  exit 14
+  exit_handler 14
   }
 
   # git push
   git push || {
   log_entry "Push error for $branch push $i of $MAX_PUSHES"
-  exit 15
+  exit_handler 15
   }
 
   # Display driver file
@@ -292,21 +293,21 @@ done
 # Pop target branch
 if $TARGET_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $branch."
-  exit 16
+  exit_handler 16
 fi
 
 # Switch to the original user and branch
-git config user.name "$DEVOPS_USER" || { exit 8; }
-git config user.email "$DEVOPS_EMAIL" || { exit 9; }
-git checkout "$CURRENT_BRANCH" || { exit 17; }
+git config user.name "$DEVOPS_USER" || { exit_handler 8; }
+git config user.email "$DEVOPS_EMAIL" || { exit_handler 9; }
+git checkout "$CURRENT_BRANCH" || { exit_handler 17; }
 
 # Pop the original branch
 if $ORIGIN_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $CURRENT_BRANCH."
-  exit 18
+  exit_handler 18
 fi
 
 # Exit successfully
-exit 0
+exit_handler 0
 
 # EOF
