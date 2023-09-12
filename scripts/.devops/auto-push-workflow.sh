@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Script Description: Automates commits and pushes to specified branches with optional intervals.
+# Reads user and configuration details from a .config file.
+
+#!/bin/bash
+
 # Set bash options
 set -o errexit  # exit on error
 set -o errtrace   # trap errors in functions
@@ -8,7 +13,7 @@ set -o nounset  # exit on undefined variable
 set -o pipefail   # exit on fail of any command in a pipe
 
 # Register trap commands
-trap 'exit_handler ${LINENO} "$BASH_COMMAND"' ERR
+trap 'exit_handler $? ${LINENO}' ERR
 trap cleanup EXIT
 
 # Set constants
@@ -20,7 +25,7 @@ declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
   [0]="Script completed successfully."
   [1]="User aborted the script."
-  [2]="Script not executed from the expected directory."
+  [2]="$0 must be run from its own directory."
   [3]="Invalid parameters provided."
   [4]="Invalid branch name."
   [5]="Invalid iteration count."
@@ -45,17 +50,18 @@ log_entry() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
-# Exit handling function
+# Exit handler function
 exit_handler() {
-  local line_num="$1"
-  local cmd="$2"
-  local exit_code="$?"
-  if [ "$exit_code" -ne 0 ]; then
-    log_entry "Error on line $line_num: $cmd"
+  local exit_code="$1"
+  local line_num="$2"
+  log_entry "Exited $0 -> line $line_num -> exit code $exit_code"
+
+  if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
     log_entry "${EXIT_MESSAGES[$exit_code]}"
-    log_entry "exit $exit_code"
-  else
+  elif [ "$exit_code" -eq 0 ]; then
     log_entry "Script completed successfully."
+  else
+    log_entry "Unknown error. exit $exit_code"
   fi
   exit "$exit_code"
 }
@@ -66,24 +72,27 @@ cleanup() {
 
   # Return to the original branch if different from the current branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
-  if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
-    if ! git checkout "$ORIG_BRANCH"; then
-      exit_handler "${LINE_NO}" "Error checking out $ORIG_BRANCH."
-      exit_handler 17
+  if [[ "$current_branch" != "${BRANCHES[0]}" ]]; then
+    if ! git checkout "${BRANCHES[0]}"; then
+      exit_handler 7 "${LINE_NO}"
     fi
   fi
 
   # Return to the original git user if different from current
   current_git_user=$(git config user.name)
   if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
-    git config user.name "$DEVOPS_USER"
-    git config user.email "$DEVOPS_EMAIL"
+    if ! git config user.name "$DEVOPS_USER"; then
+      exit_handler 5 "${LINENO}"
+    fi
+    if ! git config user.email "$DEVOPS_EMAIL"; then
+      exit_handler 6 "${LINENO}"
+    fi
   fi
 
-  # Pop changes from the stash if they exist
+  # Pop changes from the original stash if they exist
   if git stash list | grep -q "stash@{0}"; then
     if ! git stash pop; then
-      exit_handler 18
+      exit_handler 23 "${LINENO}"
     fi
   fi
 }
@@ -92,13 +101,12 @@ cleanup() {
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
   log_entry "Error reading .config file."
-  exit_handler 3
+  exit_handler 3 "${LINENO}"
 fi
 
 # Set Constants from .config file
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
-PROJ_NAME="${CONFIG_VALUES[2]}"
 EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
@@ -107,10 +115,11 @@ MAX_PUSHES="${CONFIG_VALUES[9]}"
 # Set user info
 declare -A USER_INFO
 USER_INFO=(
-  ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
-  ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
-  ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
-  ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
+  ["${BRANCHES[0]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+
 )
 
 # Set usage message
@@ -155,158 +164,92 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-  exit_handler 1
+  exit_handler 1 "${LINENO}"
 fi
 echo
 
 # Check script is running from correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-  exit_handler 2
+  exit_handler 2 "${LINENO}"
 fi
 
 # Check for mandatory branch parameter
 if [[ -z "${1:-}" ]]; then
   log_entry "Error: No branch specified."
   echo "$USAGE"
-  exit_handler 3
+  exit_handler 3 "${LINENO}"
 fi
 
-# Set branch
-branch="${1:-}"
-valid_branches_string=" ${BRANCHES[*]} "
-
-# Validate branch
-if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
+# Validate provided branch parameter
+branch="$1"
+if [[ ! " ${BRANCHES[*]} " =~ ${branch} ]]; then
+  log_entry "Error: Invalid branch name provided."
   echo "$USAGE"
-  exit_handler 4
+  exit_handler 4 "${LINENO}"
 fi
 
-# Set iteration count and wait seconds
-num_pushes="${2:-1}"  # default 1
-wait_duration="${3:-0}"  # default 0
-
-# Validate iteration count
-if [[ -z "$num_pushes" || "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]]; then
+# Validate provided iteration count
+iteration_count="${2:-1}" # default to 1 if not provided
+if ! [[ "$iteration_count" =~ ^[0-9]+$ ]] || [ "$iteration_count" -lt 1 ] || [ "$iteration_count" -gt "$MAX_PUSHES" ]; then
+  log_entry "Error: Invalid iteration count."
   echo "$USAGE"
-  exit_handler 5
+  exit_handler 5 "${LINENO}"
 fi
 
-# Validate wait duration
-if [[ -z "$wait_duration" || "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]]; then
+# Validate provided wait duration
+wait_duration="${3:-0}" # default to 0 if not provided
+if ! [[ "$wait_duration" =~ ^[0-9]+$ ]] || [ "$wait_duration" -lt 0 ] || [ "$wait_duration" -gt "$MAX_SECS_WAIT" ]; then
+  log_entry "Error: Invalid wait duration."
   echo "$USAGE"
-  exit_handler 6
+  exit_handler 6 "${LINENO}"
 fi
 
-# Set environment and csproj file
-env="${branch#code-}"
-CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
-if [ ! -f "$CSPROJ" ]; then
-  exit_handler 7
-fi
+# Main loop to execute commit and push
+for (( i=0; i<$iteration_count; i++ )); do
 
-# Set git user info if different from current git config
-USER_NAME="${USER_INFO["$branch"]%% *}"  # Extract user name
-USER_EMAIL="${USER_INFO["$branch"]#* }"  # Extract user email
-current_git_user=$(git config user.name)
+  # Stash any changes in current branch
+  if ! git stash save --keep-index --include-untracked "auto-commit-stash-$i"; then
+    exit_handler 10 "${LINENO}"
+  fi
 
-if [[ "$current_git_user" != "$USER_NAME" ]]; then
-  git config user.name "$USER_NAME" || { exit_handler 8; }
-  git config user.email "$USER_EMAIL" || { exit_handler 9; }
-fi
+  # Switch to the target branch
+  if ! git checkout "$branch"; then
+    exit_handler 11 "${LINENO}"
+  fi
 
-# Stash original, current branch
-ORIGIN_STASHED=false
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [[ $(git status --porcelain) ]]; then
-  git stash || { exit_handler 10; }
-  ORIGIN_STASHED=true
-fi
+  # Add changes
+  if ! git add .; then
+    exit_handler 13 "${LINENO}"
+  fi
 
-# Checkout target branch
-git checkout "$branch" || { exit_handler 11; }
+  # Commit changes
+  commit_msg="Automated commit #$i"
+  if ! git commit -m "$commit_msg"; then
+    exit_handler 14 "${LINENO}"
+  fi
 
-# Stash target branch
-TARGET_STASHED=false
-if [[ $(git status --porcelain) ]]; then
-  git stash || { exit_handler 12; }
-  TARGET_STASHED=true
-fi
+  # Push changes
+  if ! git push origin "$branch"; then
+    exit_handler 15 "${LINENO}"
+  fi
 
-# Set workflow driver file
-DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
-[ ! -f "$DRIVER" ] && touch "$DRIVER"
+  # Switch back to original branch and pop the stash
+  if ! git checkout "$ORIG_BRANCH"; then
+    exit_handler 17 "${LINENO}"
+  fi
+  if ! git stash pop; then
+    exit_handler 18 "${LINENO}"
+  fi
 
-# Git add, commit and push in a loop.
-for i in $(seq 1 "$num_pushes"); do
-  # Set commit message
-  commit_msg="DevOps auto-push $i of $num_pushes to $branch"
-
-  # Set workflow.driver file
-  echo "
-  Push iteration: $i of $num_pushes
-  Commit Message: $commit_msg
-  Wait interval:  $wait_duration seconds
-  Target branch:  $branch
-  Environment:    $env
-  Driver:         $DRIVER
-  Csproj:         $CSPROJ
-  DevOps User:    $DEVOPS_USER as $USER_NAME
-  DevOps Email:   $DEVOPS_EMAIL
-  Date:           $(date +'%Y-%m-%d %H:%M:%S')
-  " > "$DRIVER"
-
-  # git add
-  git add -A || {
-    log_entry "Git add error for $branch commit $i of $num_pushes"
-    exit_handler 13
-  }
-
-  # git commit
-  git commit -m "$commit_msg" || {
-    log_entry "Git commit error for $branch commit $i of $num_pushes"
-    exit_handler 14
-  }
-
-  # git push
-  git push || {
-    log_entry "Git push error for $branch push $i of $num_pushes"
-    exit_handler 15
-  }
-
-  # Display driver file
-  cat "$DRIVER" && echo
-
-  # Wait if required
-  if [ "$i" -lt "$num_pushes" ]; then
-    log_entry "Starting countdown for $wait_duration seconds..."
-    for (( counter=wait_duration; counter>0; counter-- )); do
-      printf "\rWaiting... %02d seconds remaining" "$counter"
-      sleep 1
-    done
-    echo ""  # Move to a new line after countdown completes
+  # Wait for the specified duration before the next iteration
+  if [ "$i" -lt "$((iteration_count - 1))" ]; then # If not the last iteration
+    sleep "$wait_duration"
   fi
 
 done
 
-# Pop target branch
-if $TARGET_STASHED && ! git stash pop; then
-  log_entry "Stash pop error for $branch."
-  exit_handler 16
-fi
-
-# Switch to the original user and branch
-git config user.name "$DEVOPS_USER" || { exit_handler 8; }
-git config user.email "$DEVOPS_EMAIL" || { exit_handler 9; }
-git checkout "$CURRENT_BRANCH" || { exit_handler 17; }
-
-# Pop the original branch
-if $ORIGIN_STASHED && ! git stash pop; then
-  log_entry "Stash pop error for $CURRENT_BRANCH."
-  exit_handler 18
-fi
-
-# Exit successfully
-exit_handler 0
+# Successful completion
+exit_handler 0 "${LINENO}"
 
 # EOF

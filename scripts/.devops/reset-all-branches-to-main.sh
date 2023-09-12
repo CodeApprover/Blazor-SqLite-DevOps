@@ -76,8 +76,8 @@ cleanup() {
 
   # Return to the original branch if different from the current branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
-  if [[ "$current_branch" != "${BRANCHES[3]}" ]]; then
-    if ! git checkout "${BRANCHES[3]}"; then
+  if [[ "$current_branch" != "${BRANCHES[0]}" ]]; then
+    if ! git checkout "${BRANCHES[0]}"; then
       exit_handler 7 "${LINE_NO}"
     fi
   fi
@@ -117,8 +117,8 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 # Set warning message
 WARNING=$(cat << EOM
 WARNING:
-Executing $0 will replace the local ${BRANCHES[3]} with remote ${BRANCHES[3]}.
-It will reset the ${BRANCHES[0]}, ${BRANCHES[1]}, and ${BRANCHES[2]} branches both locally and remotely.
+Executing $0 will replace the local ${BRANCHES[0]} with remote ${BRANCHES[0]}.
+It will reset the ${BRANCHES[1]}, ${BRANCHES[2]}, and ${BRANCHES[3]} branches both locally and remotely.
 Parameters are read from: $CUR_DIR/.config
 CAUTION: This can lead to loss of unsaved work. Consider backups before executing.
 USAGE: $0
@@ -147,7 +147,7 @@ git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
 git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 
 # Ensure we're on the main branch
-git checkout "${BRANCHES[3]}" || { exit_handler 7 "${LINENO}"; }
+git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 git stash || { exit_handler 8 "${LINENO}"; }
 
 # Reset main branch to mirror remote
@@ -155,12 +155,12 @@ git fetch origin || { exit_handler 9 "${LINENO}"; }
 git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 
 # Recreate each code- branch
-for branch in "${BRANCHES[@]:0:3}"; do
+for branch in "${BRANCHES[@]:1}"; do
   # Checkout, stash and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
     git stash || { exit_handler 12 "${LINENO}"; }
-    git checkout "${BRANCHES[3]}" || { exit_handler 7 "${LINENO}"; }
+    git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
     git branch -D "$branch" || { exit_handler 13 "${LINENO}"; }
   fi
 
@@ -191,9 +191,9 @@ for branch in "${BRANCHES[@]:0:3}"; do
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18  "${LINENO}"; } ;;
-    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
-    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
+    "${BRANCHES[1]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18  "${LINENO}"; } ;;
+    "${BRANCHES[2]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
+    "${BRANCHES[3]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
   esac
 
   # Remove scripts
@@ -207,7 +207,7 @@ for branch in "${BRANCHES[@]:0:3}"; do
 done
 
 # Final steps
-git checkout "${BRANCHES[3]}" || { exit_handler 7 "${LINENO}"; }
+git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 # Check if there are stashes to drop
 if git stash list | grep -q 'stash@'; then
   git stash drop || { exit_handler 22 "${LINENO}"; }
