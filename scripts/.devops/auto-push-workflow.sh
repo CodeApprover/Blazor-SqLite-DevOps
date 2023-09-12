@@ -16,6 +16,10 @@ set -o pipefail     # exit on fail of any command in a pipe
 trap cleanup EXIT
 trap error_handler ERR
 
+# Set constants
+CUR_DIR="$(dirname "$0")"
+ORIG_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
@@ -52,7 +56,12 @@ error_handler() {
     local exit_code=$?
     local last_cmd="${BASH_COMMAND}"
     local script_name="${0}"  # Name of the current script
-    log_entry "Error in script '$script_name' on line $LINENO: Last command was '$last_cmd'. ${EXIT_MESSAGES[$exit_code]}"
+    if [ "$exit_code" -ne 0 ]; then
+        log_entry "Error in script '$script_name' on line $LINENO: Last command was '$last_cmd'. ${EXIT_MESSAGES[$exit_code]}"
+        log_entry "${EXIT_MESSAGES[$exit_code]}"
+    else
+        log_entry "Script completed successfully."
+    fi
     exit "$exit_code"
 }
 
@@ -60,7 +69,13 @@ error_handler() {
 # shellcheck disable=SC2317
 cleanup() {
 
-    # TODO Return to the original branch if different from current
+    # Return to the original branch if different from the current branch
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
+        if ! git checkout "$ORIG_BRANCH"; then
+            exit 17
+        fi
+    fi
 
     # Return to the original git user if different from current
     current_git_user=$(git config user.name)
@@ -72,8 +87,7 @@ cleanup() {
     # Pop changes from the stash if they exist
     if git stash list | grep -q "stash@{0}"; then
         if ! git stash pop; then
-          log_entry "${EXIT_MESSAGES[18]}"
-          exit "${EXIT_MESSAGES[18]}"
+          exit 18
         fi
     fi
 
@@ -83,11 +97,11 @@ cleanup() {
 # Read .config file
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
-    log_entry "Error reading .config file: ${EXIT_MESSAGES[3]}"
-    exit "${EXIT_MESSAGES[3]}"
+    log_entry "Error reading .config file."
+    exit 3
 fi
 
-# Set Constants
+# Set Constants from .config file
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 PROJ_NAME="${CONFIG_VALUES[2]}"
@@ -95,7 +109,6 @@ EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
-CUR_DIR="$(dirname "$0")"
 
 # Set user info
 declare -A USER_INFO
@@ -149,16 +162,14 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-    log_entry "${EXIT_MESSAGES[1]}"
-    exit "${EXIT_MESSAGES[1]}"
+    exit 1
 fi
 echo
 
 # Check script is running from correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
     log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-    log_entry "${EXIT_MESSAGES[2]}"
-    exit "${EXIT_MESSAGES[2]}"
+    exit 2
 fi
 
 # Validate branch -> param 1 mandatory
@@ -167,8 +178,7 @@ valid_branches_string=" ${BRANCHES[*]} "
 
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
     log_entry "$USAGE"
-    log_entry "${EXIT_MESSAGES[4]}"
-    exit "${EXIT_MESSAGES[4]}"
+    exit 4
 fi
 
 # Set iteration count and wait seconds
@@ -178,23 +188,20 @@ wait_duration="${3:-0}"  # default 0
 # Validate iteration count
 if [[ -z "$num_pushes" || "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]]; then
     log_entry "$USAGE"
-    log_entry "${EXIT_MESSAGES[5]}"
-    exit "${EXIT_MESSAGES[5]}"
+    exit 5
 fi
 
 # Validate wait duration
 if [[ -z "$wait_duration" || "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]]; then
     log_entry "$USAGE"
-    log_entry "${EXIT_MESSAGES[6]}"
-    exit "${EXIT_MESSAGES[6]}"
+    exit 6
 fi
 
 # Set environment and csproj file
 env="${branch#code-}"
 CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
 if [ ! -f "$CSPROJ" ]; then
-    log_entry "${EXIT_MESSAGES[7]}"
-    exit "${EXIT_MESSAGES[7]}"
+    exit 7
 fi
 
 # Set git user info if different from current git config
@@ -204,12 +211,10 @@ current_git_user=$(git config user.name)
 
 if [[ "$current_git_user" != "$USER_NAME" ]]; then
     git config user.name "$USER_NAME" || {
-        log_entry "${EXIT_MESSAGES[8]}"
-        exit "${EXIT_MESSAGES[8]}"
+        exit 8
     }
     git config user.email "$USER_EMAIL" || {
-        log_entry "${EXIT_MESSAGES[9]}"
-        exit "${EXIT_MESSAGES[9]}"
+        exit 9
     }
 fi
 
@@ -218,24 +223,21 @@ ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
   git stash || {
-    log_entry "${EXIT_MESSAGES[10]}"
-    exit "${EXIT_MESSAGES[10]}"
+    exit 10
   }
   ORIGIN_STASHED=true
 fi
 
 # Checkout target branch
 git checkout "$branch" || {
-    log_entry "${EXIT_MESSAGES[11]}"
-    exit "${EXIT_MESSAGES[11]}"
+    exit 11
 }
 
 # Stash target branch
 TARGET_STASHED=false
 if [[ $(git status --porcelain) ]]; then
   git stash || {
-    log_entry "${EXIT_MESSAGES[12]}"
-    exit "${EXIT_MESSAGES[12]}"
+    exit 12
   }
   TARGET_STASHED=true
 fi
@@ -264,22 +266,19 @@ for i in $(seq 1 "$MAX_PUSHES"); do
 
   # git add
   git add -A || {
-    log_entry "${EXIT_MESSAGES[13]}"
-    exit "${EXIT_MESSAGES[13]}"
+    exit 13
   }
 
   # git commit
   git commit -m "$commit_msg" || {
     log_entry "Commit error for $branch commit $i of $MAX_PUSHES"
-    log_entry "${EXIT_MESSAGES[14]}"
-    exit "${EXIT_MESSAGES[14]}"
+    exit 14
   }
 
   # git push
   git push || {
     log_entry "Push error for $branch push $i of $MAX_PUSHES"
-    log_entry "${EXIT_MESSAGES[15]}"
-    exit "${EXIT_MESSAGES[15]}"
+    exit 15
   }
 
   # Display driver file
@@ -295,33 +294,27 @@ done
 # Pop target branch
 if $TARGET_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $branch."
-  log_entry "${EXIT_MESSAGES[16]}"
-  exit "${EXIT_MESSAGES[16]}"
+  exit 16
 fi
 
 # Switch to the original user and branch
 git config user.name "$DEVOPS_USER" || {
-    log_entry "${EXIT_MESSAGES[8]}"
-    exit "${EXIT_MESSAGES[8]}"
+    exit 8
 }
 git config user.email "$DEVOPS_EMAIL" || {
-    log_entry "${EXIT_MESSAGES[9]}"
-    exit "${EXIT_MESSAGES[9]}"
+    exit 9
 }
 git checkout "$CURRENT_BRANCH" || {
-    log_entry "${EXIT_MESSAGES[17]}"
-    exit "${EXIT_MESSAGES[17]}"
+    exit 17
 }
 
 # Pop the original branch
 if $ORIGIN_STASHED && ! git stash pop; then
   log_entry "Stash pop error for $CURRENT_BRANCH."
-  log_entry "${EXIT_MESSAGES[18]}"
-  exit "${EXIT_MESSAGES[18]}"
+  exit 18
 fi
 
 # Exit successfully
-log_entry "${EXIT_MESSAGES[0]}"
-exit "${EXIT_MESSAGES[0]}"
+exit 0
 
 # End of file
