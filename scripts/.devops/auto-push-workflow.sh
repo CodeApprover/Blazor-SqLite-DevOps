@@ -9,7 +9,11 @@ set -o errtrace     # trap errors in functions
 set -o functrace    # trap errors in functions
 set -o nounset      # exit on undefined variable
 set -o pipefail     # exit on fail of any command in a pipe
-set -x              # echo commands
+
+# Unused options
+# set -o posix      # more strict parsing
+# set -u            # exit on undefined variable (alternative to nounset)
+# set -x            # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
