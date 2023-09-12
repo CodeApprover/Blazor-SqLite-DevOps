@@ -1,1 +1,10 @@
-# use to drive workflow execution
+  Push Iteration:
+  Commit Message:
+  Wait Interval:
+  Target Branch:
+  Environment:
+  Driver:
+  Csproj:
+  DevOps User:
+  DevOps Email:
+  Date:
