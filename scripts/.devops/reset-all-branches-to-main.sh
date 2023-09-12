@@ -118,7 +118,7 @@ WARNING=$(cat << EOM
 WARNING:
 Executing $0 will replace the local ${BRANCHES[0]} with remote ${BRANCHES[0]}.
 It will reset the ${BRANCHES[1]}, ${BRANCHES[2]}, and ${BRANCHES[3]} branches both locally and remotely.
-Parameters are read from: $CUR_DIR/.config
+Parameters are read from: .config
 CAUTION: This can lead to loss of unsaved work. Consider backups before executing.
 USAGE: $0
 EOM

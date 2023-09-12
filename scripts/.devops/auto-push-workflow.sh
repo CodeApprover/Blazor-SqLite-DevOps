@@ -134,10 +134,11 @@ EOM
 
 # Set warning message
 WARNING=$(cat << EOM
-WARNING: You are about to execute $0
-This script makes commits and pushes them to a specified branch.
+WARNING:
+Executing $0 makes commits and pushes them to a specified branch.
+Some parameters are read from: .config
 
-PARAMETERS:  <branch-name>  <number-of-pushes>  <wait-seconds>
+PARAMETERS: <branch-name>  <number-of-pushes>  <wait-seconds>
 
 1.  Mandatory First parameter (string) 'branch-name' must be one of:
   ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
@@ -154,6 +155,9 @@ GIT USERS: The script presumes authourisation for DevOps git user:
 CAUTION: Consider making a backup before execution.
   Note: This script stashes and pops any stashes (if created)
   to restore any changes in the current branch.
+
+USAGE:
+  $USAGE
 EOM
 )
 
