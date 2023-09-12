@@ -62,14 +62,45 @@ exit_handler() {
     exit "$exit_code"
 }
 
+# Cleanup function
+# shellcheck disable=SC2317
+cleanup() {
+
+  # Return to the original branch if different from the current branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
+    if ! git checkout "$ORIG_BRANCH"; then
+      exit_handler "${LINE_NO}" "Error checking out $ORIG_BRANCH."
+    fi
+  fi
+
+  # Return to the original git user if different from current
+  current_git_user=$(git config user.name)
+  if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
+    if ! git config user.name "$DEVOPS_USER"; then
+      exit_handler "${LINENO}" "Error setting git user.name to $DEVOPS_USER."
+    fi
+    if ! git config user.email "$DEVOPS_EMAIL"; then
+      exit_handler "${LINENO}" "Error setting git user.email to $DEVOPS_EMAIL."
+    fi
+  fi
+
+  # Pop changes from the original stash if they exist
+  if git stash list | grep -q "stash@{0}"; then
+    if ! git stash pop; then
+      exit_handler ${LINENO} "Error popping original stash."
+    fi
+  fi
+}
+
 # Read .config file
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
-  log_entry "Error reading .config file."
-  exit_handler 3
+  exit_handler ${LINENO} "Error reading .config file."
 fi
 
-# Set constants
+# Set c
+onstants
 CUR_DIR="$(dirname "$0")"
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
@@ -92,93 +123,91 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-    log_entry "Aborted."
     exit_handler ${LINENO} "User aborted the script."
 fi
 echo
 
 # Ensure we're in the correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
-    log_entry "Please run from $EXPECTED_DIR."
-    exit_handler ${LINENO} "Usage error."
+    exit_handler ${LINENO} "Please run from $EXPECTED_DIR."
 fi
 
 # Move to root directory
-cd ../.. || { log_entry "Navigation error."; exit_handler ${LINENO} "Navigation error."; }
+cd ../.. || { exit_handler ${LINENO} "Navigation error."; }
 
 # Set Git User
-git config user.name "$DEVOPS_USER" || { log_entry "Git config user.name error."; exit_handler ${LINENO} "Git config user.name error."; }
-git config user.email "$DEVOPS_EMAIL" || { log_entry "Git config user.email error."; exit_handler ${LINENO} "Git config user.email error."; }
+git config user.name "$DEVOPS_USER" || { exit_handler ${LINENO} "Git config user.name error."; }
+git config user.email "$DEVOPS_EMAIL" || { exit_handler ${LINENO} "Git config user.email error."; }
 
 # Ensure we're on the main branch
-git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit_handler ${LINENO} "Checkout main error."; }
-git stash || { log_entry "Stash error on main."; exit_handler ${LINENO} "Stash error on main."; }
+git checkout "${BRANCHES[3]}" || { exit_handler ${LINENO} "Checkout main error."; }
+git stash || { exit_handler ${LINENO} "Stash error on main."; }
 
 # Reset main branch to mirror remote
-git fetch origin || { log_entry "Git fetch error."; exit_handler ${LINENO} "Git fetch error."; }
-git reset --hard origin/main || { log_entry "Git reset error."; exit_handler ${LINENO} "Git reset error."; }
+git fetch origin || { exit_handler ${LINENO} "Git fetch error."; }
+git reset --hard origin/main || { exit_handler ${LINENO} "Git reset error."; }
 
 # Recreate each code- branch
 for branch in "${BRANCHES[@]:0:3}"; do
     # Checkout, stash and delete local branch
     if git show-ref --verify --quiet "refs/heads/$branch"; then
-        git checkout "$branch" || { log_entry "Checkout $branch error."; exit_handler ${LINENO} "Checkout $branch error."; }
-        git stash || { log_entry "Stash error on $branch."; exit_handler ${LINENO} "Stash error on $branch."; }
-        git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit_handler ${LINENO} "Checkout main error."; }
-        git branch -D "$branch" || { log_entry "Deleting branch $branch error."; exit_handler ${LINENO} "Deleting branch $branch error."; }
+        git checkout "$branch" || { exit_handler ${LINENO} "Checkout $branch error."; }
+        git stash || { exit_handler ${LINENO} "Stash error on $branch."; }
+        git checkout "${BRANCHES[3]}" || { exit_handler ${LINENO} "Checkout main error."; }
+        git branch -D "$branch" || { exit_handler ${LINENO} "Deleting branch $branch error."; }
     fi
 
     # Delete remote branch if it exists
     if git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null; then
-        git push origin --delete "$branch" || { log_entry "Deleting remote branch $branch error."; exit_handler ${LINENO} "Deleting remote branch $branch error."; }
+        git push origin --delete "$branch" || { exit_handler ${LINENO} "Deleting remote branch $branch error."; }
     else
         log_entry "Remote branch $branch does not exist. Skipping deletion."
     fi
 
     # Create a new branch from main
-    git checkout -b "$branch" || { log_entry "Error creating branch $branch."; exit_handler ${LINENO} "Error creating branch $branch."; }
+    git checkout -b "$branch" || { exit_handler ${LINENO} "Error creating branch $branch."; }
 
     # Debug info
     log_entry "Current branch: $(git branch --show-current)"
     log_entry "Current directory: $(pwd)"
 
     # Create toolbox directory
-    mkdir -p toolbox || { log_entry "Error creating toolbox."; exit_handler ${LINENO} "Error creating toolbox."; }
+    mkdir -p toolbox || { exit_handler ${LINENO} "Error creating toolbox."; }
 
     # Confirm the required scripts directory exists and has content before copying
     env_name="${branch#code-}"
     if [[ -d "scripts/$env_name/" && $(ls -A "scripts/$env_name/") ]]; then
-        cp -r "scripts/$env_name/"* toolbox/ || { log_entry "Error copying scripts to toolbox."; exit_handler ${LINENO} "Error copying scripts to toolbox."; }
+        cp -r "scripts/$env_name/"* toolbox/ || { exit_handler ${LINENO} "Error copying scripts to toolbox."; }
     else
         log_entry "Directory scripts/$env_name/ does not exist or is empty."
     fi
 
     # Cleanup directories based on branch
     case "$branch" in
-        "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[0]}."; exit_handler ${LINENO} "Error removing directories from ${BRANCHES[0]}."; } ;;
-        "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[1]}."; exit_handler ${LINENO} "Error removing directories from ${BRANCHES[1]}."; } ;;
-        "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { log_entry "Error removing directories from ${BRANCHES[2]}."; exit_handler ${LINENO} "Error removing directories from ${BRANCHES[2]}."; } ;;
+        "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler ${LINENO} "Error removing directories from ${BRANCHES[0]}."; } ;;
+        "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler ${LINENO} "Error removing directories from ${BRANCHES[1]}."; } ;;
+        "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler ${LINENO} "Error removing directories from ${BRANCHES[2]}."; } ;;
     esac
 
     # Remove scripts
-    rm -rf scripts || { log_entry "Error removing scripts."; exit_handler ${LINENO} "Error removing scripts."; }
-    rm -rf .github/workflows || { log_entry "Error removing .github/workflows."; exit_handler ${LINENO} "Error removing .github/workflows."; }
+    rm -rf scripts || { exit_handler ${LINENO} "Error removing scripts."; }
+    rm -rf .github/workflows || { exit_handler ${LINENO} "Error removing .github/workflows."; }
 
     # Add, commit, and push to remote
-    git add . || { log_entry "Git add error."; exit_handler ${LINENO} "Git add error."; }
-    git commit -m "Updated $branch from main [skip ci]" || { log_entry "Git commit error."; exit_handler ${LINENO} "Git commit error."; }
-    git push -u origin "$branch" || { log_entry "Git push error."; exit_handler ${LINENO} "Git push error."; }
+    git add . || { exit_handler ${LINENO} "Git add error."; }
+    git commit -m "Updated $branch from main [skip ci]" || { exit_handler ${LINENO} "Git commit error."; }
+    git push -u origin "$branch" || { exit_handler ${LINENO} "Git push error."; }
 done
 
 # Final steps
-git checkout "${BRANCHES[3]}" || { log_entry "Checkout main error."; exit_handler ${LINENO} "Checkout main error."; }
+git checkout "${BRANCHES[3]}" || { exit_handler ${LINENO} "Checkout main error."; }
 # Check if there are stashes to drop
 if git stash list | grep -q 'stash@'; then
-    git stash drop || { log_entry "Stash drop error."; exit_handler ${LINENO} "Stash drop error."; }
+    git stash drop || { exit_handler ${LINENO} "Stash drop error."; }
 fi
 
 # Navigate back to original directory
-cd "$CUR_DIR" || { log_entry "Error navigating back to $CUR_DIR."; exit_handler ${LINENO} "Error navigating back to $CUR_DIR."; }
+cd "$CUR_DIR" || { exit_handler ${LINENO} "Error navigating back to $CUR_DIR."; }
 
 # Completion message
 log_entry "$0 finished."
