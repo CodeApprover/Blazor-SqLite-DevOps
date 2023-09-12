@@ -126,10 +126,10 @@ PARAMETERS: <branch-name> <number-of-pushes> <wait-seconds>
    ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
 
 2. Optional Second parameter (int) sets the number of pushes
-   (default is 1, max is $MAX_PUSHES seconds).
+   (default is 1, max is $MAX_PUSHES).
 
 3. Optional Third parameter (int) sets the interval in seconds between pushes
-   (default is 0, max is $MAX_SECS_WAIT).
+   (default is 0, max is $MAX_SECS_WAIT seconds).
 
 GIT USERS: The script presumes the following git users are authorised:
    ${USER_INFO[${BRANCHES[0]}]}
