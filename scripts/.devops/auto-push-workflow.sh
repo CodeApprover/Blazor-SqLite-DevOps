@@ -54,7 +54,8 @@ log_entry() {
 exit_handler() {
   local exit_code="$1"
   local line_num="$2"
-  log_entry "Exited $0 -> line $line_num -> exit code $exit_code"
+  log_entry "Exited $0 -> line $line_num"
+  log_entry "exit code $exit_code"
 
   if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
     log_entry "${EXIT_MESSAGES[$exit_code]}"
