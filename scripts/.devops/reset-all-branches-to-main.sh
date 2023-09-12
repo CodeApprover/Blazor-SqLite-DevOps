@@ -217,7 +217,6 @@ fi
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
 
 # Successful completion
-log_entry "$0 completed successfully."
 exit_handler 0 "${LINENO}"
 
 # EOF
