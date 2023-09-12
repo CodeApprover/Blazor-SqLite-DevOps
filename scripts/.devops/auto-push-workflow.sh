@@ -9,11 +9,7 @@ set -o errtrace     # trap errors in functions
 set -o functrace    # trap errors in functions
 set -o nounset      # exit on undefined variable
 set -o pipefail     # exit on fail of any command in a pipe
-
-# Unused options
-# set -o posix      # more strict parsing
-# set -u            # exit on undefined variable (alternative to nounset)
-set -x            # echo commands
+set -x              # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
@@ -38,15 +34,14 @@ EXIT_MESSAGES=(
   [13]="Git add error."
   [14]="Git commit error."
   [15]="Git push error."
-  [16]="Git stash pop error for the branch."
-  [17]="Git checkout error for the original branch."
-  [18]="Git stash pop error for the original branch."
-  [19]="Git stash pop error for main branch."
+  [16]="Git stash pop error for the code- branch."
+  [17]="Git stash pop error for main branch."
+  [18]="Git checkout error on specified branch."
 )
 
 # Logging function
 log_entry() {
-  local message="$1"
+local message="$1"
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
@@ -56,7 +51,6 @@ exit_handler() {
   local line_num="$2"
   log_entry "Exited $0 -> line $line_num"
   log_entry "exit code $exit_code"
-
   if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
     log_entry "${EXIT_MESSAGES[$exit_code]}"
   elif [ "$exit_code" -eq 0 ]; then
@@ -70,7 +64,6 @@ exit_handler() {
 # Cleanup function
 # shellcheck disable=SC2317
 cleanup() {
-
   # Return to the main branch if different from the current branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   if [[ "$current_branch" != "${BRANCHES[0]}" ]]; then
@@ -78,7 +71,6 @@ cleanup() {
       exit_handler 7 "${LINE_NO}"
     fi
   fi
-
   # Return to the main git user if different from current
   current_git_user=$(git config user.name)
   if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
@@ -89,11 +81,10 @@ cleanup() {
       exit_handler 6 "${LINENO}"
     fi
   fi
-
   # Pop changes from the main stash if they exist
   if git stash list | grep -q "stash@{0}"; then
     if ! git stash pop; then
-      exit_handler 23 "${LINENO}"
+      exit_handler 17 "${LINENO}"
     fi
   fi
 }
@@ -112,14 +103,13 @@ EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
-
 # Set user info
 declare -A USER_INFO
 USER_INFO=(
-  ["${BRANCHES[0]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}" # main
-  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}" # code-development
-  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}" # code-staging
-  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}" # code-production
+["${BRANCHES[0]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}" # main
+["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}" # code-development
+["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}" # code-staging
+["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}" # code-production
 )
 
 # Set usage message
@@ -215,57 +205,53 @@ if [ ! -f "$CSPROJ" ]; then
   exit_handler 12 "${LINENO}"
 fi
 
-# Main loop to execute commit and push
+# Checkout the specified branch
+git checkout "$branch" || { exit_handler 18 "${LINENO}"; }
+
 # Set workflow driver file
 DRIVER="./$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
 # Git add, commit and push in a loop
 for i in $(seq 1 "$num_pushes"); do
-  # Set commit message
-  commit_msg="DevOps test push $i of $num_pushes to $branch"
+# Set commit message
+commit_msg="DevOps test push $i of $num_pushes to $branch"
 
-  # Set workflow.driver file
-  echo "
-  Push Iteration: $i of $num_pushes
-  Commit Message: $commit_msg
-  Wait Interval:  $wait_seconds seconds
-  Target Branch:  $branch
-  Environment:    $env
-  Driver:         $DRIVER
-  Csproj:         $CSPROJ
-  DevOps User:    $DEVOPS_USER
-  DevOps Email:   $DEVOPS_EMAIL
-  Date:           $(date +'%Y-%m-%d %H:%M:%S')
-  " > "$DRIVER"
+# Set workflow.driver file
+echo "
+Push Iteration: $i of $num_pushes
+Commit Message: $commit_msg
+Wait Interval:  $wait_seconds seconds
+Target Branch:  $branch
+Environment:    $env
+Driver:         $DRIVER
+Csproj:         $CSPROJ
+DevOps User:    $DEVOPS_USER
+DevOps Email:   $DEVOPS_EMAIL
+Date:           $(date +'%Y-%m-%d %H:%M:%S')wait_seconds
+" > "$DRIVER"
 
-  # git add
-  git add -A || {
-    exit_handler 13 "${LINE_NO}"
-  }
+# git add
+git add -A || { exit_handler 13 "${LINE_NO}"; }
 
-  # git commit
-  git commit -m "$commit_msg" || {
-    exit_handler 14 "${LINE_NO}"
-  }
+# git commit
+git commit -m "$commit_msg" || { exit_handler 14 "${LINE_NO}"; }
 
-  # git push
-  git push || {
-    exit_handler 15 "${LINE_NO}"
-  }
+# git push
+git push || { exit_handler 15 "${LINE_NO}"; }
 
-  # Display driver file
-  cat "$DRIVER" && echo
+# Display driver file
+cat "$DRIVER" && echo
 
-  # Wait if required
-  if [ "$i" -lt "$num_pushes" ]; then
-    log_entry "Starting countdown for $wait_seconds seconds..."
-    for (( counter=wait_seconds; counter>0; counter-- )); do
-      printf "\rWaiting... %02d seconds remaining" "$counter"
-      sleep 1
-    done
-    echo ""  # Move to a new line after countdown completes
-  fi
+# Wait if required
+if [ "$i" -lt "$num_pushes" ]; then
+  log_entry "Starting countdown for $wait_seconds seconds..."
+  for (( counter=wait_seconds; counter>0; counter-- )); do
+    printf "\rWaiting... %02d seconds remaining" "$counter"
+    sleep 1
+  done
+  echo ""  # reset countdown newline
+fi
 
 done
 
@@ -275,7 +261,7 @@ git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 # Pop changes from the main stash if they exist
 if git stash list | grep -q "stash@{0}"; then
   if ! git stash pop; then
-    exit_handler 23 "${LINENO}"
+    exit_handler 17 "${LINENO}"
   fi
 fi
 
