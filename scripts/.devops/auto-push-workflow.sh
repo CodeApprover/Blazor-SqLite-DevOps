@@ -255,6 +255,7 @@ for i in $(seq 1 "$num_pushes"); do
   Csproj: $CSPROJ
   Username: $USER_NAME
   Email: $USER_EMAIL
+  Date: $(date +'%Y-%m-%d %H:%M:%S')
   " > "$DRIVER"
 
   # git add
