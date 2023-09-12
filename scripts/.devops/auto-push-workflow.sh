@@ -253,8 +253,8 @@ for i in $(seq 1 "$num_pushes"); do
   Environment:    $env
   Driver:         $DRIVER
   Csproj:         $CSPROJ
-  DevOps User:       $DEVOPS_USER as $USER_NAME
-  DevOps Email:          $DEVOPS_EMAIL
+  DevOps User:    $DEVOPS_USER as $USER_NAME
+  DevOps Email:   $DEVOPS_EMAIL
   Date:           $(date +'%Y-%m-%d %H:%M:%S')
   " > "$DRIVER"
 
