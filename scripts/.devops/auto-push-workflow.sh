@@ -13,7 +13,7 @@ set -o pipefail     # exit on fail of any command in a pipe
 # Unused options
 # set -o posix      # more strict parsing
 # set -u            # exit on undefined variable (alternative to nounset)
-# set -x            # echo commands
+set -x            # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
