@@ -1,1 +1,12 @@
-# use to drive workflow execution
+
+  Push Iteration: 1 of 2
+  Commit Message: DevOps test push 1 of 2 to code-development
+  Wait Interval:  20 seconds
+  Target Branch:  code-development
+  Environment:    development
+  Driver:         ./development/Blazor-Sqlite-Golf-Club/workflow.driver
+  Csproj:         ./development/Blazor-Sqlite-Golf-Club/Blazor-Sqlite-Golf-Club.csproj
+  DevOps User:    CodeApprover
+  DevOps Email:   pucfada@pm.me
+  Date:           2023-09-12 18:49:16
+  
