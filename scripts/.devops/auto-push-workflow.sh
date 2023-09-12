@@ -123,7 +123,7 @@ USER_INFO=(
 USAGE=$(cat << EOM
 Usage:   $0 branch-name (mandatory string) + pushes ( optional int) + wait_seconds ( optional int)
 Example: $0 ${BRANCHES[1]} 3 600
-Branch Options: ${BRANCHES[1]} ${BRANCHES[2]} ${BRANCHES[3]}
+Branch Options: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
 EOM
 )
 
