@@ -248,14 +248,14 @@ for i in $(seq 1 "$num_pushes"); do
   echo "
   Push iteration: $i of $num_pushes
   Commit Message: $commit_msg
-  Wait interval: $wait_duration seconds
-  Target branch: $branch
-  Environment: $env
-  Driver: $DRIVER
-  Csproj: $CSPROJ
-  Username: $USER_NAME
-  Email: $USER_EMAIL
-  Date: $(date +'%Y-%m-%d %H:%M:%S')
+  Wait interval:  $wait_duration seconds
+  Target branch:  $branch
+  Environment:    $env
+  Driver:         $DRIVER
+  Csproj:         $CSPROJ
+  Username:       $USER_NAME
+  Email:          $USER_EMAIL
+  Date:           $(date +'%Y-%m-%d %H:%M:%S')
   " > "$DRIVER"
 
   # git add
