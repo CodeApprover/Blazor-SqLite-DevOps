@@ -110,13 +110,10 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
 
-# Set user info
+# Set DevOps user info
 declare -A USER_INFO
 USER_INFO=(
     ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
-    ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
-    ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
-    ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
 )
 
 # Set usage message
@@ -144,11 +141,8 @@ PARAMETERS: <branch-name> <number-of-pushes> <wait-seconds>
 3. Optional Third parameter (int) sets the interval in seconds between pushes
    (default is 0, max is $MAX_SECS_WAIT seconds).
 
-GIT USERS: The script presumes the following git users are authorised:
-   ${USER_INFO[${BRANCHES[0]}]}
-   ${USER_INFO[${BRANCHES[1]}]}
-   ${USER_INFO[${BRANCHES[2]}]}
-   ${USER_INFO[${BRANCHES[3]}]}
+GIT USERS: The script presumes authourisation for DevOps git user:
+  ${USER_INFO[${BRANCHES[3]}]}
 
 CAUTION: Consider making a backup before execution.
   Note: This script stashes and pops any stashes (if created)
