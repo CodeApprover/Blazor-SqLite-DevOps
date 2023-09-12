@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # Script Description: Resets local main to remote main and updates the specific branches.
-# Reads a configuration file (.config) for branch names, user details, and more.
+# Reads user and configuration details from a .config file.
 
 # Set bash options
-set -o errexit  # exit on error
-set -o errtrace   # trap errors in functions
-set -o functrace  # trap errors in functions
-set -o nounset  # exit on undefined variable
-set -o pipefail   # exit on fail of any command in a pipe
+set -o errexit      # exit on error
+set -o errtrace     # trap errors in functions
+set -o functrace    # trap errors in functions
+set -o nounset      # exit on undefined variable
+set -o pipefail     # exit on fail of any command in a pipe
 
 # Unused options
-# set -o posix  # more strict parsing
-# set -u      # exit on undefined variable (alternative to nounset)
-# set -x      # echo commands
+# set -o posix      # more strict parsing
+# set -u            # exit on undefined variable (alternative to nounset)
+# set -x            # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR

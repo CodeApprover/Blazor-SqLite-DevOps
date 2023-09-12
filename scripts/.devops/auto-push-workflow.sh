@@ -1,24 +1,23 @@
 #!/bin/bash
 
-# Script Description: Automates commits and pushes to specified branches with optional intervals.
+# Script Description: Automates commits and pushes to a specified branch with optional intervals.
 # Reads user and configuration details from a .config file.
 
-#!/bin/bash
-
 # Set bash options
-set -o errexit  # exit on error
-set -o errtrace   # trap errors in functions
-set -o functrace  # trap errors in functions
-set -o nounset  # exit on undefined variable
-set -o pipefail   # exit on fail of any command in a pipe
+set -o errexit      # exit on error
+set -o errtrace     # trap errors in functions
+set -o functrace    # trap errors in functions
+set -o nounset      # exit on undefined variable
+set -o pipefail     # exit on fail of any command in a pipe
+
+# Unused options
+# set -o posix      # more strict parsing
+# set -u            # exit on undefined variable (alternative to nounset)
+# set -x            # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
 trap cleanup EXIT
-
-# Set constants
-CUR_DIR="$(dirname "$0")"
-ORIG_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
@@ -115,10 +114,10 @@ MAX_PUSHES="${CONFIG_VALUES[9]}"
 # Set user info
 declare -A USER_INFO
 USER_INFO=(
-  ["${BRANCHES[0]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
-  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
-  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
-  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+  ["${BRANCHES[0]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}" # main
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}" # code-development
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}" # code-staging
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}" # code-production
 
 )
 
@@ -190,23 +189,23 @@ if [[ ! " ${BRANCHES[*]} " =~ ${branch} ]]; then
 fi
 
 # Validate provided iteration count
-iteration_count="${2:-1}" # default to 1 if not provided
-if ! [[ "$iteration_count" =~ ^[0-9]+$ ]] || [ "$iteration_count" -lt 1 ] || [ "$iteration_count" -gt "$MAX_PUSHES" ]; then
+num_pushes="${2:-1}" # default to 1 if not provided
+if ! [[ "$num_pushes" =~ ^[0-9]+$ ]] || [ "$num_pushes" -lt 1 ] || [ "$num_pushes" -gt "$MAX_PUSHES" ]; then
   log_entry "Error: Invalid iteration count."
   echo "$USAGE"
   exit_handler 5 "${LINENO}"
 fi
 
 # Validate provided wait duration
-wait_duration="${3:-0}" # default to 0 if not provided
-if ! [[ "$wait_duration" =~ ^[0-9]+$ ]] || [ "$wait_duration" -lt 0 ] || [ "$wait_duration" -gt "$MAX_SECS_WAIT" ]; then
+wait_seconds="${3:-0}" # default to 0 if not provided
+if ! [[ "$wait_seconds" =~ ^[0-9]+$ ]] || [ "$wait_seconds" -lt 0 ] || [ "$wait_seconds" -gt "$MAX_SECS_WAIT" ]; then
   log_entry "Error: Invalid wait duration."
   echo "$USAGE"
   exit_handler 6 "${LINENO}"
 fi
 
 # Main loop to execute commit and push
-for (( i=0; i<$iteration_count; i++ )); do
+for (( i=0; i < num_pushes; i++ )); do
 
   # Stash any changes in current branch
   if ! git stash save --keep-index --include-untracked "auto-commit-stash-$i"; then
@@ -235,7 +234,7 @@ for (( i=0; i<$iteration_count; i++ )); do
   fi
 
   # Switch back to original branch and pop the stash
-  if ! git checkout "$ORIG_BRANCH"; then
+  if ! git checkout "${BRANCHES[0]}"; then
     exit_handler 17 "${LINENO}"
   fi
   if ! git stash pop; then
@@ -243,8 +242,8 @@ for (( i=0; i<$iteration_count; i++ )); do
   fi
 
   # Wait for the specified duration before the next iteration
-  if [ "$i" -lt "$((iteration_count - 1))" ]; then # If not the last iteration
-    sleep "$wait_duration"
+  if [ "$i" -lt "$((num_pushes - 1))" ]; then # If not the last iteration
+    sleep "$wait_seconds"
   fi
 
 done
