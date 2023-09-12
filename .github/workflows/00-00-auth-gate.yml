@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
+    #if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
 
     steps:
 
