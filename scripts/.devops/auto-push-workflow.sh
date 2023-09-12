@@ -53,13 +53,14 @@ log_entry() {
 # Exit error function
 exit_handler() {
   local exit_code=$?
+  timestamp=$(date +'%Y-%m-%d %H:%M:%S')
   if [ "$exit_code" -ne 0 ]; then
-    log_entry "Error in script '$0' on line $LINENO"
-    log_entry "Last command was ${BASH_COMMAND}."
-    log_entry "Exit message: ${EXIT_MESSAGES[$exit_code]}"
-    log_entry "Exit code: $exit_code"
+    echo "$timestamp Error in script '$0' on line $LINENO"
+    echo "$timestamp Last command was ${BASH_COMMAND}."
+    echo "$timestamp Exit message: ${EXIT_MESSAGES[$exit_code]}"
+    echo "$timestamp Exit code: $exit_code"
   else
-    log_entry "Script completed successfully."
+    echo "Script completed successfully."
   fi
   exit "$exit_code"
 }
