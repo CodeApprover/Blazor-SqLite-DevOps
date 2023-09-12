@@ -231,7 +231,7 @@ DRIVER="./$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
 # Set user info for the required branch
-USER_DETAILS=("${USER_INFO[$branch]}")
+IFS=' ' read -ra USER_DETAILS <<< "${USER_INFO[$branch]}"
 BRANCH_USER="${USER_DETAILS[0]}"
 BRANCH_EMAIL="${USER_DETAILS[1]}"
 
