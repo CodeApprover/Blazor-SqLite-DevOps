@@ -1,20 +1,15 @@
 #!/bin/bash
 
 # Set bash options
-set -o errexit    # exit on error
+set -o errexit  # exit on error
 set -o errtrace   # trap errors in functions
 set -o functrace  # trap errors in functions
-set -o nounset    # exit on undefined variable
+set -o nounset  # exit on undefined variable
 set -o pipefail   # exit on fail of any command in a pipe
 
-# Unused options
-# set -o posix    # more strict parsing
-# set -u          # exit on undefined variable (alternative to nounset)
-# set -x          # echo commands
-
 # Register trap commands
+trap 'exit_handler ${LINENO} "$BASH_COMMAND"' ERR
 trap cleanup EXIT
-trap exit_handler ERR
 
 # Set constants
 CUR_DIR="$(dirname "$0")"
@@ -52,13 +47,15 @@ log_entry() {
 
 # Exit handling function
 exit_handler() {
-  local exit_code="${1}"
-  timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+  local line_num="$1"
+  local cmd="$2"
+  local exit_code="$?"
   if [ "$exit_code" -ne 0 ]; then
-    echo "$timestamp ${EXIT_MESSAGES[$exit_code]}"
-    echo "exit $exit_code"
+    log_entry "Error on line $line_num: $cmd"
+    log_entry "${EXIT_MESSAGES[$exit_code]}"
+    log_entry "exit $exit_code"
   else
-    echo "Script completed successfully."
+    log_entry "Script completed successfully."
   fi
   exit "$exit_code"
 }
@@ -71,6 +68,7 @@ cleanup() {
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
     if ! git checkout "$ORIG_BRANCH"; then
+      exit_handler "${LINE_NO}" "Error checking out $ORIG_BRANCH."
       exit_handler 17
     fi
   fi
