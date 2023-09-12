@@ -169,12 +169,17 @@ if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
     exit 2
 fi
 
-# Validate branch -> param 1 mandatory
+# Check mandatory branch parameter
+if [[ -z "${1:-}" ]]; then
+    log_entry "Error: No branch specified."
+    echo "$USAGE"
+    exit 3
+fi
 branch="${1:-}"
 valid_branches_string=" ${BRANCHES[*]} "
 
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
-    log_entry "$USAGE"
+    echo "$USAGE"
     exit 4
 fi
 
@@ -184,13 +189,13 @@ wait_duration="${3:-0}"  # default 0
 
 # Validate iteration count
 if [[ -z "$num_pushes" || "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]]; then
-    log_entry "$USAGE"
+    echo "$USAGE"
     exit 5
 fi
 
 # Validate wait duration
 if [[ -z "$wait_duration" || "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]]; then
-    log_entry "$USAGE"
+    echo "$USAGE"
     exit 6
 fi
 
