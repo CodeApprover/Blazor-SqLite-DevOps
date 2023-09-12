@@ -110,10 +110,13 @@ BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${C
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
 
-# Set DevOps user info
+# Set user info
 declare -A USER_INFO
 USER_INFO=(
     ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+    ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+    ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+    ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
 )
 
 # Set usage message
