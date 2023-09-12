@@ -197,9 +197,8 @@ for branch in "${BRANCHES[@]:1}"; do
     "${BRANCHES[3]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
   esac
 
-  # Remove scripts
+  # Remove scripts directory
   rm -rf scripts || { exit_handler 18 "${LINENO}"; }
-  rm -rf .github/workflows || { exit_handler 18 "${LINENO}"; }
 
   # Add, commit, and push to remote
   git add . || { exit_handler 19 "${LINENO}"; }
