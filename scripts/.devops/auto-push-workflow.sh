@@ -124,8 +124,8 @@ Example:  $0 ${BRANCHES[0]} 3 600
 
 Branches: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
 Branch parameter is mandatory.
-Number of pushes is optional, default is 1.
-Wait seconds is optional, default is 0.
+Number of pushes is optional, default is 1, max is $MAX_PUSHES.
+Wait seconds is optional, default is 0, max is $MAX_SECS_WAIT seconds.
 EOM
 )
 
@@ -182,7 +182,6 @@ valid_branches_string=" ${BRANCHES[*]} "
 
 # Validate branch
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
-    log_entry "Error: Invalid branch specified."
     echo "$USAGE"
     exit 4
 fi
@@ -216,12 +215,8 @@ USER_EMAIL="${USER_INFO["$branch"]#* }"  # Extract user email
 current_git_user=$(git config user.name)
 
 if [[ "$current_git_user" != "$USER_NAME" ]]; then
-    git config user.name "$USER_NAME" || {
-        exit 8
-    }
-    git config user.email "$USER_EMAIL" || {
-        exit 9
-    }
+    git config user.name "$USER_NAME" || { exit 8; }
+    git config user.email "$USER_EMAIL" || { exit 9; }
 fi
 
 # Stash original, current branch
@@ -235,16 +230,12 @@ if [[ $(git status --porcelain) ]]; then
 fi
 
 # Checkout target branch
-git checkout "$branch" || {
-    exit 11
-}
+git checkout "$branch" || { exit 11; }
 
 # Stash target branch
 TARGET_STASHED=false
 if [[ $(git status --porcelain) ]]; then
-  git stash || {
-    exit 12
-  }
+  git stash || { exit 12; }
   TARGET_STASHED=true
 fi
 
@@ -271,9 +262,7 @@ for i in $(seq 1 "$num_pushes"); do
   " > "$DRIVER"
 
   # git add
-  git add -A || {
-    exit 13
-  }
+  git add -A || { exit 13; }
 
   # git commit
   git commit -m "$commit_msg" || {
@@ -309,15 +298,9 @@ if $TARGET_STASHED && ! git stash pop; then
 fi
 
 # Switch to the original user and branch
-git config user.name "$DEVOPS_USER" || {
-    exit 8
-}
-git config user.email "$DEVOPS_EMAIL" || {
-    exit 9
-}
-git checkout "$CURRENT_BRANCH" || {
-    exit 17
-}
+git config user.name "$DEVOPS_USER" || { exit 8; }
+git config user.email "$DEVOPS_EMAIL" || { exit 9; }
+git checkout "$CURRENT_BRANCH" || { exit 17; }
 
 # Pop the original branch
 if $ORIGIN_STASHED && ! git stash pop; then
@@ -328,4 +311,4 @@ fi
 # Exit successfully
 exit 0
 
-# End of file
+# EOF
