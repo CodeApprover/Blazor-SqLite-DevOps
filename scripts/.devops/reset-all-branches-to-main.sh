@@ -99,8 +99,7 @@ if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
   exit_handler ${LINENO} "Error reading .config file."
 fi
 
-# Set c
-onstants
+# Set constants
 CUR_DIR="$(dirname "$0")"
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
