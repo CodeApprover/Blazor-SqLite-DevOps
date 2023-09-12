@@ -90,8 +90,6 @@ cleanup() {
           exit 18
         fi
     fi
-
-    log_entry "Returning to original state if necessary..."
 }
 
 # Read .config file
@@ -261,9 +259,9 @@ for i in $(seq 1 "$num_pushes"); do
 
   # Set workflow.driver file
   echo "
-  Push iteration: $i of $MAX_PUSHES
+  Push iteration: $i of $num_pushes
   Commit Message: $commit_msg
-  Wait interval: $MAX_SECS_WAIT
+  Wait interval: $wait_duration seconds
   Target branch: $branch
   Environment: $env
   Driver: $DRIVER
