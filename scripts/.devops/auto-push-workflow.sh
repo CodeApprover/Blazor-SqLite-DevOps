@@ -103,9 +103,10 @@ if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
   exit_handler 1 "${LINENO}"
 fi
 
-# Set Constants from .config file
+# Set Constants
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
+PROJ_NAME="${CONFIG_VALUES[2]}"
 EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
