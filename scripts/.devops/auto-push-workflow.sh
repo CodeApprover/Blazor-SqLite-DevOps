@@ -232,7 +232,7 @@ Driver:         $DRIVER
 Csproj:         $CSPROJ
 DevOps User:    $DEVOPS_USER
 DevOps Email:   $DEVOPS_EMAIL
-Date:           $(date +'%Y-%m-%d %H:%M:%S')wait_seconds
+Date:           $(date +'%Y-%m-%d %H:%M:%S')
 " > "$DRIVER"
 
 # git add
