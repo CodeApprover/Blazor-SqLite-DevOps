@@ -107,6 +107,7 @@ EXPECTED_DIR="${CONFIG_VALUES[3]}"
 BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
 MAX_SECS_WAIT="${CONFIG_VALUES[8]}"
 MAX_PUSHES="${CONFIG_VALUES[9]}"
+
 # Set user info
 declare -A USER_INFO
 USER_INFO=(
@@ -181,6 +182,19 @@ if [[ -z "${1:-}" ]]; then
   exit_handler 8 "${LINENO}"
 fi
 
+# Set DevOps user name
+if ! git config user.name "$DEVOPS_USER"; then
+  exit_handler 5 "${LINENO}"
+fi
+
+# Set DevOps email
+if ! git config user.email "$DEVOPS_EMAIL"; then
+  exit_handler 6 "${LINENO}"
+fi
+
+# Checkout main to ensure we start from main
+git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+
 # Validate provided branch parameter
 branch="$1"
 if [[ ! " ${BRANCHES[*]} " =~ ${branch} ]]; then
@@ -215,6 +229,24 @@ git checkout "$branch" || { exit_handler 18 "${LINENO}"; }
 # Set workflow driver file
 DRIVER="./$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
+
+# Set user info for the required branch
+USER_DETAILS=("${USER_INFO[$branch]}")
+BRANCH_USER="${USER_DETAILS[0]}"
+BRANCH_EMAIL="${USER_DETAILS[1]}"
+
+# Switch Git user if different from DevOps user
+if [[ "$BRANCH_USER" != "$DEVOPS_USER" ]]; then
+  # Set Git user name for the branch
+  if ! git config user.name "$BRANCH_USER"; then
+    exit_handler 5 "${LINENO}"
+  fi
+
+  # Set Git email for the branch
+  if ! git config user.email "$BRANCH_EMAIL"; then
+    exit_handler 6 "${LINENO}"
+  fi
+fi
 
 # Git add, commit and push in a loop
 for i in $(seq 1 "$num_pushes"); do
@@ -271,6 +303,16 @@ fi
 
 # Navigate back to original directory
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
+
+# Set DevOps user name
+if ! git config user.name "$DEVOPS_USER"; then
+  exit_handler 5 "${LINENO}"
+fi
+
+# Set DevOps email
+if ! git config user.email "$DEVOPS_EMAIL"; then
+  exit_handler 6 "${LINENO}"
+fi
 
 # Successful completion
 exit_handler 0 "${LINENO}"
