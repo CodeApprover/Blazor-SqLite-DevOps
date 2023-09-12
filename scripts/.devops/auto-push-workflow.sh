@@ -50,15 +50,13 @@ log_entry() {
   echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
-# Exit error function
+# Exit handling function
 exit_handler() {
-  local exit_code=$?
+  local exit_code="${1}"
   timestamp=$(date +'%Y-%m-%d %H:%M:%S')
   if [ "$exit_code" -ne 0 ]; then
-    echo "$timestamp Error in script '$0' on line $LINENO"
-    echo "$timestamp Last command was ${BASH_COMMAND}."
-    echo "$timestamp Exit message: ${EXIT_MESSAGES[$exit_code]}"
-    echo "$timestamp Exit code: $exit_code"
+    echo "$timestamp ${EXIT_MESSAGES[$exit_code]}"
+    echo "exit $exit_code"
   else
     echo "Script completed successfully."
   fi
@@ -223,7 +221,7 @@ fi
 ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
-  git stash || { exit_handler 10 ; }
+  git stash || { exit_handler 10; }
   ORIGIN_STASHED=true
 fi
 
@@ -260,18 +258,21 @@ for i in $(seq 1 "$num_pushes"); do
   " > "$DRIVER"
 
   # git add
-  git add -A || { exit_handler 13; }
+  git add -A || {
+    log_entry "Git add error for $branch commit $i of $num_pushes"
+    exit_handler 13
+  }
 
   # git commit
   git commit -m "$commit_msg" || {
-  log_entry "Commit error for $branch commit $i of $MAX_PUSHES"
-  exit_handler 14
+    log_entry "Git commit error for $branch commit $i of $num_pushes"
+    exit_handler 14
   }
 
   # git push
   git push || {
-  log_entry "Push error for $branch push $i of $MAX_PUSHES"
-  exit_handler 15
+    log_entry "Git push error for $branch push $i of $num_pushes"
+    exit_handler 15
   }
 
   # Display driver file
