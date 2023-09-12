@@ -189,7 +189,7 @@ if [[ ! " ${BRANCHES[*]} " =~ ${branch} ]]; then
 fi
 
 # Validate provided iteration count
-num_pushes="${2:-1}" # default to 1 if not provided
+num_pushes="${2:-1}" # default 1 push
 if ! [[ "$num_pushes" =~ ^[0-9]+$ ]] || [ "$num_pushes" -lt 1 ] || [ "$num_pushes" -gt "$MAX_PUSHES" ]; then
   log_entry "Error: Invalid iteration count."
   echo "$USAGE"
@@ -197,53 +197,73 @@ if ! [[ "$num_pushes" =~ ^[0-9]+$ ]] || [ "$num_pushes" -lt 1 ] || [ "$num_pushe
 fi
 
 # Validate provided wait duration
-wait_seconds="${3:-0}" # default to 0 if not provided
+wait_seconds="${3:-0}" # default 0 seconds
 if ! [[ "$wait_seconds" =~ ^[0-9]+$ ]] || [ "$wait_seconds" -lt 0 ] || [ "$wait_seconds" -gt "$MAX_SECS_WAIT" ]; then
   log_entry "Error: Invalid wait duration."
   echo "$USAGE"
   exit_handler 6 "${LINENO}"
 fi
 
+# Set environment and csproj file
+env="${branch#code-}"
+CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
+if [ ! -f "$CSPROJ" ]; then
+  exit_handler 7
+fi
+
 # Main loop to execute commit and push
-for (( i=0; i < num_pushes; i++ )); do
+# Set workflow driver file
+DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
+[ ! -f "$DRIVER" ] && touch "$DRIVER"
 
-  # Stash any changes in current branch
-  if ! git stash save --keep-index --include-untracked "auto-commit-stash-$i"; then
-    exit_handler 10 "${LINENO}"
-  fi
+# Git add, commit and push in a loop.
+for i in $(seq 1 "$num_pushes"); do
+  # Set commit message
+  commit_msg="DevOps test push $i of $num_pushes to $branch"
 
-  # Switch to the target branch
-  if ! git checkout "$branch"; then
-    exit_handler 11 "${LINENO}"
-  fi
+  # Set workflow.driver file
+  echo "
+  Push Iteration: $i of $num_pushes
+  Commit Message: $commit_msg
+  Wait Interval:  $wait_seconds seconds
+  Target Branch:  $branch
+  Environment:    $env
+  Driver:         $DRIVER
+  Csproj:         $CSPROJ
+  DevOps User:    $DEVOPS_USER as $USER_NAME
+  DevOps Email:   $DEVOPS_EMAIL
+  Date:           $(date +'%Y-%m-%d %H:%M:%S')
+  " > "$DRIVER"
 
-  # Add changes
-  if ! git add .; then
-    exit_handler 13 "${LINENO}"
-  fi
+  # git add
+  git add -A || {
+    log_entry "Git add error for $branch commit $i of $num_pushes"
+    exit_handler 13
+  }
 
-  # Commit changes
-  commit_msg="Automated commit #$i"
-  if ! git commit -m "$commit_msg"; then
-    exit_handler 14 "${LINENO}"
-  fi
+  # git commit
+  git commit -m "$commit_msg" || {
+    log_entry "Git commit error for $branch commit $i of $num_pushes"
+    exit_handler 14
+  }
 
-  # Push changes
-  if ! git push origin "$branch"; then
-    exit_handler 15 "${LINENO}"
-  fi
+  # git push
+  git push || {
+    log_entry "Git push error for $branch push $i of $num_pushes"
+    exit_handler 15
+  }
 
-  # Switch back to original branch and pop the stash
-  if ! git checkout "${BRANCHES[0]}"; then
-    exit_handler 17 "${LINENO}"
-  fi
-  if ! git stash pop; then
-    exit_handler 18 "${LINENO}"
-  fi
+  # Display driver file
+  cat "$DRIVER" && echo
 
-  # Wait for the specified duration before the next iteration
-  if [ "$i" -lt "$((num_pushes - 1))" ]; then # If not the last iteration
-    sleep "$wait_seconds"
+  # Wait if required
+  if [ "$i" -lt "$num_pushes" ]; then
+    log_entry "Starting countdown for $wait_seconds seconds..."
+    for (( counter=wait_seconds; counter>0; counter-- )); do
+      printf "\rWaiting... %02d seconds remaining" "$counter"
+      sleep 1
+    done
+    echo ""  # Move to a new line after countdown completes
   fi
 
 done
