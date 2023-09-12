@@ -44,8 +44,8 @@ EXIT_MESSAGES=(
   [19]="Git add error for remote code- branch."
   [20]="Git commit error for remote code- branch."
   [21]="Git push error for remote code- branch."
-  [22]="Git stash drop error for local code- branch."
-  [23]="Git stash pop error for main."
+  [22]="Git stash drop error for main branch."
+  [23]="Git stash pop error for main branch."
 )
 
 # Logging function
@@ -108,7 +108,6 @@ if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
 fi
 
 # Set constants
-CUR_DIR="$(dirname "$0")"
 DEVOPS_USER="${CONFIG_VALUES[0]}"
 DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
 EXPECTED_DIR="${CONFIG_VALUES[3]}"
@@ -140,6 +139,7 @@ if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
 fi
 
 # Move to root directory
+CUR_DIR="$(dirname "$0")"
 cd ../.. || { exit_handler 4 "${LINENO}"; }
 
 # Set Git User
@@ -206,8 +206,9 @@ for branch in "${BRANCHES[@]:1}"; do
   git push -u origin "$branch" || { exit_handler 21 "${LINENO}"; }
 done
 
-# Final steps
+# Checkout the main branch
 git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+
 # Check if there are stashes to drop
 if git stash list | grep -q 'stash@'; then
   git stash drop || { exit_handler 22 "${LINENO}"; }

@@ -23,24 +23,25 @@ trap cleanup EXIT
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
   [0]="Script completed successfully."
-  [1]="User aborted the script."
-  [2]="$0 must be run from its own directory."
-  [3]="Invalid parameters provided."
-  [4]="Invalid branch name."
-  [5]="Invalid iteration count."
-  [6]="Invalid wait duration."
-  [7]="No file at the specified CSPROJ location."
-  [8]="Git config user.name failure."
-  [9]="Git config user.email failure."
-  [10]="Git stash error for the current branch."
-  [11]="Git checkout error for the branch."
-  [12]="Git stash error for the branch."
+  [1]="Error reading .config file."
+  [2]="User aborted the script."
+  [3]="$0 must be run from its own directory."
+  [4]="Directory navigation error."
+  [5]="Git user config name error."
+  [6]="Git user config email error."
+  [7]="Git checkout error on main."
+  [8]="Branch name parameter required."
+  [9]="Branch name invalid."
+  [10]="Invalid number of pushes."
+  [11]="Invalid wait seconds."
+  [12]="Dotnet .csproj file not found."
   [13]="Git add error."
   [14]="Git commit error."
   [15]="Git push error."
   [16]="Git stash pop error for the branch."
   [17]="Git checkout error for the original branch."
   [18]="Git stash pop error for the original branch."
+  [19]="Git stash pop error for main branch."
 )
 
 # Logging function
@@ -69,7 +70,7 @@ exit_handler() {
 # shellcheck disable=SC2317
 cleanup() {
 
-  # Return to the original branch if different from the current branch
+  # Return to the main branch if different from the current branch
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   if [[ "$current_branch" != "${BRANCHES[0]}" ]]; then
     if ! git checkout "${BRANCHES[0]}"; then
@@ -77,7 +78,7 @@ cleanup() {
     fi
   fi
 
-  # Return to the original git user if different from current
+  # Return to the main git user if different from current
   current_git_user=$(git config user.name)
   if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
     if ! git config user.name "$DEVOPS_USER"; then
@@ -88,7 +89,7 @@ cleanup() {
     fi
   fi
 
-  # Pop changes from the original stash if they exist
+  # Pop changes from the main stash if they exist
   if git stash list | grep -q "stash@{0}"; then
     if ! git stash pop; then
       exit_handler 23 "${LINENO}"
@@ -99,8 +100,7 @@ cleanup() {
 # Read .config file
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
-  log_entry "Error reading .config file."
-  exit_handler 3 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Set Constants from .config file
@@ -118,7 +118,6 @@ USER_INFO=(
   ["${BRANCHES[1]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}" # code-development
   ["${BRANCHES[2]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}" # code-staging
   ["${BRANCHES[3]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}" # code-production
-
 )
 
 # Set usage message
@@ -163,57 +162,56 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-  exit_handler 1 "${LINENO}"
+  exit_handler 2 "${LINENO}"
 fi
 echo
 
-# Check script is running from correct directory
+# Ensure we're in the correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
-  log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-  exit_handler 2 "${LINENO}"
+  exit_handler 3 "${LINENO}"
 fi
+
+# Move to root directory
+CUR_DIR="$(dirname "$0")"
+cd ../.. || { exit_handler 4 "${LINENO}"; }
 
 # Check for mandatory branch parameter
 if [[ -z "${1:-}" ]]; then
-  log_entry "Error: No branch specified."
   echo "$USAGE"
-  exit_handler 3 "${LINENO}"
+  exit_handler 8 "${LINENO}"
 fi
 
 # Validate provided branch parameter
 branch="$1"
 if [[ ! " ${BRANCHES[*]} " =~ ${branch} ]]; then
-  log_entry "Error: Invalid branch name provided."
   echo "$USAGE"
-  exit_handler 4 "${LINENO}"
+  exit_handler 9 "${LINENO}"
 fi
 
 # Validate provided iteration count
 num_pushes="${2:-1}" # default 1 push
 if ! [[ "$num_pushes" =~ ^[0-9]+$ ]] || [ "$num_pushes" -lt 1 ] || [ "$num_pushes" -gt "$MAX_PUSHES" ]; then
-  log_entry "Error: Invalid iteration count."
   echo "$USAGE"
-  exit_handler 5 "${LINENO}"
+  exit_handler 10 "${LINENO}"
 fi
 
 # Validate provided wait duration
 wait_seconds="${3:-0}" # default 0 seconds
 if ! [[ "$wait_seconds" =~ ^[0-9]+$ ]] || [ "$wait_seconds" -lt 0 ] || [ "$wait_seconds" -gt "$MAX_SECS_WAIT" ]; then
-  log_entry "Error: Invalid wait duration."
   echo "$USAGE"
-  exit_handler 6 "${LINENO}"
+  exit_handler 11 "${LINENO}"
 fi
 
 # Set environment and csproj file
 env="${branch#code-}"
-CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
+CSPROJ="./$env/$PROJ_NAME/$PROJ_NAME.csproj"
 if [ ! -f "$CSPROJ" ]; then
-  exit_handler 7
+  exit_handler 12 "${LINENO}"
 fi
 
 # Main loop to execute commit and push
 # Set workflow driver file
-DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
+DRIVER="./$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
 # Git add, commit and push in a loop.
@@ -230,7 +228,7 @@ for i in $(seq 1 "$num_pushes"); do
   Environment:    $env
   Driver:         $DRIVER
   Csproj:         $CSPROJ
-  DevOps User:    $DEVOPS_USER as $USER_NAME
+  DevOps User:    $DEVOPS_USER
   DevOps Email:   $DEVOPS_EMAIL
   Date:           $(date +'%Y-%m-%d %H:%M:%S')
   " > "$DRIVER"
@@ -238,19 +236,19 @@ for i in $(seq 1 "$num_pushes"); do
   # git add
   git add -A || {
     log_entry "Git add error for $branch commit $i of $num_pushes"
-    exit_handler 13
+    exit_handler 13 "${LINE_NO}"
   }
 
   # git commit
   git commit -m "$commit_msg" || {
     log_entry "Git commit error for $branch commit $i of $num_pushes"
-    exit_handler 14
+    exit_handler 14 "${LINE_NO}"
   }
 
   # git push
   git push || {
     log_entry "Git push error for $branch push $i of $num_pushes"
-    exit_handler 15
+    exit_handler 15 "${LINE_NO}"
   }
 
   # Display driver file
@@ -267,6 +265,19 @@ for i in $(seq 1 "$num_pushes"); do
   fi
 
 done
+
+# Checkout the main branch
+git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+
+# Pop changes from the main stash if they exist
+if git stash list | grep -q "stash@{0}"; then
+  if ! git stash pop; then
+    exit_handler 23 "${LINENO}"
+  fi
+fi
+
+# Navigate back to original directory
+cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
 
 # Successful completion
 exit_handler 0 "${LINENO}"
