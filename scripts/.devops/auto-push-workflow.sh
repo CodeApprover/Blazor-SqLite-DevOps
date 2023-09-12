@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # Set bash options
-set -o errexit      # exit on error
-set -o errtrace     # trap errors in functions
-set -o functrace    # trap errors in functions
-set -o nounset      # exit on undefined variable
-set -o pipefail     # exit on fail of any command in a pipe
+set -o errexit    # exit on error
+set -o errtrace   # trap errors in functions
+set -o functrace  # trap errors in functions
+set -o nounset    # exit on undefined variable
+set -o pipefail   # exit on fail of any command in a pipe
 
-# Unused bash options
-# set -o posix     # more strict parsing
-# set -u           # exit on undefined variable (alternative to nounset)
-# set -x           # echo commands
+# Unused options
+# set -o posix    # more strict parsing
+# set -u          # exit on undefined variable (alternative to nounset)
+# set -x          # echo commands
 
 # Register trap commands
 trap cleanup EXIT
@@ -23,80 +23,80 @@ ORIG_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
-    [0]="Script completed successfully."
-    [1]="User aborted the script."
-    [2]="Script not executed from the expected directory."
-    [3]="Invalid parameters provided."
-    [4]="Invalid branch name."
-    [5]="Invalid iteration count."
-    [6]="Invalid wait duration."
-    [7]="No file at the specified CSPROJ location."
-    [8]="Git config user.name failure."
-    [9]="Git config user.email failure."
-    [10]="Git stash error for the current branch."
-    [11]="Git checkout error for the branch."
-    [12]="Git stash error for the branch."
-    [13]="Git add error."
-    [14]="Git commit error."
-    [15]="Git push error."
-    [16]="Git stash pop error for the branch."
-    [17]="Git checkout error for the original branch."
-    [18]="Git stash pop error for the original branch."
+  [0]="Script completed successfully."
+  [1]="User aborted the script."
+  [2]="Script not executed from the expected directory."
+  [3]="Invalid parameters provided."
+  [4]="Invalid branch name."
+  [5]="Invalid iteration count."
+  [6]="Invalid wait duration."
+  [7]="No file at the specified CSPROJ location."
+  [8]="Git config user.name failure."
+  [9]="Git config user.email failure."
+  [10]="Git stash error for the current branch."
+  [11]="Git checkout error for the branch."
+  [12]="Git stash error for the branch."
+  [13]="Git add error."
+  [14]="Git commit error."
+  [15]="Git push error."
+  [16]="Git stash pop error for the branch."
+  [17]="Git checkout error for the original branch."
+  [18]="Git stash pop error for the original branch."
 )
 
 # Logging function
 log_entry() {
-    local message="$1"
-    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+  local message="$1"
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
 # Exit error function
 # shellcheck disable=SC2317
 error_handler() {
-    local exit_code=$?
-    local last_cmd="${BASH_COMMAND}"
-    local script_name="${0}"  # Name of the current script
-    if [ "$exit_code" -ne 0 ]; then
-        log_entry "Error in script '$script_name' on line $LINENO: Last command was '$last_cmd'. ${EXIT_MESSAGES[$exit_code]}"
-        log_entry "${EXIT_MESSAGES[$exit_code]}"
-    else
-        log_entry "Script completed successfully."
-    fi
-    exit "$exit_code"
+  local exit_code=$?
+  local last_cmd="${BASH_COMMAND}"
+  local script_name="${0}"  # Name of the current script
+  if [ "$exit_code" -ne 0 ]; then
+    log_entry "Error in script '$script_name' on line $LINENO: Last command was '$last_cmd'. ${EXIT_MESSAGES[$exit_code]}"
+    log_entry "${EXIT_MESSAGES[$exit_code]}"
+  else
+    log_entry "Script completed successfully."
+  fi
+  exit "$exit_code"
 }
 
 # Cleanup function
 # shellcheck disable=SC2317
 cleanup() {
 
-    # Return to the original branch if different from the current branch
-    current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
-        if ! git checkout "$ORIG_BRANCH"; then
-            exit 17
-        fi
+  # Return to the original branch if different from the current branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$current_branch" != "$ORIG_BRANCH" ]]; then
+    if ! git checkout "$ORIG_BRANCH"; then
+      exit 17
     fi
+  fi
 
-    # Return to the original git user if different from current
-    current_git_user=$(git config user.name)
-    if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
-        git config user.name "$DEVOPS_USER"
-        git config user.email "$DEVOPS_EMAIL"
-    fi
+  # Return to the original git user if different from current
+  current_git_user=$(git config user.name)
+  if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
+    git config user.name "$DEVOPS_USER"
+    git config user.email "$DEVOPS_EMAIL"
+  fi
 
-    # Pop changes from the stash if they exist
-    if git stash list | grep -q "stash@{0}"; then
-        if ! git stash pop; then
-          exit 18
-        fi
+  # Pop changes from the stash if they exist
+  if git stash list | grep -q "stash@{0}"; then
+    if ! git stash pop; then
+      exit 18
     fi
+  fi
 }
 
 # Read .config file
 mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
-    log_entry "Error reading .config file."
-    exit 3
+  log_entry "Error reading .config file."
+  exit 3
 fi
 
 # Set Constants from .config file
@@ -111,15 +111,15 @@ MAX_PUSHES="${CONFIG_VALUES[9]}"
 # Set user info
 declare -A USER_INFO
 USER_INFO=(
-    ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
-    ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
-    ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
-    ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
+  ["${BRANCHES[0]}"]="${CONFIG_VALUES[10]} ${CONFIG_VALUES[11]}"
+  ["${BRANCHES[1]}"]="${CONFIG_VALUES[12]} ${CONFIG_VALUES[13]}"
+  ["${BRANCHES[2]}"]="${CONFIG_VALUES[14]} ${CONFIG_VALUES[15]}"
+  ["${BRANCHES[3]}"]="${CONFIG_VALUES[16]} ${CONFIG_VALUES[17]}"
 )
 
 # Set usage message
 USAGE=$(cat << EOM
-Usage:    $0 <branch-name>  <number-of-pushes>  <wait-seconds>
+Usage:  $0 <branch-name>  <number-of-pushes>  <wait-seconds>
 Example:  $0 ${BRANCHES[0]} 3 600
 
 Branches: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
@@ -137,20 +137,20 @@ This script makes commits and pushes them to a specified branch.
 PARAMETERS:  <branch-name>  <number-of-pushes>  <wait-seconds>
 
 1.  Mandatory First parameter (string) 'branch-name' must be one of:
-    ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
+  ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
 
 2.  Optional Second parameter (int) sets the number of pushes
-    (default is 1, max is $MAX_PUSHES).
+  (default is 1, max is $MAX_PUSHES).
 
 3.  Optional Third parameter (int) sets the interval in seconds between pushes
-    (default is 0, max is $MAX_SECS_WAIT seconds).
+  (default is 0, max is $MAX_SECS_WAIT seconds).
 
 GIT USERS: The script presumes authourisation for DevOps git user:
-    ${USER_INFO[${BRANCHES[3]}]}
+  ${USER_INFO[${BRANCHES[3]}]}
 
 CAUTION: Consider making a backup before execution.
-    Note: This script stashes and pops any stashes (if created)
-    to restore any changes in the current branch.
+  Note: This script stashes and pops any stashes (if created)
+  to restore any changes in the current branch.
 EOM
 )
 
@@ -159,21 +159,21 @@ echo "$WARNING"
 echo && read -r -p "CONTINUE ??? [yes/no] " response
 responses=("y" "Y" "yes" "YES" "Yes")
 if [[ ! "${responses[*]}" =~ $response ]]; then
-    exit 1
+  exit 1
 fi
 echo
 
 # Check script is running from correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
-    log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
-    exit 2
+  log_entry "Error: Please run this script from within its own directory ($EXPECTED_DIR/)."
+  exit 2
 fi
 
 # Check for mandatory branch parameter
 if [[ -z "${1:-}" ]]; then
-    log_entry "Error: No branch specified."
-    echo "$USAGE"
-    exit 3
+  log_entry "Error: No branch specified."
+  echo "$USAGE"
+  exit 3
 fi
 
 # Set branch
@@ -182,8 +182,8 @@ valid_branches_string=" ${BRANCHES[*]} "
 
 # Validate branch
 if [[ ! "$valid_branches_string" =~ ${branch} ]]; then
-    echo "$USAGE"
-    exit 4
+  echo "$USAGE"
+  exit 4
 fi
 
 # Set iteration count and wait seconds
@@ -192,21 +192,21 @@ wait_duration="${3:-0}"  # default 0
 
 # Validate iteration count
 if [[ -z "$num_pushes" || "$num_pushes" -lt 1 || "$num_pushes" -gt "$MAX_PUSHES" ]]; then
-    echo "$USAGE"
-    exit 5
+  echo "$USAGE"
+  exit 5
 fi
 
 # Validate wait duration
 if [[ -z "$wait_duration" || "$wait_duration" -lt 0 || "$wait_duration" -gt "$MAX_SECS_WAIT" ]]; then
-    echo "$USAGE"
-    exit 6
+  echo "$USAGE"
+  exit 6
 fi
 
 # Set environment and csproj file
 env="${branch#code-}"
 CSPROJ="$CUR_DIR/../../$env/$PROJ_NAME/$PROJ_NAME.csproj"
 if [ ! -f "$CSPROJ" ]; then
-    exit 7
+  exit 7
 fi
 
 # Set git user info if different from current git config
@@ -215,17 +215,15 @@ USER_EMAIL="${USER_INFO["$branch"]#* }"  # Extract user email
 current_git_user=$(git config user.name)
 
 if [[ "$current_git_user" != "$USER_NAME" ]]; then
-    git config user.name "$USER_NAME" || { exit 8; }
-    git config user.email "$USER_EMAIL" || { exit 9; }
+  git config user.name "$USER_NAME" || { exit 8; }
+  git config user.email "$USER_EMAIL" || { exit 9; }
 fi
 
 # Stash original, current branch
 ORIGIN_STASHED=false
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [[ $(git status --porcelain) ]]; then
-  git stash || {
-    exit 10
-  }
+  git stash || { exit 10 ; }
   ORIGIN_STASHED=true
 fi
 
@@ -266,14 +264,14 @@ for i in $(seq 1 "$num_pushes"); do
 
   # git commit
   git commit -m "$commit_msg" || {
-    log_entry "Commit error for $branch commit $i of $MAX_PUSHES"
-    exit 14
+  log_entry "Commit error for $branch commit $i of $MAX_PUSHES"
+  exit 14
   }
 
   # git push
   git push || {
-    log_entry "Push error for $branch push $i of $MAX_PUSHES"
-    exit 15
+  log_entry "Push error for $branch push $i of $MAX_PUSHES"
+  exit 15
   }
 
   # Display driver file
@@ -281,12 +279,12 @@ for i in $(seq 1 "$num_pushes"); do
 
   # Wait if required
   if [ "$i" -lt "$num_pushes" ]; then
-      log_entry "Starting countdown for $wait_duration seconds..."
-      for (( counter=wait_duration; counter>0; counter-- )); do
-          printf "\rWaiting... %02d seconds remaining" "$counter"
-          sleep 1
-      done
-      echo ""  # Move to a new line after countdown completes
+    log_entry "Starting countdown for $wait_duration seconds..."
+    for (( counter=wait_duration; counter>0; counter-- )); do
+      printf "\rWaiting... %02d seconds remaining" "$counter"
+      sleep 1
+    done
+    echo ""  # Move to a new line after countdown completes
   fi
 
 done
