@@ -121,9 +121,14 @@ USER_INFO=(
 
 # Set usage message
 USAGE=$(cat << EOM
-Usage:   $0 branch-name (mandatory string) + pushes ( optional int) + wait_seconds ( optional int)
-Example: $0 ${BRANCHES[1]} 3 600
-Branch Options: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
+
+Usage:    $0  <branch-name>  <number-of-pushes>  <wait-seconds>
+Example:  $0  ${BRANCHES[0]}  3  600
+Branches: ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
+
+Number of pushes is optional and defaults to 1.
+Wait seconds is optional and defaults to 0.
+
 EOM
 )
 
@@ -133,23 +138,23 @@ WARNING=$(cat << EOM
 WARNING: You are about to execute $0
 This script makes commits and pushes them to a specified branch.
 
-PARAMETERS: <branch-name> <number-of-pushes> <wait-seconds>
+PARAMETERS:  <branch-name>  <number-of-pushes>  <wait-seconds>
 
-1. Mandatory First parameter (string) 'branch-name' must be one of:
-   ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
+1.  Mandatory First parameter (string) 'branch-name' must be one of:
+    ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
 
-2. Optional Second parameter (int) sets the number of pushes
-   (default is 1, max is $MAX_PUSHES).
+2.  Optional Second parameter (int) sets the number of pushes
+    (default is 1, max is $MAX_PUSHES).
 
-3. Optional Third parameter (int) sets the interval in seconds between pushes
-   (default is 0, max is $MAX_SECS_WAIT seconds).
+3.  Optional Third parameter (int) sets the interval in seconds between pushes
+    (default is 0, max is $MAX_SECS_WAIT seconds).
 
 GIT USERS: The script presumes authourisation for DevOps git user:
-  ${USER_INFO[${BRANCHES[3]}]}
+    ${USER_INFO[${BRANCHES[3]}]}
 
 CAUTION: Consider making a backup before execution.
-  Note: This script stashes and pops any stashes (if created)
-  to restore any changes in the current branch.
+    Note: This script stashes and pops any stashes (if created)
+    to restore any changes in the current branch.
 
 EOM
 )
