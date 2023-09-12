@@ -51,15 +51,13 @@ log_entry() {
 }
 
 # Exit error function
-# shellcheck disable=SC2317
 exit_handler() {
   local exit_code=$?
-  echo "exit_code is... $exit_code"
-  local last_cmd="${BASH_COMMAND}"
-  local script_name="${0}"  # Name of the current script
   if [ "$exit_code" -ne 0 ]; then
-    log_entry "Error in script '$script_name' on line $LINENO: Last command was '$last_cmd'. ${EXIT_MESSAGES[$exit_code]}"
-    log_entry "${EXIT_MESSAGES[$exit_code]}"
+    log_entry "Error in script '$0' on line $LINENO"
+    log_entry "Last command was ${BASH_COMMAND}."
+    log_entry "Exit message: ${EXIT_MESSAGES[$exit_code]}"
+    log_entry "Exit code: $exit_code"
   else
     log_entry "Script completed successfully."
   fi
