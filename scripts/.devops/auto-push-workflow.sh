@@ -126,7 +126,6 @@ Example:  $0 ${BRANCHES[0]} 3 600
 
 Branches: ${BRANCHES[0]} ${BRANCHES[1]} ${BRANCHES[2]}
 Branch parameter is mandatory.
-
 Number of pushes is optional, default is 1.
 Wait seconds is optional, default is 0.
 EOM
@@ -256,9 +255,9 @@ DRIVER="$CUR_DIR/../../$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
 # Git add, commit and push in a loop.
-for i in $(seq 1 "$MAX_PUSHES"); do
+for i in $(seq 1 "$num_pushes"); do
   # Set commit message
-  commit_msg="Auto-push $i of $MAX_PUSHES to $branch by $USER_NAME."
+  commit_msg="Auto-push $i of $num_pushes to $branch by $USER_NAME."
 
   # Set workflow.driver file
   echo "
@@ -295,9 +294,14 @@ for i in $(seq 1 "$MAX_PUSHES"); do
 
   # Wait if required
   if [ "$i" -lt "$num_pushes" ]; then
-    log_entry "Waiting for $wait_duration seconds..."
-    sleep "$wait_duration"
+      log_entry "Starting countdown for $wait_duration seconds..."
+      for (( counter=wait_duration; counter>0; counter-- )); do
+          printf "\rWaiting... %02d seconds remaining" "$counter"
+          sleep 1
+      done
+      echo ""  # Move to a new line after countdown completes
   fi
+
 done
 
 # Pop target branch
