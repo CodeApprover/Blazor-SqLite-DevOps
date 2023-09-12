@@ -220,7 +220,7 @@ fi
 DRIVER="./$env/$PROJ_NAME/workflow.driver"
 [ ! -f "$DRIVER" ] && touch "$DRIVER"
 
-# Git add, commit and push in a loop.
+# Git add, commit and push in a loop
 for i in $(seq 1 "$num_pushes"); do
   # Set commit message
   commit_msg="DevOps test push $i of $num_pushes to $branch"
@@ -241,19 +241,16 @@ for i in $(seq 1 "$num_pushes"); do
 
   # git add
   git add -A || {
-    log_entry "Git add error for $branch commit $i of $num_pushes"
     exit_handler 13 "${LINE_NO}"
   }
 
   # git commit
   git commit -m "$commit_msg" || {
-    log_entry "Git commit error for $branch commit $i of $num_pushes"
     exit_handler 14 "${LINE_NO}"
   }
 
   # git push
   git push || {
-    log_entry "Git push error for $branch push $i of $num_pushes"
     exit_handler 15 "${LINE_NO}"
   }
 
