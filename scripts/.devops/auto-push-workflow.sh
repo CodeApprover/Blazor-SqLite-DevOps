@@ -123,7 +123,7 @@ This script makes commits and pushes them to a specified branch.
 PARAMETERS: <branch-name> <number-of-pushes> <wait-seconds>
 
 1. Mandatory First parameter (string) 'branch-name' must be one of:
-   ${BRANCHES[1]}  ${BRANCHES[2]}  ${BRANCHES[3]}
+   ${BRANCHES[0]}  ${BRANCHES[1]}  ${BRANCHES[2]}
 
 2. Optional Second parameter (int) sets the number of pushes
    (default is 1, max is $MAX_PUSHES seconds).
