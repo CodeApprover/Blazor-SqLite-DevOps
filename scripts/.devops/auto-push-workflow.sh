@@ -86,9 +86,9 @@ cleanup() {
 
     # Pop changes from the main branch stash if it exists
     if git stash list | grep -q "stash@{0}"; then
-      if ! git stash pop main; then
-        exit_handler 19 "${LINENO}"
-      fi
+        if ! git stash pop main; then
+            exit_handler 19 "${LINENO}"
+        fi
     fi
 }
 
@@ -168,8 +168,8 @@ GIT USERS: The script presumes authourisation for DevOps git user:
    $DEVOPS_USER ($DEVOPS_EMAIL)
 
 CAUTION: Consider making a backup before execution.
-  Note: This script stashes and pops any stashes (if created)
-  to restore any changes in the current branch.
+   Note: This script stashes and pops any stashes (if created)
+   to restore any changes in the current branch.
 
 EOM
 )
@@ -287,16 +287,16 @@ for i in $(seq 1 "$num_pushes"); do
 
   # Set workflow.driver file
   echo "
+Date:           $(date +'%Y-%m-%d %H:%M:%S')
 Push Iteration: $i of $num_pushes
 Commit Message: $commit_msg
 Wait Interval:  $wait_seconds seconds
 Target Branch:  $branch
-Environment:  $env
-Driver:     $DRIVER
-Csproj:     $CSPROJ
-DevOps User:  $DEVOPS_USER
+Environment:    $env
+Driver:         $DRIVER
+Csproj:         $CSPROJ
+DevOps User:    $DEVOPS_USER
 DevOps Email:   $DEVOPS_EMAIL
-Date:       $(date +'%Y-%m-%d %H:%M:%S')
 " > "$DRIVER"
 
   # git add, commit, push
