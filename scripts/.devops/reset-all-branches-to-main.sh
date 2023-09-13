@@ -163,12 +163,16 @@ git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 git stash || { exit_handler 8 "${LINENO}"; }
 
+########################################
+# Branch reset logic
+########################################
+
 # Reset main branch to mirror remote
 git fetch origin || { exit_handler 9 "${LINENO}"; }
 git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 
 # Recreate each code- branch
-for branch in "${BRANCHES[@]:1}"; do
+for branch in "${BRANCHES[@]}"; do
   # Checkout, stash and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
@@ -204,9 +208,9 @@ for branch in "${BRANCHES[@]:1}"; do
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[1]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18  "${LINENO}"; } ;;
-    "${BRANCHES[2]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
-    "${BRANCHES[3]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
+    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18  "${LINENO}"; } ;;
+    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
+    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
   esac
 
   # Remove scripts directory
