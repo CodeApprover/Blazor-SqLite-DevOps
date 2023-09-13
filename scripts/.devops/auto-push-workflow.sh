@@ -295,7 +295,7 @@ Target Branch:  $branch
 Environment:    $env
 Driver:         $DRIVER
 Csproj:         $CSPROJ
-DevOps User:    $DEVOPS_USER
+DevOps User:    $DEVOPS_USER as $BRANCH_USER
 DevOps Email:   $DEVOPS_EMAIL
 " > "$DRIVER"
 
