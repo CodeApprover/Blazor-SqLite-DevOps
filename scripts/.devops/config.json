@@ -7,12 +7,6 @@
     "name": "Blazor-Sqlite-Golf-Club",
     "dir": "scripts/.devops"
   },
-  "Branches": [
-    "main",
-    "code-development",
-    "code-staging",
-    "code-production"
-  ],
   "MaxConfig": {
     "wait": 86400,
     "retries": 10
@@ -27,10 +21,6 @@
       "email": "lodgings@pm.me"
     },
     "code-production": {
-      "name": "CodeApprover",
-      "email": "pucfada@pm.me"
-    },
-    "main": {
       "name": "CodeApprover",
       "email": "pucfada@pm.me"
     }
