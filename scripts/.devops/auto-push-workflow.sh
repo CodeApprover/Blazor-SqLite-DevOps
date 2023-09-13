@@ -85,10 +85,10 @@ cleanup() {
     fi
 
     # Pop changes from the main branch stash if it exists
-    if git stash list | grep -q "stash@{0}"; then
-        if ! git stash pop main; then
-            exit_handler 19 "${LINENO}"
-        fi
+    if git stash list | grep -q "Stash for devops script operations on main"; then
+      if ! git stash pop "stash@{0}"; then
+        exit_handler 19 "${LINENO}"
+      fi
     fi
 }
 
@@ -239,7 +239,7 @@ git checkout main || { exit_handler 9 "${LINENO}"; }
 
 # Stash main branch if it has changes
 if ! git diff --quiet; then
-  if ! git stash push -u -m "Stash for devops script operations on $branch"; then
+  if ! git stash save -u "Stash for devops script operations on main"; then
     exit_handler 19 "${LINENO}"
   fi
 fi
@@ -269,10 +269,10 @@ if [[ "$BRANCH_USER" != "$DEVOPS_USER" ]]; then
   fi
 fi
 
-# Stash the branch if it has changes
+# Stash specified code- branch if it has changes
 if ! git diff --quiet; then
-  if ! git stash push -u -m "Stash for devops script operations on $branch"; then
-  exit_handler 18 "${LINENO}"
+  if ! git stash save -u "Stash for devops script operations on $branch"; then
+    exit_handler 18 "${LINENO}"
   fi
 fi
 
@@ -320,9 +320,9 @@ DevOps Email:   $DEVOPS_EMAIL
 done
 
 # Pop changes from the code- branch stash if they exist
-if git stash list | grep -q "stash@{0}"; then
-  if ! git stash pop "$branch"; then
-  exit_handler 18 "${LINENO}"
+if git stash list | grep -q "Stash for devops script operations on $branch"; then
+  if ! git stash pop "stash@{0}"; then
+    exit_handler 18 "${LINENO}"
   fi
 fi
 
@@ -340,8 +340,8 @@ fi
 git checkout main || { exit_handler 9 "${LINENO}"; }
 
 # Pop changes from the main branch stash if it exists
-if git stash list | grep -q "stash@{0}"; then
-  if ! git stash pop; then
+if git stash list | grep -q "Stash for devops script operations on main"; then
+  if ! git stash pop "stash@{0}"; then
     exit_handler 19 "${LINENO}"
   fi
 fi
