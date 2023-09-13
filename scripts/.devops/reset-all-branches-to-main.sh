@@ -15,94 +15,94 @@ trap cleanup EXIT
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
-  [0]="Script completed successfully."
-  [1]="Error reading .config file."
-  [2]="User aborted the script."
-  [3]="$0 must be run from its own directory."
-  [4]="Directory navigation error."
-  [5]="Git user config name error."
-  [6]="Git user config email error."
-  [7]="Git checkout error on main."
-  [8]="Git make stash error on main."
-  [9]="Git fetch error on main."
-  [10]="Git reset error on main."
-  [11]="Git checkout code- branch error."
-  [12]="Git stash error on branch."
-  [13]="Git delete error on local code- branch"
-  [14]="Git delete error on remote code- branch"
-  [15]="Git crete error for local code- branch."
-  [16]="Error creating toolbox dir in code- branch."
-  [17]="Error copying files to toolbox dir in code- branch."
-  [18]="Error removing excess directories from code- branch."
-  [19]="Git add error for remote code- branch."
-  [20]="Git commit error for remote code- branch."
-  [21]="Git push error for remote code- branch."
-  [22]="Git stash drop error for main branch."
-  [23]="Git stash pop error for main branch."
+    [0]="Script completed successfully."
+    [1]="Error reading .config file."
+    [2]="User aborted the script."
+    [3]="$0 must be run from its own directory."
+    [4]="Directory navigation error."
+    [5]="Git user config name error."
+    [6]="Git user config email error."
+    [7]="Git checkout error on main."
+    [8]="Git make stash error on main."
+    [9]="Git fetch error on main."
+    [10]="Git reset error on main."
+    [11]="Git checkout code- branch error."
+    [12]="Git stash error on branch."
+    [13]="Git delete error on local code- branch"
+    [14]="Git delete error on remote code- branch"
+    [15]="Git crete error for local code- branch."
+    [16]="Error creating toolbox dir in code- branch."
+    [17]="Error copying files to toolbox dir in code- branch."
+    [18]="Error removing excess directories from code- branch."
+    [19]="Git add error for remote code- branch."
+    [20]="Git commit error for remote code- branch."
+    [21]="Git push error for remote code- branch."
+    [22]="Git stash drop error for main branch."
+    [23]="Git stash pop error for main branch."
 )
 
 # Logging function
 log_entry() {
-  local message="$1"
-  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+    local message="$1"
+    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
 # Exit handler function
 exit_handler() {
-  local exit_code="$1"
-  local line_num="$2"
-  log_entry "Exited $0 -> line $line_num"
-  log_entry "exit code $exit_code"
-
-  if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
-    log_entry "${EXIT_MESSAGES[$exit_code]}"
-  elif [ "$exit_code" -eq 0 ]; then
-    log_entry "Script completed successfully."
-  else
-    log_entry "Unknown error. exit $exit_code"
-  fi
-  exit "$exit_code"
+    local exit_code="$1"
+    local line_num="$2"
+    log_entry "Exited $0 -> line $line_num"
+    log_entry "exit code $exit_code"
+    if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
+        log_entry "${EXIT_MESSAGES[$exit_code]}"
+        elif [ "$exit_code" -eq 0 ]; then
+        log_entry "Script completed successfully."
+    else
+        log_entry "Unknown error. exit $exit_code"
+    fi
+    exit "$exit_code"
 }
 
 # Cleanup function
 # shellcheck disable=SC2317
 cleanup() {
+    # Set Devops git user if different from current
+    current_git_user=$(git config user.name)
+    if [[ -n "$DEVOPS_USER" ]]; then
+        if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
+            if ! git config user.name "$DEVOPS_USER"; then
+                exit_handler 7 "${LINENO}"
+            fi
+            if ! git config user.email "$DEVOPS_EMAIL"; then
+                exit_handler 8 "${LINENO}"
+            fi
+        fi
+    fi
 
-  # Return to the original branch if different from the current branch
-  current_branch=$(git rev-parse --abbrev-ref HEAD)
-  if [[ "$current_branch" != "${BRANCHES[0]}" ]]; then
-    if ! git checkout "${BRANCHES[0]}"; then
-      exit_handler 7 "${LINE_NO}"
+    # Return to the main branch if different from the current branch
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "$current_branch" != "main" ]]; then
+        if ! git checkout main; then
+            exit_handler 9 "${LINE_NO}"
+        fi
     fi
-  fi
 
-  # Return to the original git user if different from current
-  current_git_user=$(git config user.name)
-  if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
-    if ! git config user.name "$DEVOPS_USER"; then
-      exit_handler 5 "${LINENO}"
+    # Pop changes from the main branch stash if it exists
+    if git stash list | grep -q "Stash for devops script operations on main"; then
+        if ! git stash pop "stash@{0}"; then
+            exit_handler 19 "${LINENO}"
+        fi
     fi
-    if ! git config user.email "$DEVOPS_EMAIL"; then
-      exit_handler 6 "${LINENO}"
-    fi
-  fi
-
-  # Pop changes from the original stash if they exist
-  if git stash list | grep -q "stash@{0}"; then
-    if ! git stash pop; then
-      exit_handler 23 "${LINENO}"
-    fi
-  fi
 }
 
 # Check if JQ is installed
 if ! command -v jq &> /dev/null; then
-    exit_handler 111 "${LINENO}"
+    exit_handler 1 "${LINENO}"
 fi
 
 # Check if the JSON file exists
 if [[ ! -e "config.json" ]]; then
-    exit_handler 112 "${LINENO}"
+    exit_handler 1 "${LINENO}"
 fi
 
 # Load the JSON config
@@ -110,7 +110,7 @@ JSON_CONFIG=$(cat config.json)
 
 # Ensure JSON is valid
 if ! jq empty <<< "$JSON_CONFIG" &>/dev/null; then
-  exit_handler 113 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Extract constants from json
@@ -125,10 +125,14 @@ BRANCHES=("code-development" "code-staging" "code-production")
 # Set warning message
 WARNING=$(cat << EOM
 WARNING:
-Executing $0 will replace the local ${BRANCHES[0]} with remote ${BRANCHES[0]}.
-It will reset the ${BRANCHES[1]}, ${BRANCHES[2]}, and ${BRANCHES[3]} branches both locally and remotely.
-Parameters are read from: .config
-CAUTION: This can lead to loss of unsaved work. Consider backups before executing.
+Executing $0 will replace local main with remote main and reset the
+${BRANCHES[0]}, ${BRANCHES[1]}, and ${BRANCHES[2]} branches
+both locally and remotely.
+
+Parameters are read from: config.JSON
+
+CAUTION: This can lead to loss of unsaved work.
+         Consider making backups before execution.
 USAGE: $0
 EOM
 )
@@ -141,6 +145,8 @@ if [[ ! "${responses[*]}" =~ $response ]]; then
   exit_handler 2 "${LINENO}"
 fi
 echo
+
+exit 99
 
 # Ensure we're in the correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
