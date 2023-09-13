@@ -101,7 +101,7 @@ cleanup() {
 }
 
 # Read .config file
-mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' .config)
+mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' config.json)
 if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
   exit_handler 1 "${LINENO}"
 fi
