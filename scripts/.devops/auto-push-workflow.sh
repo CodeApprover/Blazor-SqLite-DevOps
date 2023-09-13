@@ -127,6 +127,14 @@ for branch in "${BRANCHES[@]}"; do
   USER_INFO["$branch"]="${USER_NAME},${USER_EMAIL}"
 done
 
+# Verify user info for each branch
+for branch in "${BRANCHES[@]}"; do
+    IFS=',' read -ra USER_DETAILS <<< "${USER_INFO[$branch]}"
+    if [ -z "${USER_DETAILS[0]}" ] || [ -z "${USER_DETAILS[1]}" ]; then
+        exit_handler 3 "${LINENO}"
+    fi
+done
+
 # Set warning message
 WARNING=$(cat << EOM
 WARNING:
