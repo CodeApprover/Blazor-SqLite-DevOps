@@ -3,15 +3,10 @@
 # Script Description: Resets local main to remote main and updates the specific branches.
 # Reads user and configuration details from a .config file.
 
-# Bash options
-# set -o errexit    # exit on error
-# set -o errtrace   # trap errors in functions
-# set -o functrace  # trap errors in functions
-# set -o nounset    # exit on undefined variable
-# set -o pipefail   # exit on fail of any command in a pipe
-# set -o posix      # more strict parsing
-# set -u            # exit on undefined variable (alternative to nounset)
-# set -x            # echo commands
+set -o errexit  # exit on error
+set -o nounset  # exit on undefined variable
+set -o pipefail # exit on fail of any command in a pipe
+# set -x        # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
@@ -100,17 +95,32 @@ cleanup() {
   fi
 }
 
-# Read .config file
-mapfile -t CONFIG_VALUES < <(grep -vE '^#|^[[:space:]]*$' config.json)
-if [ ${#CONFIG_VALUES[@]} -eq 0 ]; then
-  exit_handler 1 "${LINENO}"
+# Check if JQ is installed
+if ! command -v jq &> /dev/null; then
+    exit_handler 111 "${LINENO}"
 fi
 
-# Set constants
-DEVOPS_USER="${CONFIG_VALUES[0]}"
-DEVOPS_EMAIL="${CONFIG_VALUES[1]}"
-EXPECTED_DIR="${CONFIG_VALUES[3]}"
-BRANCHES=("${CONFIG_VALUES[4]}" "${CONFIG_VALUES[5]}" "${CONFIG_VALUES[6]}" "${CONFIG_VALUES[7]}")
+# Check if the JSON file exists
+if [[ ! -e "config.json" ]]; then
+    exit_handler 112 "${LINENO}"
+fi
+
+# Load the JSON config
+JSON_CONFIG=$(cat config.json)
+
+# Ensure JSON is valid
+if ! jq empty <<< "$JSON_CONFIG" &>/dev/null; then
+  exit_handler 113 "${LINENO}"
+fi
+
+# Extract constants from json
+JSON_CONFIG=$(<config.json)
+DEVOPS_USER=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.name')
+DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
+EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
+
+# Define branches
+BRANCHES=("code-development" "code-staging" "code-production")
 
 # Set warning message
 WARNING=$(cat << EOM
