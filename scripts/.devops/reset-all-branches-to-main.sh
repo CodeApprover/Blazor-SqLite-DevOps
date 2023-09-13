@@ -177,7 +177,7 @@ for branch in "${BRANCHES[@]}"; do
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
     git stash || { exit_handler 12 "${LINENO}"; }
-    git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+    git checkout main || { exit_handler 7 "${LINENO}"; }
     git branch -D "$branch" || { exit_handler 13 "${LINENO}"; }
   fi
 
