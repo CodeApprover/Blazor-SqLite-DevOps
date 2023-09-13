@@ -146,8 +146,6 @@ if [[ ! "${responses[*]}" =~ $response ]]; then
 fi
 echo
 
-exit 99
-
 # Ensure we're in the correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   exit_handler 3 "${LINENO}"
