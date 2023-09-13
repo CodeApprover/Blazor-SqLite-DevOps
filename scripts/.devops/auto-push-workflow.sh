@@ -33,8 +33,8 @@ EXIT_MESSAGES=(
     [15]="Git add error for the code- branch."
     [16]="Git commit error for the code- branch."
     [17]="Git push error for the code- branch."
-    [18]="Git stash pop error for the code- branch."
-    [19]="Git stash pop error for main branch."
+    [18]="Git stash error for the code- branch."
+    [19]="Git stash error for main branch."
     [20]="Git checkout error for the code- branch."
 )
 
@@ -63,14 +63,6 @@ exit_handler() {
 # Cleanup function
 # shellcheck disable=SC2317
 cleanup() {
-    # Return to the main branch if different from the current branch
-    current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$current_branch" != "main" ]]; then
-        if ! git checkout main; then
-            exit_handler 9 "${LINE_NO}"
-        fi
-    fi
-
     # Set Devops git user if different from current
     current_git_user=$(git config user.name)
     if [[ -n "$DEVOPS_USER" ]]; then
@@ -82,6 +74,21 @@ cleanup() {
                 exit_handler 8 "${LINENO}"
             fi
         fi
+    fi
+
+    # Return to the main branch if different from the current branch
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "$current_branch" != "main" ]]; then
+        if ! git checkout main; then
+            exit_handler 9 "${LINE_NO}"
+        fi
+    fi
+
+    # Pop changes from the main branch stash if it exists
+    if git stash list | grep -q "stash@{0}"; then
+      if ! git stash pop main; then
+        exit_handler 19 "${LINENO}"
+      fi
     fi
 }
 
@@ -227,8 +234,15 @@ if ! git config user.email "$DEVOPS_EMAIL"; then
   exit_handler 8 "${LINENO}"
 fi
 
-# Checkout main to ensure we start from main
+# Checkout main branch, to ensure we start from main
 git checkout main || { exit_handler 9 "${LINENO}"; }
+
+# Stash main branch if it has changes
+if ! git diff --quiet; then
+  if ! git stash push -u -m "Stash for devops script operations on $branch"; then
+    exit_handler 19 "${LINENO}"
+  fi
+fi
 
 # Checkout the specified required branch
 git checkout "$branch" || { exit_handler 20 "${LINENO}"; }
@@ -285,13 +299,9 @@ DevOps Email:   $DEVOPS_EMAIL
 Date:       $(date +'%Y-%m-%d %H:%M:%S')
 " > "$DRIVER"
 
-  # git add
+  # git add, commit, push
   git add -A || { exit_handler 15 "${LINE_NO}"; }
-
-  # git commit
   git commit -m "$commit_msg" || { exit_handler 16 "${LINE_NO}"; }
-
-  # git push
   git push || { exit_handler 17 "${LINE_NO}"; }
 
   # Display driver file
@@ -309,10 +319,10 @@ Date:       $(date +'%Y-%m-%d %H:%M:%S')
 
 done
 
-# Pop changes from the branch stash if they exist
+# Pop changes from the code- branch stash if they exist
 if git stash list | grep -q "stash@{0}"; then
-  if ! git stash pop; then
-  exit_handler 19 "${LINENO}"
+  if ! git stash pop "$branch"; then
+  exit_handler 18 "${LINENO}"
   fi
 fi
 
@@ -328,6 +338,13 @@ fi
 
 # Checkout the main branch
 git checkout main || { exit_handler 9 "${LINENO}"; }
+
+# Pop changes from the main branch stash if it exists
+if git stash list | grep -q "stash@{0}"; then
+  if ! git stash pop; then
+    exit_handler 19 "${LINENO}"
+  fi
+fi
 
 # Navigate back to original directory
 cd "$CUR_DIR" || { exit_handler 6 "${LINENO}"; }
