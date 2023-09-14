@@ -283,11 +283,12 @@ fi
 for i in $(seq 1 "$num_pushes"); do
 
   # Set commit message
-  commit_msg="DevOps test push $i of $num_pushes to $branch"
+  date=$(date +'%Y-%m-%d %H:%M:%S')
+  commit_msg="$date DevOps $branch push $i of $num_pushes"
 
   # Set workflow.driver file
   echo "
-Date:           $(date +'%Y-%m-%d %H:%M:%S')
+Date:           $date
 Push Iteration: $i of $num_pushes
 Commit Message: $commit_msg
 Wait Interval:  $wait_seconds seconds
