@@ -335,7 +335,6 @@ jobs:
           fi
 
           retries=$((retries+1))
-
           if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[warn][trigger] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
             sleep ${{ vars.WAIT_SECONDS }}
