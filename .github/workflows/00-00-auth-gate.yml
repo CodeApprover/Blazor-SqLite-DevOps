@@ -212,42 +212,42 @@ jobs:
         fi
         echo "CSPROJ=$CSPROJ_PATH" >> $GITHUB_ENV
 
-    - name: Check For or Set .lock File # Step 8
+    - name: Check SHA Gist for Lock # Step 8
       run: |
  
-        # Check for the existence of any lock file
-        LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
+        echo "##[debug][gist-lock] Checking for the existence of SHA gist content."
+        
+        # Fetch the content of the SHA Gist
+        content=$(curl -L \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
 
         retries=0
-        while [[ -n "$LOCK_FILE_PATH" && $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            echo "##[warn][lockfile] Lock file $LOCK_FILE_PATH found in repository. Waiting and retrying..."
-            sleep $((${{ vars.WAIT_MINS }} * 60)) # Convert minutes to seconds
-
-            # Re-check for the lock file
-            LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
-
+        # Retry until the SHA Gist is empty or max retries reached
+        while [[ "$content" != "" && $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
+            echo "##[warn][gist-lock] Blocked by SHA $content"
+            sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            content=$(curl -L \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: token ${{ secrets.AUTH }}" \
+              https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
             retries=$((retries+1))
         done
 
-        if [[ -n "$LOCK_FILE_PATH" ]]; then
-          echo "##[error][lockfile] Lock file $LOCK_FILE_PATH still present after ${{ vars.MAX_RETRIES }} retries."
-          exit 33
+        # If after retries Gist is still not empty, exit with error
+        if [[ "$content" != "" ]]; then
+          echo "##[error][gist-lock] SHA gist still has content after ${{ vars.MAX_RETRIES }} retries."
+          exit 31
         fi
 
-        # Set lock file namne
-        LOCK_FILE="unassigned.lock"
-        if [[ "${{ env.SHA_BRANCH }}" == code-* ]]; then
-            LOCK_FILE="${{ env.SHA_BRANCH#code- }}.lock"
-        fi
-    
-        # Create and set the lock file with the provided SHA
-        echo "${{ env.SHA }}" >> $LOCK_FILE
-
-    - name: Set Gist with SHA # Step 9
+    - name: Set SHA Gist as Locked # Step 9
       run: |
  
+        # Update Gist with env.SHA to set lock
         echo "##[debug][gist] Attempting to update the Gist with the current SHA."
-        gist_id="${{ vars.SHA_GIST }}"      
+        gist_id="${{ vars.SHA_GIST }}"
  
         CURL_CMD=$(echo "curl -L \
           -X PATCH \
