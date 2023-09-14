@@ -90,7 +90,7 @@ jobs:
           - name: Trigger Next Workflow
           if: success()
           run: |
-   
+ 
             CMD=$(echo "curl -L -X POST" \
             "-H \"Accept: application/vnd.github+json\"" \
             "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
@@ -102,7 +102,7 @@ jobs:
             "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
             "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
             "\"csproj\":\"${{ env.CSPROJ }}\"}'")
-  
+
             retries=0
             while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
                 eval "$CMD"
