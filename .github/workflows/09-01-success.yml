@@ -13,8 +13,7 @@
 # 1.  Checks out the specific SHA from the repository.
 # 2.  Verification ensures the checkout was successful.
 # 3.  The deployment status on GitHub is updated.
-# 4.  Any existing lock file related to the SHA is searched for and deleted.
-# 5.  Notifications are sent to relevant teams and the original committer.
+# 4.  Notifications are sent to relevant teams and the original committer.
 
 # Exit Codes:
 # 60 - SHA checkout failure.
@@ -22,8 +21,7 @@
 # 62 - Failed to deploy via API call.
 # 63 - Lock file not found.
 # 64 - Lock file content does not match the expected SHA.
-# 65 - Failed to delete lock file.
-# 66 - Failed to notify teams and committer. (Reused)
+# 65 - Failed to notify teams and committer. (Reused)
 
 ######################################
 
@@ -101,45 +99,7 @@ jobs:
           exit 62
         fi
 
-    - name: Find and Delete Lock File # Step 4
-      run: |
- 
-        echo "##[debug][lock] Determining lock file name based on branch ${{ env.SHA_BRANCH }}."
-        if [[ "${{ env.SHA_BRANCH }}" == "main" ]]; then
-          lock_file_name="main.lock"
-        else
-          branch=${{ env.SHA_BRANCH }}
-          lock_file_name=".$(echo $branch | sed 's/code-//').lock"
-        fi
-        echo "##[debug][lock] lock file name: $lock_file_name."
-
-        echo "##[debug][lock] Searching for lock file $lock_file_name"
-        lock_file_path=$(find . -name "$lock_file_name" | head -n 1)
-
-        if [[ -z "$lock_file_path" ]]; then
-          echo "##[error][lock] Failed to find lock file $lock_file."
-          exit 63
-        fi
-
-        echo "##[debug][lock] Checking lock file content matches env.SHA and if so deleting it."
-        if [[ $(cat "$lock_file_path") != "${{ env.SHA }}" ]]; then
-          echo "##[error][lock] Lock file content does not match the expected SHA."
-          exit 64
-        fi
-
-        git config user.name "${{ github.repository_owner}}"
-        git config user.email "${{ vars.EMAIL }}"
-
-        git rm "$lock_file_path"
-        git commit -m "Remove $lock_file_name [skip ci]"
-        git push origin "${{ env.SHA_BRANCH }}"
-
-        if [ $? -ne 0 ]; then
-          echo "##[error][lock] Failed to delete lock file."
-          exit 65
-        fi
-
-    - name: Notify Relevant Teams and Committer # Step 5
+    - name: Notify Relevant Teams and Committer # Step 4
       run: |
  
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
@@ -203,5 +163,5 @@ jobs:
 
         if [ $? -ne 0 ]; then
           echo "##[error][notify] Issue creation encountered an error."
-          exit 66
+          exit 65
         fi
