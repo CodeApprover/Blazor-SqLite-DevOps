@@ -215,25 +215,26 @@ jobs:
     - name: Check SHA Gist for Lock # Step 8
       run: |
  
-        echo "##[debug][gist-lock] Checking for the existence of SHA gist content."
-        
-        # Fetch the content of the SHA Gist
-        content=$(curl -L \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
-
+        echo "##[debug][gist-lock] Checking for the existence of SHA gist content."  
         retries=0
-        # Retry until the SHA Gist is empty or max retries reached
+
+        # Initialize content to a non-empty value
+        content="init"
+
+        # Retry until SHA Gist is empty or max retries
         while [[ "$content" != "" && $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
-            echo "##[warn][gist-lock] Blocked by SHA $content"
-            sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            # Fetch the content of SHA Gist
             content=$(curl -L \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: token ${{ secrets.AUTH }}" \
               https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
-            retries=$((retries+1))
+              
+            if [[ "$content" != "" ]]; then
+                echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
+                echo "##[warn][gist-lock] Blocked by SHA $content"
+                sleep $((${{ vars.WAIT_MINUTES }} * 60))
+                retries=$((retries+1))
+            fi
         done
 
         # If after retries Gist is still not empty, exit with error
