@@ -8,6 +8,7 @@ on:
 env:
   SHA: ${{ github.event.client_payload.sha }}
   SHA_BRANCH: ${{ github.event.client_payload.sha_branch }}
+  NEW_VERSION: ${{ github.event.client_payload.new_version }}
   CSPROJ: ${{ github.event.client_payload.csproj }}
   NEXT_WORKFLOW: Deploy Git
 
@@ -34,25 +35,6 @@ jobs:
  
           echo '{ "experimental": true }' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
-          docker version
-
-      - name: Determine next version tag
-        run: |
- 
-          git fetch --tags
-          if [ -z "$(git tag)" ]; then
-              echo "##[error] No tags found for ${{ github.repository }}" && 47
-          fi
-
-          latest_tag=$(git tag | sort -V | tail -n 1)
-          echo "##[info] Latest Tag = $latest_tag"
-
-          major=$(echo "$latest_tag" | cut -d'.' -f1)
-          minor=$(echo "$latest_tag" | cut -d'.' -f2)
-          patch=$(echo "$latest_tag" | cut -d'.' -f3)
-          incremented_patch=$((patch + 1))
-          new_version="$major.$minor.$incremented_patch"
-          echo "NEW_VERSION=${new_version}" >> $GITHUB_ENV
 
       - name: Build and Push Docker image
         run: |
@@ -73,6 +55,13 @@ jobs:
               CMD="docker push \"${{ secrets.DOCKER_HUB_USERNAME }}/$docker_repo:${{ env.NEW_VERSION }}\""
               eval ${CMD} || (echo "##[error] Docker push failed" && exit 50)
           fi
+
+      - name: Push Versioning Tag
+        if: success()
+        run: |
+ 
+          git tag ${{ env.NEW_VERSION }}
+          git push origin ${{ env.NEW_VERSION }}
 
       - name: Trigger Next Workflow
         if: success()
