@@ -212,20 +212,36 @@ jobs:
         fi
         echo "CSPROJ=$CSPROJ_PATH" >> $GITHUB_ENV
 
-    - name: Check for Pre-Existent .lock Files # Step 8
+    - name: Check For or Set .lock File # Step 8
       run: |
-     
-        git fetch origin
-        if [[ $? -ne 0 ]]; then
-          echo "##[error][lockfile] Failed to fetch the branch."
-          exit 30
+ 
+        # Check for the existence of any lock file
+        LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
+
+        retries=0
+        while [[ -n "$LOCK_FILE_PATH" && $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+            echo "##[warn][lockfile] Lock file $LOCK_FILE_PATH found in repository. Waiting and retrying..."
+            sleep $((${{ vars.WAIT_MINS }} * 60)) # Convert minutes to seconds
+
+            # Re-check for the lock file
+            LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
+
+            retries=$((retries+1))
+        done
+
+        if [[ -n "$LOCK_FILE_PATH" ]]; then
+          echo "##[error][lockfile] Lock file $LOCK_FILE_PATH still present after ${{ vars.MAX_RETRIES }} retries."
+          exit 33
         fi
 
-        LOCK_FILE_PATH=$(find . -name "*.lock" | head -n 1)
-        if [[ -n "$LOCK_FILE_PATH" ]]; then
-          echo "##[error][lockfile] Lock file $LOCK_FILE_PATH found in repository."
-          exit 31
+        # Set lock file namne
+        LOCK_FILE="unassigned.lock"
+        if [[ "${{ env.SHA_BRANCH }}" == code-* ]]; then
+            LOCK_FILE="${{ env.SHA_BRANCH#code- }}.lock"
         fi
+    
+        # Create and set the lock file with the provided SHA
+        echo "${{ env.SHA }}" >> $LOCK_FILE
 
     - name: Set Gist with SHA # Step 9
       run: |
