@@ -2,8 +2,27 @@ development/Blazor-SqLite-Golf-Club/Database/
 !/development/Blazor-SqLite-Golf-Club/Database/database.db
 !/development/Blazor-SqLite-Golf-Club/Database/database-orig.db
 
+staging/Blazor-SqLite-Golf-Club/Database/
+!/staging/Blazor-SqLite-Golf-Club/Database/database.db
+!/staging/Blazor-SqLite-Golf-Club/Database/database-orig.db
+
+production/Blazor-SqLite-Golf-Club/Database/
+!/production/Blazor-SqLite-Golf-Club/Database/database.db
+!/production/Blazor-SqLite-Golf-Club/Database/database-orig.db
+
+/development/Blazor-SqLite-Golf-Club/Migrations/
+/staging/Blazor-SqLite-Golf-Club/Migrations/
+/production/Blazor-SqLite-Golf-Club/Migrations/
+
 development/Blazor-SqLite-Golf-Club/bin/
 development/Blazor-SqLite-Golf-Club/obj/
+
+staging/Blazor-SqLite-Golf-Club/bin/
+staging/Blazor-SqLite-Golf-Club/obj/
+
+production/Blazor-SqLite-Golf-Club/bin/
+production/Blazor-SqLite-Golf-Club/obj/
+
 tests/Nunit_Player_Unit_Tests/bin/
 tests/Nunit_Player_Unit_Tests/obj/
 tests/StyleCop_CSharp_Linting/bin/
@@ -11,14 +30,24 @@ tests/StyleCop_CSharp_Linting/obj/
 tests/Xunit_Game_Unit_Tests/bin/
 tests/Xunit_Game_Unit_Tests/obj/
 
-development/Blazor-SqLite-Golf-Club/.vs/
 tests/StyleCop_CSharp_Linting/.vs/
 tests/Xunit_Game_Unit_Tests/.vs/
 tests/Nunit_Player_Unit_Tests/.vs/
 
+staging/Blazor-SqLite-Golf-Club/.vs/
+staging/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.DotSettings.user
+staging/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.sln.DotSettings.user
+staging/Blazor-SqLite-Golf-Club/Dockerfile.original
+
+development/Blazor-SqLite-Golf-Club/.vs/
 development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.DotSettings.user
 development/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.sln.DotSettings.user
 development/Blazor-SqLite-Golf-Club/Dockerfile.original
+
+production/Blazor-SqLite-Golf-Club/.vs/
+production/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.csproj.DotSettings.user
+production/Blazor-SqLite-Golf-Club/Blazor-SqLite-Golf-Club.sln.DotSettings.user
+production/Blazor-SqLite-Golf-Club/Dockerfile.original
 
 .history/
 .vs/
