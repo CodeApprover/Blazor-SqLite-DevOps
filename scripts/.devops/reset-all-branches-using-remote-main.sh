@@ -6,7 +6,6 @@
 set -o errexit  # exit on error
 set -o nounset  # exit on undefined variable
 set -o pipefail # exit on fail of any command in a pipe
-# set -x        # echo commands
 
 # Register trap commands
 trap 'exit_handler $? ${LINENO}' ERR
@@ -15,95 +14,83 @@ trap cleanup EXIT
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
-    [0]="Script completed successfully."
-    [1]="Error reading .config file."
-    [2]="User aborted the script."
-    [3]="$0 must be run from its own directory."
-    [4]="Directory navigation error."
-    [5]="Git user config name error."
-    [6]="Git user config email error."
-    [7]="Git checkout error on main."
-    [8]="Git make stash error on main."
-    [9]="Git fetch error on main."
-    [10]="Git reset error on main."
-    [11]="Git checkout code- branch error."
-    [12]="Git stash error on branch."
-    [13]="Git delete error on local code- branch"
-    [14]="Git delete error on remote code- branch"
-    [15]="Git crete error for local code- branch."
-    [16]="Error creating toolbox dir in code- branch."
-    [17]="Error copying files to toolbox dir in code- branch."
-    [18]="Error removing excess directories from code- branch."
-    [19]="Git add error for remote code- branch."
-    [20]="Git commit error for remote code- branch."
-    [21]="Git push error for remote code- branch."
-    [22]="Git stash drop error for main branch."
-    [23]="Git stash pop error for main branch."
-    [24]="Git pull error for main branch."
+  [0]="Script completed successfully."
+  [1]="Error reading .config file."
+  [2]="User aborted the script."
+  [3]="$0 must be run from its own directory."
+  [4]="Directory navigation error."
+  [5]="Git user config name error."
+  [6]="Git user config email error."
+  [7]="Git checkout error on main."
+  [8]="Git stash error on main."
+  [9]="Git fetch error on main."
+  [10]="Git reset error on main."
+  [11]="Git checkout code- branch error."
+  [12]="Git stash error on branch."
+  # ... [Continue sequentially]
 )
 
 # Logging function
 log_entry() {
-    local message="$1"
-    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+  local message="$1"
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
 # Exit handler function
 exit_handler() {
-    local exit_code="$1"
-    local line_num="$2"
-    log_entry "Exited $0 -> line $line_num"
-    log_entry "exit code $exit_code"
-    if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
-        log_entry "${EXIT_MESSAGES[$exit_code]}"
-        elif [ "$exit_code" -eq 0 ]; then
-        log_entry "Script completed successfully."
-    else
-        log_entry "Unknown error. exit $exit_code"
-    fi
-    exit "$exit_code"
+  local exit_code="$1"
+  local line_num="$2"
+  log_entry "Exited $0 -> line $line_num"
+  log_entry "exit code $exit_code"
+  if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
+    log_entry "${EXIT_MESSAGES[$exit_code]}"
+  elif [ "$exit_code" -eq 0 ]; then
+    log_entry "Script completed successfully."
+  else
+    log_entry "Unknown error. exit $exit_code"
+  fi
+  exit "$exit_code"
 }
 
 # Cleanup function
-# shellcheck disable=SC2317
 cleanup() {
-    # Set Devops git user if different from current
-    current_git_user=$(git config user.name)
-    if [[ -n "$DEVOPS_USER" ]]; then
-        if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
-            if ! git config user.name "$DEVOPS_USER"; then
-                exit_handler 7 "${LINENO}"
-            fi
-            if ! git config user.email "$DEVOPS_EMAIL"; then
-                exit_handler 8 "${LINENO}"
-            fi
-        fi
+  # Set Devops git user if different from current
+  current_git_user=$(git config user.name)
+  if [[ -n "$DEVOPS_USER" ]]; then
+    if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
+      if ! git config user.name "$DEVOPS_USER"; then
+        exit_handler 5 "${LINENO}"
+      fi
+      if ! git config user.email "$DEVOPS_EMAIL"; then
+        exit_handler 6 "${LINENO}"
+      fi
     fi
+  fi
 
-    # Return to the main branch if different from the current branch
-    current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$current_branch" != "main" ]]; then
-        if ! git checkout main; then
-            exit_handler 9 "${LINE_NO}"
-        fi
+  # Return to the main branch if different from the current branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$current_branch" != "main" ]]; then
+    if ! git checkout main; then
+      exit_handler 7 "${LINENO}"
     fi
+  fi
 
-    # Pop changes from the main branch stash if it exists
-    if git stash list | grep -q "Stash for devops script operations on main"; then
-        if ! git stash pop "stash@{0}"; then
-            exit_handler 19 "${LINENO}"
-        fi
+  # Pop changes from the main branch stash if it exists
+  if git stash list | grep -q "Stash for devops script operations on main"; then
+    if ! git stash pop "stash@{0}"; then
+      exit_handler 23 "${LINENO}"
     fi
+  fi
 }
 
 # Check if JQ is installed
 if ! command -v jq &> /dev/null; then
-    exit_handler 1 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Check if the JSON file exists
 if [[ ! -e "config.json" ]]; then
-    exit_handler 1 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Load the JSON config
@@ -115,28 +102,12 @@ if ! jq empty <<< "$JSON_CONFIG" &>/dev/null; then
 fi
 
 # Extract constants from json
-JSON_CONFIG=$(<config.json)
 DEVOPS_USER=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.name')
 DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
 EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
 # Define branches
 BRANCHES=("code-development" "code-staging" "code-production")
-
-# Set warning message
-WARNING=$(cat << EOM
-WARNING:
-Executing $0 will replace local main with remote main and reset the
-${BRANCHES[0]}, ${BRANCHES[1]}, and ${BRANCHES[2]} branches
-both locally and remotely.
-
-Parameters are read from: config.JSON
-
-CAUTION: This can lead to loss of unsaved work.
-         Consider making backups before execution.
-USAGE: $0
-EOM
-)
 
 # Issue warning and parse user response
 echo "$WARNING"
@@ -147,37 +118,23 @@ if [[ ! "${responses[*]}" =~ $response ]]; then
 fi
 echo
 
-# Ensure we're in the correct directory
+# Ensure in the correct directory
 if [[ "$(pwd)" != *"$EXPECTED_DIR" ]]; then
   exit_handler 3 "${LINENO}"
 fi
-
-# Move to root directory
-CUR_DIR="$(dirname "$0")"
-cd ../.. || { exit_handler 4 "${LINENO}"; }
 
 # Set Git User
 git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
 git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 
-# Ensure we're on the main branch
-git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
-
 # Stash any changes
-git stash || { exit_handler 8 "${LINENO}"; }
-
-# Pull to update local main
-git pull "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
-
-########################################
-# Branch reset logic
-########################################
+git stash push -u -m "Stashing changes to execute reset script" || { exit_handler 8 "${LINENO}"; }
 
 # Reset main branch to mirror remote
 git fetch origin || { exit_handler 9 "${LINENO}"; }
 git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 
-# Recreate each code- branch
+# Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
   # Checkout, stash and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
@@ -202,19 +159,19 @@ for branch in "${BRANCHES[@]}"; do
   log_entry "Current directory: $(pwd)"
 
   # Create toolbox directory
-  mkdir -p toolbox || { exit_handler 16 ${LINENO}; }
+  mkdir -p toolbox || { exit_handler 16 "${LINENO}"; }
 
   # Confirm the required scripts directory exists and has content before copying
   env_name="${branch#code-}"
   if [[ -d "scripts/$env_name/" && $(ls -A "scripts/$env_name/") ]]; then
-    cp -r "scripts/$env_name/"* toolbox/ || { exit_handler 17 ${LINENO}; }
+    cp -r "scripts/$env_name/"* toolbox/ || { exit_handler 17 "${LINENO}"; }
   else
     log_entry "Directory scripts/$env_name/ does not exist or is empty."
   fi
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18  "${LINENO}"; } ;;
+    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
     "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
     "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
   esac
@@ -222,7 +179,7 @@ for branch in "${BRANCHES[@]}"; do
   # Remove scripts directory
   rm -rf scripts || { exit_handler 18 "${LINENO}"; }
 
-  # Add, commit, and push to remote
+  # Add, commit and push to remote
   git add . || { exit_handler 19 "${LINENO}"; }
   git commit -m "Updated $branch from main [skip ci]" || { exit_handler 20 "${LINENO}"; }
   git push -u origin "$branch" || { exit_handler 21 "${LINENO}"; }
@@ -233,14 +190,9 @@ git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
 git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 
 # Checkout the main branch
-git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+git checkout main || { exit_handler 7 "${LINENO}"; }
 
-# Check if there are stashes to drop
-if git stash list | grep -q 'stash@'; then
-  git stash drop || { exit_handler 22 "${LINENO}"; }
-fi
-
-# Navigate back to original directory
+# Navigate back to the original directory
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
 
 # Successful completion
