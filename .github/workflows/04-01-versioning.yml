@@ -50,12 +50,14 @@ jobs:
     # Step 2: Configure Git.
     - name: Configure Git User
       run: |
+ 
         git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
 
     # Step 3: Fetch versioning tags.
     - name: Fetch Versioning Tags
       run: |
+ 
         git fetch --tags
         if [ -z "$(git tag)" ]; then
           echo "##[error] No tags found." && exit 42
@@ -65,6 +67,7 @@ jobs:
     # Step 4: Clean up redundant versioning tags.
     - name: Clean Redundant Versioning Tags
       run: |
+ 
         echo "##[info] Deleting versioning tags skipping the 12 most recent."
         DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
         for TAG in $DELETE_TAGS; do
@@ -75,6 +78,7 @@ jobs:
     # Step 5: Increment version according to SemVer.
     - name: Increment SemVer 2.0 Versioning
       run: |
+ 
         echo "##[debug] Getting the latest tag based on SemVer 2.0."
         latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
         echo "##[info] Latest Tag = $latest_tag"
@@ -108,7 +112,10 @@ jobs:
         esac
         new_version="v$major.$minor.$patch"
         echo "##[debug] New version number = $new_version."
-        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+        echo "::set-output name=new_version::$new_version"
+
+    outputs:
+      new_version: ${{ steps.Increment_SemVer_2_0_Versioning.outputs.new_version }}
 
   trigger-next-workflow:
     runs-on: ubuntu-latest
@@ -121,6 +128,7 @@ jobs:
     - name: Trigger Next Workflow
       if: success()
       run: |
+ 
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
 
         CMD=$(echo "curl -L -X POST" \
@@ -131,7 +139,7 @@ jobs:
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
         "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-        "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
+        "\"new_version\":\"${{ needs.version-and-tag.outputs.new_version }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
