@@ -108,6 +108,7 @@ jobs:
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
         "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+        "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
