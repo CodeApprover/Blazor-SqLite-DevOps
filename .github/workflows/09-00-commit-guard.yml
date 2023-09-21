@@ -35,12 +35,11 @@ on:
       - Authentication Gate
       - Cache Dependencies
       - StyleCop Linter
+      - Superlinter
+      - SCS Scan
       - Development Tests
       - Staging Tests
       - Production Tests
-      - Lockfile Checker
-      - Security Scan
-      - Superlinter
       - Versioning
       - Deploy Docker
       - Deploy Git
