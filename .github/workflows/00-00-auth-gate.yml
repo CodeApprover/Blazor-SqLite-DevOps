@@ -232,7 +232,7 @@ jobs:
                 echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
                 echo "##[warn][gist-lock] Blocked by SHA $content"
                 #sleep $((${{ vars.WAIT_MINUTES }} * 60))
-                sleep ${{ vars.SECONDS }}
+                sleep ${{ vars.WAIT_SECONDS }}
                 retries=$((retries+1))
             fi
             
