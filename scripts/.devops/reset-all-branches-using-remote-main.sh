@@ -162,7 +162,12 @@ git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 
 # Ensure we're on the main branch
 git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+
+# Stash any changes
 git stash || { exit_handler 8 "${LINENO}"; }
+
+# Pull to update local main
+git pull "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
 
 ########################################
 # Branch reset logic
@@ -223,6 +228,10 @@ for branch in "${BRANCHES[@]}"; do
   git push -u origin "$branch" || { exit_handler 21 "${LINENO}"; }
 done
 
+# Reset Git User
+git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
+git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
+
 # Checkout the main branch
 git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 
@@ -231,15 +240,8 @@ if git stash list | grep -q 'stash@'; then
   git stash drop || { exit_handler 22 "${LINENO}"; }
 fi
 
-# Reset Git User
-git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
-git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
-
 # Navigate back to original directory
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
-
-# Pull to update local main
-git pull "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
 
 # Successful completion
 exit_handler 0 "${LINENO}"
