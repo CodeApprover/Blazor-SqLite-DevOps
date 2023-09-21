@@ -14,84 +14,94 @@ trap cleanup EXIT
 # Exit codes and their descriptions
 declare -A EXIT_MESSAGES
 EXIT_MESSAGES=(
-    [0]="Script completed successfully."
-    [1]="Error reading .config file."
-    [2]="User aborted the script."
-    [3]="$0 must be run from its own directory."
-    [4]="Directory navigation error."
-    [5]="Git user config name error."
-    [6]="Git user config email error."
-    [7]="Git checkout error on main."
-    [8]="Git stash error on main."
-    [9]="Git fetch error on main."
-    [10]="Git reset error on main."
-    [11]="Git checkout code- branch error."
-    [12]="Git stash error on branch."
-    # ... [Continue sequentially]
+  [0]="Script completed successfully."
+  [1]="Error reading .config file."
+  [2]="User aborted the script."
+  [3]="$0 must be run from its own directory."
+  [4]="Directory navigation error."
+  [5]="Git user config name error."
+  [6]="Git user config email error."
+  [7]="Git checkout error on main."
+  [8]="Git stash error on main."
+  [9]="Git fetch error on main."
+  [10]="Git reset error on main."
+  [11]="Git checkout code- branch error."
+  [12]="Git stash error on branch."
+  [13]="Git checkout error on main after branch stash."
+  [14]="Git delete error on local code- branch."
+  [15]="Git delete error on remote code- branch."
+  [16]="Git checkout error to create new local code- branch."
+  [17]="Error creating toolbox directory in code- branch."
+  [18]="Error copying files to toolbox directory in code- branch."
+  [19]="Error removing excess directories from code- branch."
+  [20]="Git add error for new code- branch."
+  [21]="Git commit error for new code- branch."
+  [22]="Git push error for new code- branch."
+  [23]="Git stash drop error on main branch."
+  [24]="Git pull error on main branch."
 )
 
 # Logging function
 log_entry() {
-    local message="$1"
-    echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
+  local message="$1"
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $message"
 }
 
 # Exit handler function
 exit_handler() {
-    local exit_code="$1"
-    local line_num="$2"
-    log_entry "Exited $0 -> line $line_num"
-    log_entry "exit code $exit_code"
-    if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
-        log_entry "${EXIT_MESSAGES[$exit_code]}"
-        elif [ "$exit_code" -eq 0 ]; then
-        log_entry "Script completed successfully."
-    else
-        log_entry "Unknown error. exit $exit_code"
-    fi
-    exit "$exit_code"
+  local exit_code="$1"
+  local line_num="$2"
+  log_entry "Exited $0 -> line $line_num"
+  log_entry "exit code $exit_code"
+  if [ "$exit_code" -ne 0 ] && [ -n "${EXIT_MESSAGES[$exit_code]}" ]; then
+    log_entry "${EXIT_MESSAGES[$exit_code]}"
+  elif [ "$exit_code" -eq 0 ]; then
+    log_entry "Script completed successfully."
+  else
+    log_entry "Unknown error. exit $exit_code"
+  fi
+  exit "$exit_code"
 }
 
 # Cleanup function
-# shellcheck disable=SC2317
 cleanup() {
-    # Set Devops git user if different from current
-    current_git_user=$(git config user.name)
-    if [[ -n "$DEVOPS_USER" ]]; then
-        if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
-            if ! git config user.name "$DEVOPS_USER"; then
-                exit_handler 5 "${LINENO}"
-            fi
-            if ! git config user.email "$DEVOPS_EMAIL"; then
-                exit_handler 6 "${LINENO}"
-            fi
-        fi
+  # Set Devops git user if different from current
+  current_git_user=$(git config user.name)
+  if [[ -n "$DEVOPS_USER" ]]; then
+    if [[ "$current_git_user" != "$DEVOPS_USER" ]]; then
+      if ! git config user.name "$DEVOPS_USER"; then
+        exit_handler 5 "${LINENO}"
+      fi
+      if ! git config user.email "$DEVOPS_EMAIL"; then
+        exit_handler 6 "${LINENO}"
+      fi
     fi
+  fi
 
-    # Return to the main branch if different from the current branch
-    current_branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$current_branch" != "main" ]]; then
-        if ! git checkout main; then
-            exit_handler 7 "${LINENO}"
-        fi
+  # Return to the main branch if different from the current branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$current_branch" != "main" ]]; then
+    if ! git checkout main; then
+      exit_handler 7 "${LINENO}"
     fi
+  fi
 
-    # Pop changes from the main branch stash if it exists
-    if git stash list | grep -q "Stash for devops script operations on main"; then
-        if ! git stash pop "stash@{0}"; then
-            exit_handler 23 "${LINENO}"
-        fi
+  # Pop changes from the main branch stash if it exists
+  if git stash list | grep -q "Stash for devops script operations on main"; then
+    if ! git stash pop "stash@{0}"; then
+      exit_handler 23 "${LINENO}"
     fi
+  fi
 }
 
 # Check if JQ is installed
 if ! command -v jq &> /dev/null; then
-    exit_handler 1 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Check if the JSON file exists
 if [[ ! -e "config.json" ]]; then
-    exit_handler 1 "${LINENO}"
+  exit_handler 1 "${LINENO}"
 fi
 
 # Load the JSON config
@@ -160,13 +170,8 @@ git pull origin "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
 git fetch origin || { exit_handler 9 "${LINENO}"; }
 git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 
-########################################
-#    START Branch Reset Logic
-########################################
-
 # Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
-
   # Checkout, stash and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
@@ -184,8 +189,6 @@ for branch in "${BRANCHES[@]}"; do
 
   # Create a new branch from main
   git checkout -b "$branch" || { exit_handler 15 "${LINENO}"; }
-
-  # Debug info
   log_entry "Current branch: $(git branch --show-current)"
   log_entry "Current directory: $(pwd)"
 
@@ -214,12 +217,7 @@ for branch in "${BRANCHES[@]}"; do
   git add . || { exit_handler 19 "${LINENO}"; }
   git commit -m "Updated $branch from main [skip ci]" || { exit_handler 20 "${LINENO}"; }
   git push -u origin "$branch" || { exit_handler 21 "${LINENO}"; }
-
 done
-
-########################################
-#    END Branch Reset Logic
-########################################
 
 # Reset Git User
 git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
@@ -238,5 +236,3 @@ fi
 
 # Successful completion
 exit_handler 0 "${LINENO}"
-
-# EOF
