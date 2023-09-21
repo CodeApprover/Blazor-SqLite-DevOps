@@ -39,6 +39,7 @@ EXIT_MESSAGES=(
     [21]="Git push error for remote code- branch."
     [22]="Git stash drop error for main branch."
     [23]="Git stash pop error for main branch."
+    [24]="Git pull error for main branch."
 )
 
 # Logging function
@@ -232,6 +233,9 @@ fi
 
 # Navigate back to original directory
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
+
+# Pull to update local main
+git pull "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
 
 # Successful completion
 exit_handler 0 "${LINENO}"
