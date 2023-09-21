@@ -3,14 +3,13 @@
 
 # Description:
 # This workflow handles versioning of the repository. It follows the SemVer 2.0 convention.
-# The version-and-tag job comprises these main phases:
+# The workflow comprises these main phases:
 # 1. Checkout the specific SHA from the repository.
 # 2. Configure Git with the appropriate user details.
 # 3. Fetch existing versioning tags.
 # 4. Clean up redundant versioning tags to keep the repository lean.
 # 5. Increment the version according to the SemVer 2.0 convention based on the branch.
-#
-# If all these steps are successful, the trigger-next-workflow job then triggers the next workflow in the pipeline.
+# 6. If all the above steps are successful, the workflow then triggers the next workflow in the pipeline.
 
 # Trigger: Activated upon receiving the event `Versioning`.
 
