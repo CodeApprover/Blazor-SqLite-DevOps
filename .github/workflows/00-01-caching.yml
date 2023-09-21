@@ -2,8 +2,8 @@
 # Workflow: Cache Dependencies
 
 # Description:
-# This workflow caches the .NET dependencies for the payload .csproj. By caching 
-# dependencies, subsequent workflow runs can be expedited by reusing previously 
+# This workflow caches the .NET dependencies for the payload .csproj. By caching
+# dependencies, subsequent workflow runs can be expedited by reusing previously
 # cached dependencies, provided the .csproj file remains unchanged.
 
 # Trigger: Activated upon receiving the event `Cache Dependencies`.
@@ -27,7 +27,7 @@ name: Cache Dependencies
 
 on:
   repository_dispatch:
-    types: Cache Dependencies
+    types: [Cache Dependencies]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

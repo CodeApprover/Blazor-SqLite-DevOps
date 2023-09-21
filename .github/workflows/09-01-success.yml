@@ -27,7 +27,7 @@ name: Deployment Success
 
 on:
   repository_dispatch:
-    types: Deployment Success
+    types: [Deployment Success]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -51,7 +51,7 @@ jobs:
 
     - name: Validate Checkout # Step 2
       run: |
- 
+
         if [ $? -ne 0 ]; then
             echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
             exit 60
@@ -59,7 +59,7 @@ jobs:
 
     - name: Update Deployment Status # Step 3
       run: |
- 
+
         echo "##[debug][status-update] Attempting to update the deployment status."
         latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
         desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} with tag $latest_tag."
@@ -74,7 +74,7 @@ jobs:
 
         RESPONSE_STATUS=$(eval "$CMD_STATUS")
         echo "##[debug][status] Status API Response: $RESPONSE_STATUS"
-        
+
         if [ $? -ne 0 ]; then
           echo "##[error][status] Failed to update API status to success."
           exit 61
@@ -89,7 +89,7 @@ jobs:
 
         RESPONSE_DEPLOY=$(eval "$CMD_DEPLOY")
         echo "##[debug][status] API response: $RESPONSE_DEPLOY"
-        
+
         if [ $? -ne 0 ]; then
           echo "##[error][status] Failed to deploy via API call."
           exit 62
@@ -97,7 +97,7 @@ jobs:
 
     - name: Notify Relevant Teams and Committer # Step 4
       run: |
- 
+
         echo "##[debug][notify] Fetching the name of the original committer of the commit."
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ env.SHA }} | head -n 1)
 
@@ -132,7 +132,7 @@ jobs:
           Commit: ${{ env.SHA }}
           Committer: $ORIGINAL_COMMITTER
           Commit Message: $COMMIT_MESSAGE
-          
+
           Commit has been successfully deployed to ${{ env.SHA_BRANCH }}.
           NOTE: $FORMATTED_TEAM_TO_NOTIFY: $ADDITIONAL_MESSAGE
 

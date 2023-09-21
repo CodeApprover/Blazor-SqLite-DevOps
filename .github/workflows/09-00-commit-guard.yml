@@ -2,13 +2,13 @@
 # Workflow: Commit Guard
 
 # Description:
-# This workflow acts as a safety net for failed deployments. If a deployment to 
-# a branch goes wrong, this workflow is designed to automatically detect the issue, 
-# revert the problematic commit, and notify the relevant teams. This ensures that 
+# This workflow acts as a safety net for failed deployments. If a deployment to
+# a branch goes wrong, this workflow is designed to automatically detect the issue,
+# revert the problematic commit, and notify the relevant teams. This ensures that
 # branches remain stable and that issues are quickly addressed.
 
 # Triggers:
-# This workflow is activated upon the completion of various specified workflows. 
+# This workflow is activated upon the completion of various specified workflows.
 # It checks for failures and acts accordingly.
 
 # Logical Flow:
@@ -21,7 +21,7 @@
 # 7.  Pushes the changes to revert the problematic commit.
 # 8.  Deletes the latest tag that might have been created by the problematic commit (both locally and remotely).
 # 9.  Notifies the relevant teams and the committer of the problem.
-# 10. A catch-all step exists to handle any unexpected errors, ensuring that 
+# 10. A catch-all step exists to handle any unexpected errors, ensuring that
 #     the workflow always has a defined outcome.
 
 ######################################
@@ -222,7 +222,7 @@ jobs:
           exit 53
         fi
 
-    # Step 11: A catch-all step exists to handle any unexpected errors, ensuring that 
+    # Step 11: A catch-all step exists to handle any unexpected errors, ensuring that
     # the workflow always has a defined outcome.
     - name: Catch-all for Unexpected Errors
       if: ${{ always() }}

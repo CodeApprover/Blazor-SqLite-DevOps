@@ -3,21 +3,16 @@
 set -e   # Exit if a command fails.
 #set -x  # Print commands for debugging.
 
-# Determine operating system.
-OS=$(uname)
-
-# Normalise path separators based on operating system.
-CURRENT_DIR=$(pwd)
-if [[ "$OS" != "Linux" ]]; then # Windows/MinGW.
-    CURRENT_DIR=${CURRENT_DIR//\\/\/}
-fi
-
-# Ensure script runs from scripts dir or subdir.
-EXPECTED_DIR="scripts"
-if [[ "$CURRENT_DIR" != *"$EXPECTED_DIR"* ]]; then
-    echo "Error: Please run $0 from the '$EXPECTED_DIR' directory."
+# Ensure a directory is specified.
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <directory>"
     exit 1
 fi
+
+TARGET_DIR="$1"
+
+# Determine operating system.
+OS=$(uname)
 
 # Set line ending conversion tool.
 LINE_ENDING_TOOL="unix2dos"
@@ -26,10 +21,10 @@ if [[ "$OS" == "Linux" ]]; then
 fi
 
 # Process line ending conversion.
-find "$CURRENT_DIR" -type f -exec "$LINE_ENDING_TOOL" {} \;
+find "$TARGET_DIR" -type f -exec "$LINE_ENDING_TOOL" {} \;
 
 # Remove trailing spaces from all lines.
-find "$CURRENT_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
+find "$TARGET_DIR" -type f -exec sed -i 's/[[:space:]]*$//' {} \;
 
 # Replace multiple consecutive empty lines with one.
-find "$CURRENT_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;
+find "$TARGET_DIR" -type f -exec sed -i '/^$/N;/^\n$/D' {} \;

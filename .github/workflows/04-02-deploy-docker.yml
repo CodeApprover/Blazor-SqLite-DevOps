@@ -9,10 +9,10 @@
 # 3. Enable Docker experimental features.
 # 4. Build and push the Docker image to Docker Hub.
 # 5. Tag the repository with the new version.
-# 
+#
 # On successful completion of the Docker deployment, the next workflow, as specified in the NEXT_WORKFLOW environment variable, is triggered.
 
-# Trigger: 
+# Trigger:
 # The workflow is initiated when the `Deploy Docker` event is received.
 
 # Exit Codes:
@@ -28,7 +28,7 @@ name: Deploy Docker
 
 on:
   repository_dispatch:
-    types: Deploy Docker
+    types: [Deploy Docker]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-    
+
     # Step 1: Checkout the repository using the specified SHA.
     - name: Checkout SHA repository
       uses: actions/checkout@v3.6.0

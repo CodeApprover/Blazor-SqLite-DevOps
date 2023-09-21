@@ -3,8 +3,8 @@
 
 # Description:
 # This workflow performs linting on the codebase using StyleCop. It checks out the specific SHA, sets up
-# the .NET environment, and retrieves cached .NET dependencies. If the cache is not hit, it restores the 
-# dependencies. The code is then built using StyleCop configurations. Finally, depending on the branch, 
+# the .NET environment, and retrieves cached .NET dependencies. If the cache is not hit, it restores the
+# dependencies. The code is then built using StyleCop configurations. Finally, depending on the branch,
 # the next appropriate testing workflow is triggered.
 
 # Trigger: Activated upon receiving the event `StyleCop Linter`.
@@ -29,7 +29,7 @@ name: StyleCop Linter
 
 on:
   repository_dispatch:
-    types: StyleCop Linter
+    types: [StyleCop Linter]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

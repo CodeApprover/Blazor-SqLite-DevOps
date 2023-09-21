@@ -24,7 +24,7 @@ name: Versioning
 
 on:
   repository_dispatch:
-    types: Versioning
+    types: [Versioning]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

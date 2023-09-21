@@ -23,7 +23,7 @@ name: Deploy Git
 
 on:
   repository_dispatch:
-    types: Deploy Git
+    types: [Deploy Git]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-    
+
     # Step 1: Checkout the repository using the specified SHA.
     - name: Checkout SHA Repository
       uses: actions/checkout@v3.6.0

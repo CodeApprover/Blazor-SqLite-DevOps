@@ -2,7 +2,7 @@
 # Workflow: Superlinter
 
 # Description:
-# This workflow lints the codebase using SuperLinter. The SuperLinter is a combination of 
+# This workflow lints the codebase using SuperLinter. The SuperLinter is a combination of
 # multiple linters for different languages and tools bundled into one package.
 #
 # The super-linter job has 3 main phases:
@@ -22,7 +22,7 @@ name: Superlinter
 
 on:
   repository_dispatch:
-    types: SuperLinter
+    types: [SuperLinter]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

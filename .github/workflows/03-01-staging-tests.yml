@@ -3,7 +3,7 @@ name: Staging Tests
 
 on:
   repository_dispatch:
-    types: Staging Tests
+    types: [Staging Tests]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

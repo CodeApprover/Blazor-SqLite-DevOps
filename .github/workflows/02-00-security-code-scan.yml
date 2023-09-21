@@ -2,8 +2,8 @@
 # Workflow: Security Code Scan
 
 # Description:
-# This workflow performs a security code scan on the application codebase. 
-# It ensures the integrity and security of the code by running a series of checks 
+# This workflow performs a security code scan on the application codebase.
+# It ensures the integrity and security of the code by running a series of checks
 # and validations. The results are then uploaded for further review and action.
 
 # Trigger: Activated by completion of the "Authentication Gate" workflow and scheduled runs.

@@ -24,7 +24,7 @@ name: Development Tests
 
 on:
   repository_dispatch:
-    types: Development Tests
+    types: [Development Tests]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}

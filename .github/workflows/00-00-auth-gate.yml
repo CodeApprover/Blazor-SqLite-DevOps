@@ -61,7 +61,7 @@ jobs:
 
     - name: Sanitise and Validate User Details # Step 1
       run: |
- 
+
         echo "##[info][sanitise] Starting security sanitisation and validation."
         echo "##[debug][sanitise] Sanitising username as github username."
         regex_pattern="^([a-z0-9](-?[a-z0-9]){0,19})$"
@@ -92,7 +92,7 @@ jobs:
 
     - name: Validate Branch Name # Step 2
       run: |
- 
+
         ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")
         REF=${{ github.ref }}
         BRANCH_NAME=${REF#refs/heads/}
@@ -101,38 +101,38 @@ jobs:
         echo "##[debug][branch] Looping through allowed branches to check if the current branch is valid."
         for branch in "${ALLOWED_BRANCHES[@]}"
         do
-            if [[ "$BRANCH_NAME" == "$branch" ]]; then
-                echo "##[info][branch] Branch $BRANCH_NAME is valid."
-                echo "SHA_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
-                branch_found=true
-                break
-            fi
+          if [[ "$BRANCH_NAME" == "$branch" ]]; then
+            echo "##[info][branch] Branch $BRANCH_NAME is valid."
+            echo "SHA_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+            branch_found=true
+            break
+          fi
         done
         if [ "$branch_found" = false ]; then
-            echo "##[error][branch] Unknown branch: $BRANCH_NAME. Exiting."
-            exit 23
+          echo "##[error][branch] Unknown branch: $BRANCH_NAME. Exiting."
+          exit 23
         fi
 
     - name: Revert Unknown Branch Commits # Step 3
-      if: env.SHA_BRANCH == ''
+      if: !env.SHA_BRANCH
       run: |
- 
+
         git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
         COMMIT_COUNT=$(git rev-list --count HEAD)
         if [[ $COMMIT_COUNT -le 1 ]]; then
-            echo "##[error][revert] Only one commit in this branch. Nowhere to revert to."
-            exit 0
+          echo "##[error][revert] Only one commit in this branch. Nowhere to revert to."
+          exit 0
         fi
         ORIGINAL_COMMITTER=$(git log --pretty=format:'%an' ${{ github.sha }} | head -n 1)
         if [[ "$ORIGINAL_COMMITTER" == "${{ github.repository_owner }}" ]]; then
-            echo "##[warn][revert] Last commit was by repository owner (possibly an automated revert) - skipping further actions."
-            exit 0
+          echo "##[warn][revert] Last commit was by repository owner (possibly an automated revert) - skipping further actions."
+          exit 0
         fi
         git reset HEAD --hard
         if [[ $? -ne 0 ]]; then
-            echo "##[error][revert] Failed to reset repository."
-            exit 24
+          echo "##[error][revert] Failed to reset repository."
+          exit 24
         fi
         if git push origin +$BRANCH_NAME; then
           echo "##[debug][revert] Pushed reversion."
@@ -143,7 +143,7 @@ jobs:
         MESSAGE_TITLE="Reverted ${{ github.sha }} --> Unknown Branch"
         MESSAGE_BODY=$(echo "@${{ github.repository_owner }},
           Branch: $BRANCH_NAME
-          SHA: ${{ github.sha }} 
+          SHA: ${{ github.sha }}
           Committer: $ORIGINAL_COMMITTER
           Commit Message: $COMMIT_MESSAGE
           ${{ github.sha }} committed to an unknown branch, was reverted.
@@ -178,7 +178,7 @@ jobs:
 
     - name: Validate Checkout # Step 5
       run: |
- 
+
         if [ $? -ne 0 ]; then
           echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
           exit 26
@@ -186,7 +186,7 @@ jobs:
 
     - name: Check Commit Uniqueness # Step 6
       run: |
- 
+
         BRANCHES_CONTAINING_COMMIT=$(git branch -r --contains ${{ github.sha }})
         echo "##[debug][unique] BRANCHES_CONTAINING_COMMIT: $BRANCHES_CONTAINING_COMMIT"
 
@@ -203,7 +203,7 @@ jobs:
 
     - name: Validate .csproj File # Step 7
       run: |
- 
+
         CSPROJ_PATH=$(find . -name "*.csproj" | head -n 1)
         echo "##[debug][csproj] CSPROJ_PATH: $CSPROJ_PATH"
         if [[ -z "$CSPROJ_PATH" ]]; then
@@ -214,41 +214,41 @@ jobs:
 
     - name: Check SHA Gist for Lock # Step 8
       run: |
- 
-        echo "##[debug][gist-lock] Checking for the existence of SHA gist content."  
+
+        echo "##[debug][gist-lock] Checking for the existence of SHA gist content."
         retries=0
 
         # Retry until SHA Gist is empty, null, or max retries
         while :; do
-            # Fetch the content of SHA Gist
-            content=$(curl -L \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: token ${{ secrets.AUTH }}" \
-              https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
-              
-            if [[ "$content" == "" || "$content" == "null" ]]; then
-                break
-            else
-                echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
-                echo "##[warn][gist-lock] Blocked by SHA $content"
-                #sleep $((${{ vars.WAIT_MINUTES }} * 60))
-                sleep ${{ vars.WAIT_SECONDS }}
-                retries=$((retries+1))
-            fi
-            
-            if [[ $retries -ge ${{ vars.MAX_RETRIES }} ]]; then
-                echo "##[error][gist-lock] SHA gist still has content after ${{ vars.MAX_RETRIES }} retries."
-                exit 31
-            fi
+          # Fetch the content of SHA Gist
+          content=$(curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.AUTH }}" \
+            https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
+
+          if [[ "$content" == "" || "$content" == "null" ]]; then
+            break
+          else
+            echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
+            echo "##[warn][gist-lock] Blocked by SHA $content"
+            #sleep $((${{ vars.WAIT_MINUTES }} * 60))
+            sleep ${{ vars.WAIT_SECONDS }}
+            retries=$((retries+1))
+          fi
+
+          if [[ $retries -ge ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error][gist-lock] SHA gist still has content after ${{ vars.MAX_RETRIES }} retries."
+            exit 31
+          fi
         done
 
     - name: Set SHA Gist as Locked # Step 9
       run: |
- 
+
         # Update Gist with env.SHA to set lock
         echo "##[debug][gist] Attempting to update the Gist with the current SHA."
         gist_id="${{ vars.SHA_GIST }}"
- 
+
         CURL_CMD=$(echo "curl -L \
           -X PATCH \
           -H \"Accept: application/vnd.github+json\" \
@@ -256,7 +256,7 @@ jobs:
           -H \"X-GitHub-Api-Version: 2022-11-28\" \
           https://api.github.com/gists/$gist_id \
           -d '{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}'")
- 
+
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
           eval "$CURL_CMD"
@@ -268,7 +268,7 @@ jobs:
               -H "Authorization: token ${{ secrets.AUTH }}" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               https://api.github.com/gists/$gist_id | jq '.files["auth-gate.sha"].content' -r)
- 
+
             if [ "$content" == "${{ github.sha }}" ]; then
               echo "##[debug][gist] Gist updated successfully."
               break
@@ -276,7 +276,7 @@ jobs:
               echo "##[error][gist] Gist content mismatch. Expected: ${{ github.sha }}. Got: $content. Attempt $((retries+1))."
             fi
           fi
- 
+
           retries=$((retries+1))
           if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
             echo "##[warn][gist] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
@@ -291,7 +291,7 @@ jobs:
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
       run: |
- 
+
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
 
         SUCCESS_CMD=$(echo "curl -L -X POST \

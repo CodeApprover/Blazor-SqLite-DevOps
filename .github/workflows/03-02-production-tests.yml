@@ -3,7 +3,7 @@ name: Production Tests
 
 on:
   repository_dispatch:
-    types: Production Tests
+    types: [Production Tests]
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
