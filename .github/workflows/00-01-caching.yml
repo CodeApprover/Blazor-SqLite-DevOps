@@ -71,14 +71,64 @@ jobs:
     - name: Cache dotnet Dependencies
       uses: actions/cache@v3.3.1
       with:
-        name: cache-dotnet
         path: ~/.nuget/packages
         key: ${{ runner.os }}-dotnet-${{ hashFiles('${{ env.SHA }}') }}
         restore-keys: ${{ runner.os }}-dotnet-
 
-    # Step 5: Trigger next workflow if all checks pass.
-    - name: Trigger Next Workflow and Dispatch Success Event
+    # Step 5: Trigger next workflow if caching succeeds
+    - name: Trigger Next Workflow # Step 10
       if: success()
       run: |
-        echo "##[info][trigger] Sending success event for Authentication Gate workflow."
-        # Rest of the step remains unchanged...
+
+        echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
+
+        SUCCESS_CMD=$(echo "curl -L -X POST \
+          -H \"Accept: application/vnd.github+json\" \
+          -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+          https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{\"event_type\":\"Authentication Gate Success\", \
+          \"client_payload\":{ \
+          \"message\":\"Workflow completed successfully\"}}'")
+
+        CMD=$(echo "curl -L -X POST \
+          -H \"Accept: application/vnd.github+json\" \
+          -H \"Authorization: Bearer ${{ secrets.AUTH }}\" \
+          https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\", \
+          \"client_payload\":{ \
+          \"sha\":\"${{ github.sha }}\", \
+          \"sha_branch\":\"${{ env.SHA_BRANCH }}\", \
+          \"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+
+          eval "$SUCCESS_CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error][trigger] Failed to send success event."
+            echo "##[error][trigger] Attempt $((retries+1)). Curl exit code: $CURL_EXIT_CODE"
+          else
+            echo "##[info][trigger] Success event dispatched."
+          fi
+
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error][trigger] Failed to trigger ${{ env.NEXT_WORKFLOW }}."
+            echo "##[error][trigger] Attempt $((retries+1)). Curl exit code: $CURL_EXIT_CODE"
+          else
+            echo "##[info][trigger] ${{ env.NEXT_WORKFLOW }} successfully triggered."
+            break
+          fi
+
+          retries=$((retries+1))
+          if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[warn][trigger] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+            sleep ${{ vars.WAIT_SECONDS }}
+          else
+            echo "##[error][trigger] All retries exhausted."
+            echo "##[error][trigger] Failed to trigger ${{ env.NEXT_WORKFLOW }} and/or dispatch success event."
+            exit 35
+          fi
+        done
