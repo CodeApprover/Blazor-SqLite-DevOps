@@ -114,7 +114,7 @@ jobs:
         fi
 
     - name: Revert Unknown Branch Commits # Step 3
-      if: !env.SHA_BRANCH
+      if: env.SHA_BRANCH == ''
       run: |
 
         git config user.name "${{ github.repository_owner }}"
