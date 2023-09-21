@@ -10,15 +10,12 @@
 
 # Logical Flow (Steps):
 # 1. Checkout the repository.
-# 2. Setup the required NuGet packages.
-# 3. Prepare MSBuild.
-# 4. Add the security code scanning action.
-# 5. Setup the .NET environment.
-# 6. Retrieve cached .NET dependencies.
-# 7. Restore .NET dependencies if not cached.
-# 8. Build the .NET application.
-# 9. Convert security scan results to the sarif format.
-# 10. Upload sarif results to GitHub.
+# 2. Setup the .NET environment.
+# 3. Retrieve cached .NET dependencies or restore them if not cached.
+# 4. Build the .NET application.
+# 5. Add the Security Code Scanning action to the workflow.
+# 6. Convert the security scan results to the Sarif format.
+# 7. Upload the Sarif results to GitHub for review and action.
 
 # Exit Codes:
 # 34 - Dotnet restore failed.
@@ -27,16 +24,16 @@
 ######################################
 
 ---
-name: SecurityCodeScan
+name: SCS Scan # Security Code Scan
 
 on:
   workflow_run:
-    workflows: ["Authentication Gate"]
-    types: [completed]
+    workflows: ["Authentication Gate"] # run when these
+    types: [completed] # complete
     branches-ignore:
-      - 'code-development'
+      - 'code-development' # but not for these branches
   schedule:
-    - cron: '37 9 * * 2,5'
+    - cron: '37 9 * * 2,5' # and at 9:37am on Tuesdays and Fridays
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -52,21 +49,12 @@ jobs:
       - name: Checkout Repository # Step 1
         uses: actions/checkout@v3.6.0
 
-      - name: Setup NuGet Packages # Step 2
-        uses: nuget/setup-nuget@v1.2.0
-
-      - name: Prepare MSBuild # Step 3
-        uses: microsoft/setup-msbuild@v1.3.1
-
-      - name: Add Security Code Scanning Action # Step 4
-        uses: security-code-scan/security-code-scan-add-action@v1.2
-
-      - name: Setup .NET Environment # Step 5
+      - name: Setup .NET Environment # Step 2
         uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: "7.0.x"
 
-      - name: Retrieve Cached .NET Dependencies # Step 6
+      - name: Retrieve Cached .NET Dependencies # Step 3
         id: cache-dotnet-restore
         uses: actions/cache@v3.3.1
         with:
@@ -75,17 +63,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dotnet-
 
-      - name: Restore .NET Dependencies # Step 7
+      - name: Restore .NET Dependencies # Step 4
         run: |
           if [ "${{ steps.cache-dotnet-restore.outputs.cache-hit }}" != 'true' ]; then
             dotnet restore --no-cache "$CSPROJ" || (echo "##[error] Dotnet restore failed" && exit 34)
           fi
 
-      - name: Build .NET Application # Step 8
+      - name: Build .NET Application # Step 5
         run: dotnet build --no-restore $CSPROJ || (echo "##[error] Dotnet build failed" && exit 35)
 
-      - name: Convert Security Scan Results to Sarif # Step 9
+      - name: Add Security Code Scanning Action # Step 6
+        uses: security-code-scan/security-code-scan-add-action@v1.2
+
+      - name: Convert Security Scan Results to Sarif # Step 7
         uses: security-code-scan/security-code-scan-results-action@v1.3
 
-      - name: Upload Sarif Results to GitHub # Step 10
+      - name: Upload Sarif Results to GitHub # Step 8
         uses: github/codeql-action/upload-sarif@v2
