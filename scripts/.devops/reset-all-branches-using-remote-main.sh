@@ -67,7 +67,7 @@ cleanup() {
             fi
         fi
     fi
-    
+
     # Return to the main branch if different from the current branch
     current_branch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "$current_branch" != "main" ]]; then
@@ -75,7 +75,7 @@ cleanup() {
             exit_handler 7 "${LINENO}"
         fi
     fi
-    
+
     # Pop changes from the main branch stash if it exists
     if git stash list | grep -q "Stash for devops script operations on main"; then
         if ! git stash pop "stash@{0}"; then
@@ -154,7 +154,7 @@ git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
 git stash push -u -m "Stashing changes to execute reset script" || { exit_handler 8 "${LINENO}"; }
 
 # Pull to update local main
-git pull "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
+git pull origin "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
 
 # Reset local main branch to mirror remote main
 git fetch origin || { exit_handler 9 "${LINENO}"; }
