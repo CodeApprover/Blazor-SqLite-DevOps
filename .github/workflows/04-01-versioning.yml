@@ -1,3 +1,24 @@
+######################################
+# Workflow: Versioning
+
+# Description:
+# This workflow handles versioning of the repository. It follows the SemVer 2.0 convention.
+# The version-and-tag job comprises these main phases:
+# 1. Checkout the specific SHA from the repository.
+# 2. Configure Git with the appropriate user details.
+# 3. Fetch existing versioning tags.
+# 4. Clean up redundant versioning tags to keep the repository lean.
+# 5. Increment the version according to the SemVer 2.0 convention based on the branch.
+#
+# If all these steps are successful, the trigger-next-workflow job then triggers the next workflow in the pipeline.
+
+# Trigger: Activated upon receiving the event `Versioning`.
+
+# Exit Codes:
+# 90 - Failed to trigger the next workflow.
+
+######################################
+
 ---
 name: Versioning
 
@@ -17,108 +38,118 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout SHA repository
-        uses: actions/checkout@v3.6.0
-        with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
-        continue-on-error: true
 
-      - name: Configure Git User
-        run: |
- 
-          git config user.name "${{ github.repository_owner}}"
-          git config user.email "${{ vars.EMAIL }}"
+    # Step 1: Checkout repository using SHA.
+    - name: Checkout SHA repository
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
+      continue-on-error: true
 
-      - name: Fetch Versioning Tags
-        run: |
- 
-          git fetch --tags
-          if [ -z "$(git tag)" ]; then
-            echo "##[error] No tags found." && exit 42
+    # Step 2: Configure Git.
+    - name: Configure Git User
+      run: |
+        git config user.name "${{ github.repository_owner }}"
+        git config user.email "${{ vars.EMAIL }}"
+
+    # Step 3: Fetch versioning tags.
+    - name: Fetch Versioning Tags
+      run: |
+        git fetch --tags
+        if [ -z "$(git tag)" ]; then
+          echo "##[error] No tags found." && exit 42
+        fi
+        git tag -l
+
+    # Step 4: Clean up redundant versioning tags.
+    - name: Clean Redundant Versioning Tags
+      run: |
+        echo "##[info] Deleting versioning tags skipping the 12 most recent."
+        DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
+        for TAG in $DELETE_TAGS; do
+          git tag -d $TAG
+          git push origin --delete $TAG || (echo "##[error] Failed to push tag deletion." && exit 43)
+        done
+
+    # Step 5: Increment version according to SemVer.
+    - name: Increment SemVer 2.0 Versioning
+      run: |
+        echo "##[debug] Getting the latest tag based on SemVer 2.0."
+        latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+        echo "##[info] Latest Tag = $latest_tag"
+
+        echo "##[debug] Striping prefix 'v' and splitting SemVer into major, minor, and patch."
+        version=$(echo $latest_tag | sed 's/^v//')
+        major=$(echo $version  | cut -d. -f1)
+        minor=$(echo $version  | cut -d. -f2)
+        patch=$(echo $version  | cut -d. -f3)
+
+        echo "##[debug] Incrementing SemVer for the given environment."
+        branch="${{ env.SHA_BRANCH }}"
+        case "$branch" in
+          "main")
+            major=$(major)
+            minor=0
+            patch=0
+            ;;
+          "code-production")
+            major=$((major + 1))
+            minor=0
+            patch=0
+            ;;
+          "code-staging")
+            minor=$((minor + 1))
+            patch=0
+            ;;
+          "code-development")
+            patch=$((patch + 1))
+            ;;
+        esac
+        new_version="v$major.$minor.$patch"
+        echo "##[debug] New version number = $new_version."
+        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+
+  trigger-next-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: version-and-tag
+
+    steps:
+
+    # Step 6: Trigger the next workflow if versioning is successful.
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
+        echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
+
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+        "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error][trigger] Attempt $((retries+1)) failed with exit code $CURL_EXIT_CODE."
+            retries=$((retries+1))
+            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[warn][trigger] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+              sleep ${{ vars.WAIT_SECONDS }}
+            else
+              echo "##[error][trigger] All retries exhausted. Failed to trigger ${{ env.NEXT_WORKFLOW }}."
+              exit 90
+            fi
+          else
+            echo "##[info][trigger] ${{ env.NEXT_WORKFLOW }} successfully triggered."
+            break
           fi
-          git tag -l
-
-      - name: Clean Redundant Versioning Tags
-        run: |
- 
-          echo "##[info] Deleting versioning tags skipping the 12 most recent."
-          DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
-          for TAG in $DELETE_TAGS; do
-              git tag -d $TAG
-              git push origin --delete $TAG || (echo "##[error] Failed to push tag deletion." && exit 43)
-          done
-
-      - name: Increment SemVer 2.0 Versioning
-        run: |
- 
-          echo "##[debug] Getting the latest tag based on SemVer 2.0"
-          latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
-          echo "##[info] Latest Tag = $latest_tag"
-
-          echo "##[debug] Striping prefix 'v' and SemVer splitting into major, minor and patch."
-          version=$(echo $latest_tag | sed 's/^v//')
-          major=$(echo $version  | cut -d. -f1)
-          minor=$(echo $version  | cut -d. -f2)
-          patch=$(echo $version  | cut -d. -f3)
-
-          echo "##[debug] Incrementing SemVer for required environment."
-          branch="${{ env.SHA_BRANCH }}"
-          case "$branch" in
-            "main")
-              major=$(major)
-              minor=0
-              patch=0
-              ;;
-            "code-production")
-              major=$((major + 1))
-              minor=0
-              patch=0
-              ;;
-            "code-staging")
-              minor=$((minor + 1))
-              patch=0
-              ;;
-            "code-development")
-              patch=$((patch + 1))
-              ;;
-          esac
-          new_version="v$major.$minor.$patch"
-          echo "##[debug] New version number = $new_version"
-          echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
-
-      - name: Trigger Next Workflow
-        if: success()
-        run: |
- 
-          CMD=$(echo "curl -L -X POST" \
-          "-H \"Accept: application/vnd.github+json\"" \
-          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-          "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-          "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-          "\"client_payload\":{" \
-          "\"sha\":\"${{ env.SHA }}\"," \
-          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-          "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
-          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
-
-          retries=0
-          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-              eval "$CMD"
-              CURL_EXIT_CODE=$?
-              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                  echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-                  retries=$((retries+1))
-                  if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                      echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                      sleep ${{ vars.WAIT_SECONDS }}
-                  else
-                      echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                      echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
-                  fi
-              else
-                  break # successful curl
-              fi
-          done
-          echo "##[debug] CURL command: $CMD"
+        done

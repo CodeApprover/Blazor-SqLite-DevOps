@@ -1,4 +1,3 @@
----
 ######################################
 # Workflow: Deployment Success
 
@@ -19,12 +18,11 @@
 # 60 - SHA checkout failure.
 # 61 - Failed to update API status to success.
 # 62 - Failed to deploy via API call.
-# 63 - Lock file not found.
-# 64 - Lock file content does not match the expected SHA.
-# 65 - Failed to notify teams and committer. (Reused)
+# 65 - Failed to notify teams and committer.
 
 ######################################
 
+---
 name: Deployment Success
 
 on:
@@ -46,7 +44,6 @@ jobs:
     steps:
 
     - name: Checkout SHA Repository # Step 1
-      id: checkout-sha
       uses: actions/checkout@v3.6.0
       with:
         ref: ${{ github.sha }}
@@ -64,7 +61,6 @@ jobs:
       run: |
  
         echo "##[debug][status-update] Attempting to update the deployment status."
-
         latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1) # v1.2.3 SemVer
         desc="Deploying SHA ${{ env.SHA }} from ${{ env.SHA_BRANCH }} with tag $latest_tag."
 
@@ -160,8 +156,7 @@ jobs:
 
         echo "##[debug][notify] Creating issue in the repository with the constructed title and body."
         create_issue "$ISSUE_TITLE" "$ISSUE_BODY"
-
         if [ $? -ne 0 ]; then
-          echo "##[error][notify] Issue creation encountered an error."
+          echo "##[error][notify] Failed to notify teams and committer."
           exit 65
         fi

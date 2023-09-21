@@ -1,20 +1,42 @@
+######################################
+# Workflow: Security Code Scan
+
+# Description:
+# This workflow performs a security code scan on the application codebase. 
+# It ensures the integrity and security of the code by running a series of checks 
+# and validations. The results are then uploaded for further review and action.
+
+# Trigger: Activated by completion of the "Authentication Gate" workflow and scheduled runs.
+
+# Logical Flow (Steps):
+# 1. Checkout the repository.
+# 2. Setup the required NuGet packages.
+# 3. Prepare MSBuild.
+# 4. Add the security code scanning action.
+# 5. Setup the .NET environment.
+# 6. Retrieve cached .NET dependencies.
+# 7. Restore .NET dependencies if not cached.
+# 8. Build the .NET application.
+# 9. Convert security scan results to the sarif format.
+# 10. Upload sarif results to GitHub.
+
+# Exit Codes:
+# 34 - Dotnet restore failed.
+# 35 - Dotnet build failed.
+
+######################################
+
 ---
-name: Security Scan
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow integrates SecurityCodeScan with GitHub's Code Scanning feature
-# SecurityCodeScan is a vulnerability patterns detector for C# and VB.NET
+name: SecurityCodeScan
 
 on:
-  push:
-    branches: main
-
-  repository_dispatch:
-    types: Security Scan
+  workflow_run:
+    workflows: ["Authentication Gate"]
+    types: [completed]
+    branches-ignore:
+      - 'code-development'
+  schedule:
+    - cron: '37 9 * * 2,5'
 
 env:
   SHA: ${{ github.event.client_payload.sha }}
@@ -22,28 +44,29 @@ env:
   CSPROJ: ${{ github.event.client_payload.csproj }}
 
 jobs:
-  security-code-scan:
+  SCS:
     name: Security Code Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    # un-comment to block execution
-    #if: (github.actor != ${{ github.repository_owner }})
-
     steps:
-      - uses: actions/checkout@v3.6.0
-      - uses: nuget/setup-nuget@04b0c2b8d1b97922f67eca497d7cf0bf17b8ffe1
-      - uses: microsoft/setup-msbuild@v1.0.2
+      - name: Checkout Repository # Step 1
+        uses: actions/checkout@v3.6.0
 
-      - name: Set up projects for analysis
-        uses: security-code-scan/security-code-scan-add-action@f8ff4f2763ed6f229eded80b1f9af82ae7f32a0d
+      - name: Setup NuGet Packages # Step 2
+        uses: nuget/setup-nuget@v1.2.0
 
-      - name: Setup .NET environment
+      - name: Prepare MSBuild # Step 3
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Add Security Code Scanning Action # Step 4
+        uses: security-code-scan/security-code-scan-add-action@v1.2
+
+      - name: Setup .NET Environment # Step 5
         uses: actions/setup-dotnet@v3.2.0
         with:
           dotnet-version: "7.0.x"
 
-      - name: Retrieve Cached dotnet Dependencies
+      - name: Retrieve Cached .NET Dependencies # Step 6
         id: cache-dotnet-restore
         uses: actions/cache@v3.3.1
         with:
@@ -52,38 +75,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-dotnet-
 
-      - name: Restore Dependencies
+      - name: Restore .NET Dependencies # Step 7
         run: |
           if [ "${{ steps.cache-dotnet-restore.outputs.cache-hit }}" != 'true' ]; then
             dotnet restore --no-cache "$CSPROJ" || (echo "##[error] Dotnet restore failed" && exit 34)
           fi
 
-      - name: Dotnet build
-        run: dotnet build --no-restore $CSPROJ  || (echo "##[error] Dotnet restore failed" && exit 35)
+      - name: Build .NET Application # Step 8
+        run: dotnet build --no-restore $CSPROJ || (echo "##[error] Dotnet build failed" && exit 35)
 
-      - name: Convert sarif for uploading to GitHub
-        uses: security-code-scan/security-code-scan-results-action@cdb3d5e639054395e45bf401cba8688fcaf7a687
+      - name: Convert Security Scan Results to Sarif # Step 9
+        uses: security-code-scan/security-code-scan-results-action@v1.3
 
-      - name: Upload sarif
+      - name: Upload Sarif Results to GitHub # Step 10
         uses: github/codeql-action/upload-sarif@v2
-
-      - name: Trigger Next Workflow # production 06-superlinter.yml | staging 07-versioning.yml
-        if: success()
-        run: |
-          trigger="trigger-superlinter"
-          if [ "${{ env.SHA_BRANCH }}" == "code-staging" ]; then
-              trigger="trigger-versioning"
-          fi
-          echo "##[info] Calling $trigger"
-
-          BASE="{\"event_type\": \"$trigger\", \"client_payload\": {"
-          SHA="\"sha\": \"${{ env.SHA }}\","
-          CSPROJ="\"csproj\": \"${{ env.CSPROJ }}\","
-          BRANCH="\"sha_branch\": \"${{ env.SHA_BRANCH }}\""
-          END="}}"
-
-          curl -s -o /dev/null -X POST \
-          -H "Authorization: Bearer ${{ secrets.AUTH }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          -d "$BASE$SHA$CSPROJ$BRANCH$END" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches"
