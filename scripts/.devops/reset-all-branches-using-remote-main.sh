@@ -231,6 +231,10 @@ if git stash list | grep -q 'stash@'; then
   git stash drop || { exit_handler 22 "${LINENO}"; }
 fi
 
+# Reset Git User
+git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
+git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
+
 # Navigate back to original directory
 cd "$CUR_DIR" || { exit_handler 4 "${LINENO}"; }
 
