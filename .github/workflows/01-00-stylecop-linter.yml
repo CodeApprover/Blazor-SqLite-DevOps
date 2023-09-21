@@ -1,3 +1,29 @@
+######################################
+# Workflow: StyleCop Linter
+
+# Description:
+# This workflow performs linting on the codebase using StyleCop. It checks out the specific SHA, sets up
+# the .NET environment, and retrieves cached .NET dependencies. If the cache is not hit, it restores the 
+# dependencies. The code is then built using StyleCop configurations. Finally, depending on the branch, 
+# the next appropriate testing workflow is triggered.
+
+# Trigger: Activated upon receiving the event `StyleCop Linter`.
+
+# Logical Flow (Steps):
+# 1.  Checkout the specific SHA from the repository.
+# 2.  Setup the .NET environment.
+# 3.  Retrieve cached .NET dependencies.
+# 4.  Restore the .NET dependencies if cache was not hit.
+# 5.  Build the project with StyleCop.
+# 6.  Depending on the branch, trigger the next appropriate workflow.
+
+# Exit Codes:
+# 34 - Dotnet restore failed.
+# 35 - Dotnet build with StyleCop failed.
+# 90 - Failed to trigger the next workflow.
+
+######################################
+
 ---
 name: StyleCop Linter
 
@@ -17,79 +43,83 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout SHA Repository
-        id: checkout
-        uses: actions/checkout@v3.6.0
-        with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
+    # Step 1: Checkout repository using SHA.
+    - name: Checkout SHA Repository
+      id: checkout
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
 
-      - name: Setup .NET Environment
-        uses: actions/setup-dotnet@v3.2.0
-        with:
-          dotnet-version: "7.0.x"
+    # Step 2: Setup .NET environment.
+    - name: Setup .NET Environment
+      uses: actions/setup-dotnet@v3.2.0
+      with:
+        dotnet-version: "7.0.x"
 
-      - name: Retrieve Cached dotnet Dependencies
-        id: cache-dotnet-restore
-        uses: actions/cache/restore@v3
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-dotnet-${{ env.SHA }}
-          restore-keys: ${{ runner.os }}-dotnet-
+    # Step 3: Retrieve cached .NET dependencies.
+    - name: Retrieve Cached dotnet Dependencies
+      id: cache-dotnet-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-dotnet-${{ env.SHA }}
+        restore-keys: ${{ runner.os }}-dotnet-
 
-      - name: Restore Dependencies
-        if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
-        run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 34)
+    # Step 4: Restore .NET dependencies if cache was not hit.
+    - name: Restore Dependencies
+      if: steps.cache-dotnet-restore.outputs.cache-hit != 'true'
+      run: dotnet restore --no-cache "${{ env.CSPROJ }}" -v detailed || (echo "##[error] Dotnet restore failed" && exit 34)
 
-      - name: Dotnet Build with StyleCop
-        run: |
-          CMD="dotnet build --no-restore \"${{ env.CSPROJ }}\" "
-          CMD+="-v detailed "
-          CMD+="/p:StyleCopEnabled=true "
-          CMD+="/p:StyleCopTreatErrorsAsWarnings=false "
-          CMD+="/p:StyleCopForceFullAnalysis=false"
-          eval "$CMD" || (echo "##[error] Dotnet build failed" && exit 35)
+    # Step 5: Build the project with StyleCop configurations.
+    - name: Dotnet Build with StyleCop
+      run: |
+        dotnet build --no-restore "${{ env.CSPROJ }}" \
+        -v detailed \
+        /p:StyleCopEnabled=true \
+        /p:StyleCopTreatErrorsAsWarnings=false \
+        /p:StyleCopForceFullAnalysis=false || (echo "##[error] Dotnet build failed" && exit 35)
 
-      - name: Trigger Next Workflow # Development-Tests | Staging-Tests | Production-Tests
-        if: success()
-        run: |
+    # Step 6: Depending on the branch, trigger the next appropriate workflow.
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
+        case "${{ env.SHA_BRANCH }}" in
+          "code-development") trigger="Development Tests" ;;
+          "code-staging") trigger="Staging Tests" ;;
+          "code-production") trigger="Production Tests" ;;
+          "main") trigger="Production Tests" ;;
+        esac
+        echo "##[info] Calling $trigger"
 
-          case "${{ env.SHA_BRANCH }}" in
-            "code-development") trigger="Development Tests" ;;
-            "code-staging") trigger="Staging Tests" ;;
-            "code-production") trigger="Production Tests" ;;
-            "main") trigger="Production Tests" ;;
-          esac
-          echo "##[info] Calling $trigger"
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"$trigger\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
-          CMD=$(echo "curl -L -X POST" \
-          "-H \"Accept: application/vnd.github+json\"" \
-          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-          "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-          "-d '{\"event_type\":\"$trigger\"," \
-          "\"client_payload\":{" \
-          "\"sha\":\"${{ env.SHA }}\"," \
-          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
-
-          retries=0
-          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-            eval "$CMD"
-            CURL_EXIT_CODE=$?
-            if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-              echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-              retries=$((retries+1))
-              if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                sleep ${{ vars.WAIT_SECONDS }}
-              else
-                echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                echo "##[error] Failed to trigger $trigger workflow with CURL command: $CMD." && exit 90
-              fi
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
+            retries=$((retries+1))
+            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+              sleep ${{ vars.WAIT_SECONDS }}
             else
-              echo "##[debug] Successful curl"
-              break
+              echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
+              echo "##[error] Failed to trigger $trigger workflow with CURL command: $CMD." && exit 90
             fi
-          done
-          echo "##[debug] CURL command: $CMD"
+          else
+            echo "##[debug] Successful curl"
+            break
+          fi
+        done
+        echo "##[debug] CURL command: $CMD"
