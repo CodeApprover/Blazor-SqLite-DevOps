@@ -1,3 +1,24 @@
+######################################
+# Workflow: Development Tests
+
+# Description:
+# This workflow conducts unit tests using specified test frameworks (Nunit or Xunit).
+#
+# The development-tests job has the following main phases:
+# 1. Checkout the repository.
+# 2. Install the test suite dependencies based on the matrix test framework.
+# 3. Run the unit tests based on the matrix test framework.
+#
+# The trigger-next-workflow job:
+# 1. Triggers the "Versioning" workflow upon the successful completion of the development-tests job.
+
+# Trigger: Activated upon receiving the event `Development Tests`.
+
+# Exit Codes:
+# 90 - Failed to trigger the next workflow after exhausting retries.
+
+######################################
+
 ---
 name: Development Tests
 
@@ -22,40 +43,44 @@ jobs:
         test_framework: [Nunit, Xunit]
 
     steps:
-      - name: Checkout SHA Repository
-        id: checkout-sha
-        uses: actions/checkout@v3.6.0
-        with:
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
 
-      - name: Install Test Suite Dependencies
-        run: |
+    # Step 1: Checkout the repository.
+    - name: Checkout SHA Repository
+      id: checkout-sha
+      uses: actions/checkout@v3.6.0
+      with:
+        ref: ${{ env.SHA }}
+        fetch-depth: 0
 
-          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
-            test_type="Nunit_Player_Unit_Tests"
-          else
-            test_type="Xunit_Game_Unit_Tests"
-          fi
-          CMD="dotnet restore --no-cache"
-          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "$CMD"
+    # Step 2: Install the test suite dependencies.
+    - name: Install Test Suite Dependencies
+      run: |
 
-      - name: Run Nunit and Xunit Unit Tests
-        run: |
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+        fi
+        CMD="dotnet restore --no-cache"
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
 
-          if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
-            test_type="Nunit_Player_Unit_Tests"
-            log_file_name="nunit-results.trx"
-          else
-            test_type="Xunit_Game_Unit_Tests"
-            log_file_name="xunit-results.trx"
-          fi
-          CMD="dotnet test"
-          CMD+=" --no-restore --verbosity detailed"
-          CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
-          CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
-          eval "$CMD"
+    # Step 3: Run the unit tests.
+    - name: Run Nunit and Xunit Unit Tests
+      run: |
+
+        if [ "${{ matrix.test_framework }}" == "Nunit" ]; then
+          test_type="Nunit_Player_Unit_Tests"
+          log_file_name="nunit-results.trx"
+        else
+          test_type="Xunit_Game_Unit_Tests"
+          log_file_name="xunit-results.trx"
+        fi
+        CMD="dotnet test"
+        CMD+=" --no-restore --verbosity detailed"
+        CMD+=" --logger \"trx;LogFileName=${log_file_name}\""
+        CMD+=" \"${{ github.workspace }}/tests/${test_type}/${test_type}.csproj\""
+        eval "$CMD"
 
   trigger-next-workflow:
     runs-on: ubuntu-latest
@@ -63,37 +88,41 @@ jobs:
     needs: development-tests
 
     steps:
-      - name: Trigger Next Workflow
-        if: success()
-        run: |
 
-          CMD=$(echo "curl -L -X POST" \
-          "-H \"Accept: application/vnd.github+json\"" \
-          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-          "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-          "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-          "\"client_payload\":{" \
-          "\"sha\":\"${{ env.SHA }}\"," \
-          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+    # Step 4: Trigger the next workflow if unit tests are successful.
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
 
-          retries=0
-          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-              eval "$CMD"
-              CURL_EXIT_CODE=$?
-              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                  echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-                  retries=$((retries+1))
-                  if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                      echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                      sleep ${{ vars.WAIT_SECONDS }}
-                  else
-                      echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                      echo "##[error] Failed to trigger ${{ env.NEXT_WORKFLOW }} workflow with CURL command: $CMD." && exit 90
-                  fi
-              else
-                  break # successful curl
-              fi
-          done
-          echo "##[debug] CURL command: $CMD"
+        echo "##[info] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
+
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error] Attempt $((retries+1)) failed with exit code $CURL_EXIT_CODE."
+            retries=$((retries+1))
+            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+              sleep ${{ vars.WAIT_SECONDS }}
+            else
+              echo "##[error] All retries exhausted. Failed to trigger ${{ env.NEXT_WORKFLOW }}."
+              exit 90
+            fi
+          else
+            echo "##[info] ${{ env.NEXT_WORKFLOW }} successfully triggered."
+            break
+          fi
+        done
