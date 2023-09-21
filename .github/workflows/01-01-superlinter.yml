@@ -1,19 +1,24 @@
----
-name: "Superlinter"  # https://github.com/super-linter/super-linter
+######################################
+# Workflow: Superlinter
 
-# ${{ github.workflow }} Overview
-#
-# This workflow lints the codebase using SuperLinter.
+# Description:
+# This workflow lints the codebase using SuperLinter. The SuperLinter is a combination of 
+# multiple linters for different languages and tools bundled into one package.
 #
 # The super-linter job has 3 main phases:
 # 1. Environment Setup: Checks out the code and determines paths for linting configurations.
-# 2. Linting: Utilizes the SuperLinter to lint the codebase. This linter is a combination of multiple linters for different 
-#    languages and tools into one package.
-# 3. Trigger Subsequent Workflow: If linting is successful, it initiates the next workflow, "Versioning."
-#
+# 2. Linting: Executes the SuperLinter.
+# 3. Trigger Subsequent Workflow: If linting is successful, it triggers the "Versioning" workflow.
+
+# Trigger: Activated upon receiving the event `SuperLinter`.
+
 # Exit Codes:
-#
 # 90 - Failed to trigger the next workflow after exhausting retries.
+
+######################################
+
+---
+name: Superlinter
 
 on:
   repository_dispatch:
@@ -26,62 +31,65 @@ env:
   NEXT_WORKFLOW: Versioning
 
 jobs:
-
   super-linter:
-
     name: SuperLinter
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    #if: (github.actor != 'CodeApprover')
 
     steps:
 
-      - name: Checkout code
-        uses: actions/checkout@v3.5.3
-        with:
-          fetch-depth: 0
+    # Step 1: Checkout the repository.
+    - name: Checkout code
+      uses: actions/checkout@v3.5.3
+      with:
+        fetch-depth: 0
 
-      - name: Print JSCPD config path
-        run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
+    # Step 2: Print the JSCPD config path.
+    - name: Print JSCPD config path
+      run: echo "JSCPD config path is ${{ github.workspace }}/.jscpd.json"
 
-      - name: Lint code-base
-        uses: super-linter/super-linter@v5
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: ${{ github.ref }}
-          GITHUB_TOKEN: ${{ secrets.AUTH }}
-          JSCPD_CONFIG_FILE: .jscpd.json
+    # Step 3: Execute the SuperLinter.
+    - name: Lint code-base
+      uses: super-linter/super-linter@v5
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        DEFAULT_BRANCH: ${{ github.ref }}
+        GITHUB_TOKEN: ${{ secrets.AUTH }}
+        JSCPD_CONFIG_FILE: .jscpd.json
 
-      - name: Trigger Next Workflow
-        if: success()
-        run: |
+    # Step 4: Trigger the next workflow if linting is successful.
+    - name: Trigger Next Workflow
+      if: success()
+      run: |
 
-          CMD="curl -L -X POST "
-          CMD+="-H \"Accept: application/vnd.github+json\" "
-          CMD+="-H \"Authorization: Bearer ${{ secrets.AUTH }}\" "
-          CMD+="-H \"X-GitHub-Api-Version: 2022-11-28\" "
-          CMD+="https://api.github.com/repos/${{ github.repository }}/dispatches "
-          CMD+="-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\","
-          CMD+="\"client_payload\":{"
-          CMD+="\"sha\":\"${{ github.sha }}\","
-          CMD+="\"csproj\":\"${{ env.CSPROJ }}\"}'"
+        echo "##[info] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
 
-          retries=0
-          while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-              eval "$CMD"
-              CURL_EXIT_CODE=$?
-              if [[ $CURL_EXIT_CODE -ne 0 ]]; then
-                  echo "##[error] Curl command failed on attempt $((retries+1)) with exit code $CURL_EXIT_CODE"
-                  retries=$((retries+1))
-                  if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
-                      echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
-                      sleep ${{ vars.WAIT_SECONDS }}
-                  else
-                      echo "##[error] Exhausted ${{ vars.MAX_RETRIES }} retries at ${{ vars.WAIT_SECONDS }} intervals."
-                      echo "##[error] Failed to trigger ${env.NEXT_WORKFLOW} workflow with CURL command: $CMD." && exit 90
-                  fi
-              else
-                  break # successful curl
-              fi
-          done
-          echo "##[debug] CURL command: $CMD"
+        CMD=$(echo "curl -L -X POST" \
+        "-H \"Accept: application/vnd.github+json\"" \
+        "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+        "-H \"X-GitHub-Api-Version: 2022-11-28\"" \
+        "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+        "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+        "\"client_payload\":{" \
+        "\"sha\":\"${{ env.SHA }}\"," \
+        "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+
+        retries=0
+        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
+          eval "$CMD"
+          CURL_EXIT_CODE=$?
+          if [[ $CURL_EXIT_CODE -ne 0 ]]; then
+            echo "##[error] Attempt $((retries+1)) failed with exit code $CURL_EXIT_CODE."
+            retries=$((retries+1))
+            if [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; then
+              echo "##[warn] Retrying in ${{ vars.WAIT_SECONDS }} seconds..."
+              sleep ${{ vars.WAIT_SECONDS }}
+            else
+              echo "##[error] All retries exhausted. Failed to trigger ${{ env.NEXT_WORKFLOW }}."
+              exit 90
+            fi
+          else
+            echo "##[info] ${{ env.NEXT_WORKFLOW }} successfully triggered."
+            break
+          fi
+        done
