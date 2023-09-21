@@ -10,7 +10,7 @@
 # 4. Build and push the Docker image to Docker Hub.
 # 5. Tag the repository with the new version.
 #
-# On successful completion of the Docker deployment, the next workflow, as specified in the NEXT_WORKFLOW environment variable, is triggered.
+# On successful Docker deployment the NEXT_WORKFLOW is triggered.
 
 # Trigger:
 # The workflow is initiated when the `Deploy Docker` event is received.
