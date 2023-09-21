@@ -112,17 +112,7 @@ jobs:
         esac
         new_version="v$major.$minor.$patch"
         echo "##[debug] New version number = $new_version."
-        echo "::set-output name=new_version::$new_version"
-
-    outputs:
-      new_version: ${{ steps.Increment_SemVer_2_0_Versioning.outputs.new_version }}
-
-  trigger-next-workflow:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: version-and-tag
-
-    steps:
+        echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
     # Step 6: Trigger the next workflow if versioning is successful.
     - name: Trigger Next Workflow
@@ -139,7 +129,7 @@ jobs:
         "\"client_payload\":{" \
         "\"sha\":\"${{ env.SHA }}\"," \
         "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-        "\"new_version\":\"${{ needs.version-and-tag.outputs.new_version }}\"," \
+        "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
         "\"csproj\":\"${{ env.CSPROJ }}\"}'")
 
         retries=0
