@@ -51,3 +51,4 @@ production/Blazor-SqLite-Golf-Club/Dockerfile.original
 
 .history/
 .vs/
+.vscode/
