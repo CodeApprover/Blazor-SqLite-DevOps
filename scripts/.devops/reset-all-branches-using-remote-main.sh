@@ -201,13 +201,13 @@ for branch in "${BRANCHES[@]}"; do
     cp -r "scripts/$env_name/"* toolbox/ || { exit_handler 17 "${LINENO}"; }
   else
     log_entry "Directory scripts/$env_name/ does not exist or is empty."
-  fi
+  fi 
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
-    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
-    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;;
+    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-development
+    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-staging
+    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-production
   esac
 
   # Remove scripts directory
