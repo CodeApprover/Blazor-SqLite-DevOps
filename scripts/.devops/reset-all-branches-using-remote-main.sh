@@ -117,8 +117,8 @@ DEVOPS_USER=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.name')
 DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
 EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
-# Define branches
-BRANCHES=("code-development" "code-staging" "code-production")
+# Extract branch names from json keys
+BRANCHES=($(echo "$JSON_CONFIG" | jq -r '.Users | keys[]'))
 
 # Set warning message
 WARNING=$(cat << EOM
