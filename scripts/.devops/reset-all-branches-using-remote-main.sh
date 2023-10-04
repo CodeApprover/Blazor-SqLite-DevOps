@@ -158,13 +158,13 @@ git config user.name "$DEVOPS_USER" || { exit_handler 5 "${LINENO}"; }
 git config user.email "$DEVOPS_EMAIL" || { exit_handler 6 "${LINENO}"; }
 
 # Ensure main branch checkout
-git checkout "${BRANCHES[0]}" || { exit_handler 7 "${LINENO}"; }
+git checkout "main" || { exit_handler 7 "${LINENO}"; }
 
 # Stash any main branch changes
 git stash push -u -m "Stashing changes to execute reset script" || { exit_handler 8 "${LINENO}"; }
 
 # Pull to update local main
-git pull origin "${BRANCHES[0]}" || { exit_handler 24 "${LINENO}"; }
+git pull origin "main" || { exit_handler 24 "${LINENO}"; }
 
 # Reset local main branch to mirror remote main
 git fetch origin || { exit_handler 9 "${LINENO}"; }
