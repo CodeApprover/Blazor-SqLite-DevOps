@@ -173,6 +173,7 @@ git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 # Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
   # Checkout, stash and delete local branch
+  log_entry "Processing $branch branch..."
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
     git stash || { exit_handler 12 "${LINENO}"; }
