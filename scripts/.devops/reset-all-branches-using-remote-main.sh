@@ -63,6 +63,7 @@ exit_handler() {
   exit "$exit_code"
 }
 
+# shellcheck disable=SC2317
 # Cleanup function
 cleanup() {
   # Set Devops git user if different from current
