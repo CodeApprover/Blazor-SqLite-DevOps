@@ -1,0 +1,20 @@
+Eagle Flagstick		eagle.flagstick@somedomain.com		M
+Bogey Man			bogey.man@somedomain.com			M
+Par Teehard			par.teehard@somedomain.com			M
+Shank Uverymuch		shank.uverymuch@somedomain.com		M
+Divot Greenway		divot.greenway@somedomain.com		M
+Chipper Bunker		chipper.bunker@somedomain.com		M
+
+Caddy Shacklette	caddy.shacklette@somedomain.com		F
+Teeina Cupholder	teeina.cupholder@somedomain.com		F
+Greena Fairways		greena.fairways@somedomain.com		F
+Flaggy Polester		flaggy.polester@somedomain.com		F
+Tee Belowpar		tee.belowpar@somedomain.com			F
+Birdie Puttmore		birdie.puttmore@somedomain.com		F
+
+Ball Finder		    ball.finder@somedomain.com		    O
+Grip Firmly			grip.firmly@somedomain.com			O
+Tee Irons			tee.irons@somedomain.com			O
+Wedge Sandtrap		wedge.sandtrap@somedomain.com		O
+Chip N Ready		chip.n.ready@somedomain.com			O
+Stroll Thegreen		stroll.thegreen@somedomain.com		O

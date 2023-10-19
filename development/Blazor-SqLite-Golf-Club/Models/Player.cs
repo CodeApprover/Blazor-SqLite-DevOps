@@ -21,14 +21,14 @@ namespace Blazor_SqLite_Golf_Club.Models
         ///     Gets or sets the player's first name.
         /// </summary>
         [Required(ErrorMessage = "First name is required.")]
-        [StringLength(10, MinimumLength = 1, ErrorMessage = "First name must be 1 to 10 characters.")]
+        [StringLength(20, MinimumLength = 1, ErrorMessage = "First name must be 1 to 20 characters.")]
         public string Firstname { get; set; } = string.Empty;
 
         /// <summary>
         ///     Gets or sets the player's surname.
         /// </summary>
         [Required(ErrorMessage = "Surname is required.")]
-        [StringLength(10, MinimumLength = 1, ErrorMessage = "Surname must be 1 to 10 characters.")]
+        [StringLength(20, MinimumLength = 1, ErrorMessage = "Surname must be 1 to 20 characters.")]
         public string Surname { get; set; } = string.Empty;
 
         /// <summary>
