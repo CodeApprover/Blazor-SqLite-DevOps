@@ -61,7 +61,7 @@ jobs:
 
     - name: Sanitise and Validate User Details # Step 1
       run: |
-
+ 
         echo "##[info][sanitise] Starting security sanitisation and validation."
         echo "##[debug][sanitise] Sanitising username as github username."
         regex_pattern="^([a-z0-9](-?[a-z0-9]){0,19})$"
@@ -92,7 +92,7 @@ jobs:
 
     - name: Validate Branch Name # Step 2
       run: |
-
+ 
         ALLOWED_BRANCHES=("code-development" "code-staging" "code-production" "main")
         REF=${{ github.ref }}
         BRANCH_NAME=${REF#refs/heads/}
@@ -116,7 +116,7 @@ jobs:
     - name: Revert Unknown Branch Commits # Step 3
       if: env.SHA_BRANCH == ''
       run: |
-
+ 
         git config user.name "${{ github.repository_owner }}"
         git config user.email "${{ vars.EMAIL }}"
         COMMIT_COUNT=$(git rev-list --count HEAD)
@@ -178,7 +178,7 @@ jobs:
 
     - name: Validate Checkout # Step 5
       run: |
-
+ 
         if [ $? -ne 0 ]; then
           echo "##[error][checkout] SHA checkout failure ${{ github.sha }}"
           exit 26
@@ -203,7 +203,7 @@ jobs:
 
     - name: Validate .csproj File # Step 7
       run: |
-
+ 
         CSPROJ_PATH=$(find . -name "*.csproj" | head -n 1)
         echo "##[debug][csproj] CSPROJ_PATH: $CSPROJ_PATH"
         if [[ -z "$CSPROJ_PATH" ]]; then
@@ -214,11 +214,11 @@ jobs:
 
     - name: Check SHA Gist for Lock # Step 8
       run: |
-
+ 
         echo "##[debug][gist-lock] Checking for the existence of SHA gist content."
         retries=0
 
-        # Retry until SHA Gist is empty, null, or max retries
+        # Retry until SHA Gist is empty, null, or wait for max retries
         while :; do
           # Fetch the content of SHA Gist
           content=$(curl -L \
@@ -244,11 +244,26 @@ jobs:
 
     - name: Set SHA Gist as Locked # Step 9
       run: |
+ 
+        gist_id="${{ vars.SHA_GIST }}"
+        # Check if Gist exists
+        content=$(curl -sL \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          https://api.github.com/gists/${{ vars.SHA_GIST }} | jq '.files["auth-gate.sha"].content' -r)
 
+        if [[ "$content" == "null" ]]; then
+          # If the Gist doesn't exist, create it
+          curl -sL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.AUTH }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/gists \
+            -d '{ "files": { "auth-gate.sha": { "content": "${{ github.sha }}" } }, "description": "SHA Gist", "public": false }'
+        fi
+    
         # Update Gist with env.SHA to set lock
         echo "##[debug][gist] Attempting to update the Gist with the current SHA."
-        gist_id="${{ vars.SHA_GIST }}"
-
         CURL_CMD=$(echo "curl -L \
           -X PATCH \
           -H \"Accept: application/vnd.github+json\" \
@@ -291,7 +306,7 @@ jobs:
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
       run: |
-
+ 
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
 
         SUCCESS_CMD=$(echo "curl -L -X POST \
