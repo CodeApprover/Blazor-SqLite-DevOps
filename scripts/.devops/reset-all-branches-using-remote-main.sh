@@ -119,7 +119,7 @@ DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
 EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
 # Extract branch names from json keys
-BRANCHES=($(echo "$JSON_CONFIG" | jq -r '.Users | keys[]'))
+mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]')
 
 # Set warning message
 WARNING=$(cat << EOM
@@ -203,17 +203,17 @@ for branch in "${BRANCHES[@]}"; do
     cp -r "scripts/$env_name/"* toolbox/ || { exit_handler 17 "${LINENO}"; }
   else
     log_entry "Directory scripts/$env_name/ does not exist or is empty."
-  fi 
+  fi
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-development
-    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-staging
-    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-production
+    "${BRANCHES[0]}") git rm -rf staging production || { exit_handler 18 "${LINENO}"; } ;; # code-development
+    "${BRANCHES[1]}") git rm -rf production || { exit_handler 18 "${LINENO}"; } ;; # code-staging
+    "${BRANCHES[2]}") git rm -rf development || { exit_handler 18 "${LINENO}"; } ;; # code-production
   esac
 
   # Remove scripts directory
-  rm -rf scripts || { exit_handler 18 "${LINENO}"; }
+  git rm -rf scripts || { exit_handler 18 "${LINENO}"; }
 
   # Add, commit and push to remote
   git add . || { exit_handler 19 "${LINENO}"; }
