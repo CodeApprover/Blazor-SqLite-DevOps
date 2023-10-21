@@ -208,9 +208,17 @@ for branch in "${BRANCHES[@]}"; do
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") git rm -rf staging production || { exit_handler 18 "${LINENO}"; } ;; # code-development
-    "${BRANCHES[1]}") git rm -rf production || { exit_handler 18 "${LINENO}"; } ;; # code-staging
-    "${BRANCHES[2]}") git rm -rf development || { exit_handler 18 "${LINENO}"; } ;; # code-production
+    "${BRANCHES[0]}")
+      log_entry "Processing branch ${BRANCHES[0]}: Removing directories: staging, production."
+      git rm -rf staging production || { log_entry "Error occurred while trying to remove staging and production directories."; exit_handler 18 "${LINENO}"; } ;; # code-development
+    "${BRANCHES[1]}")
+      log_entry "Processing branch ${BRANCHES[1]}: Removing directory: production."
+      git rm -rf production || { log_entry "Error occurred while trying to remove production directory."; exit_handler 18 "${LINENO}"; } ;; # code-staging
+    "${BRANCHES[2]}")
+      log_entry "Processing branch ${BRANCHES[2]}: Removing directory: development."
+      git rm -rf development || { log_entry "Error occurred while trying to remove development directory."; exit_handler 18 "${LINENO}"; } ;; # code-production
+    *)
+      log_entry "Unexpected branch encountered: $branch. No action taken."
   esac
 
   # Remove scripts directory
