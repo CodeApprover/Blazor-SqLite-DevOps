@@ -2,6 +2,7 @@
 
 # Script Description: Resets local main to remote main and updates the specific branches.
 # Reads user and configuration details from a .config file.
+# ssh -T git@github.com to enable authentication
 
 set -o errexit  # exit on error
 set -o nounset  # exit on undefined variable
@@ -63,6 +64,7 @@ exit_handler() {
   exit "$exit_code"
 }
 
+# shellcheck disable=SC2317
 # Cleanup function
 cleanup() {
   # Set Devops git user if different from current
@@ -118,7 +120,7 @@ DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
 EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
 # Extract branch names from json keys
-BRANCHES=($(echo "$JSON_CONFIG" | jq -r '.Users | keys[]'))
+mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]')
 
 # Set warning message
 WARNING=$(cat << EOM
@@ -202,17 +204,25 @@ for branch in "${BRANCHES[@]}"; do
     cp -r "scripts/$env_name/"* toolbox/ || { exit_handler 17 "${LINENO}"; }
   else
     log_entry "Directory scripts/$env_name/ does not exist or is empty."
-  fi 
+  fi
 
   # Cleanup directories based on branch
   case "$branch" in
-    "${BRANCHES[0]}") rm -rf staging production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-development
-    "${BRANCHES[1]}") rm -rf production > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-staging
-    "${BRANCHES[2]}") rm -rf development > /dev/null 2>&1 || { exit_handler 18 "${LINENO}"; } ;; # code-production
+    "${BRANCHES[0]}")
+      log_entry "Processing branch ${BRANCHES[0]}: Removing directories: staging, production."
+      git rm -rf staging production || { log_entry "Error occurred while trying to remove staging and production directories."; exit_handler 18 "${LINENO}"; } ;; # code-development
+    "${BRANCHES[1]}")
+      log_entry "Processing branch ${BRANCHES[1]}: Removing directory: development."
+      git rm -rf development || { log_entry "Error occurred while trying to remove production directory."; exit_handler 18 "${LINENO}"; } ;; # code-production
+    "${BRANCHES[2]}")
+      log_entry "Processing branch ${BRANCHES[2]}: Removing directory: production."
+      git rm -rf production || { log_entry "Error occurred while trying to remove development directory."; exit_handler 18 "${LINENO}"; } ;; # code-staging
+    *)
+      log_entry "Unexpected branch encountered: $branch. No action taken."
   esac
 
   # Remove scripts directory
-  rm -rf scripts || { exit_handler 18 "${LINENO}"; }
+  git rm -rf scripts || { exit_handler 18 "${LINENO}"; }
 
   # Add, commit and push to remote
   git add . || { exit_handler 19 "${LINENO}"; }
