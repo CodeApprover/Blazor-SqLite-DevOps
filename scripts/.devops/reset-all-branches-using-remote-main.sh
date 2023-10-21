@@ -2,6 +2,7 @@
 
 # Script Description: Resets local main to remote main and updates the specific branches.
 # Reads user and configuration details from a .config file.
+# ssh -T git@github.com to enable authentication
 
 set -o errexit  # exit on error
 set -o nounset  # exit on undefined variable
