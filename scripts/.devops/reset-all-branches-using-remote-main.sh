@@ -120,7 +120,7 @@ DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
 EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
 # Extract branch names from json keys
-mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]')
+mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]' | tr -d '\r')
 
 # Set warning message
 WARNING=$(cat << EOM
