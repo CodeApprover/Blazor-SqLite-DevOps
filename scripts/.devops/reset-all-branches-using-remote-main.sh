@@ -50,7 +50,7 @@ git reset --hard origin/main
 # Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
   # Specify working branch
-  echo "Working on branch: ${BRANCHES[0]}"
+  echo "Working on branch: $branch"
 
   # Delete local branch if exists
   git branch | grep -q "$branch" && git branch -D "$branch"
@@ -61,20 +61,33 @@ for branch in "${BRANCHES[@]}"; do
   # Create a new branch from main and switch to it
   git checkout -b "$branch"
 
+  # Create toolbox directory and copy scripts
+  mkdir -p toolbox
+  script_dir="scripts/${branch#code-}"
+  if [[ -d "$script_dir" ]]; then
+    cp -r "$script_dir/"* toolbox/
+  fi
+
+  # Remove scripts directory
+  rm -rf scripts
+
   # Perform branch-specific directory cleanup
   case "$branch" in
     "${BRANCHES[0]}") # code-development
+      # Retain only the development folder
       rm -rf staging production
       ;;
     "${BRANCHES[1]}") # code-production
+      # Retain only the staging folder
       rm -rf development
       ;;
     "${BRANCHES[2]}") # code-staging
+      # Retain development and staging folders, remove production
       rm -rf production
       ;;
   esac
 
-  # Push new branch to remote
+  # Add changes, commit, and push new branch to remote
   git add .
   git commit -m "Updated $branch from main"
   git push -u origin "$branch"
