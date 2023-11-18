@@ -180,7 +180,7 @@ for branch in "${BRANCHES[@]}"; do
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     log_entry "Checking out $branch branch."
     git checkout "$branch" || { exit_handler 11 "${LINENO} - Failed to checkout $branch."; }
-    git stash -v || { exit_handler 12 "${LINENO} - Failed to stash changes in $branch."; }
+    git stash || { exit_handler 12 "${LINENO} - Failed to stash changes in $branch."; }
     git checkout main || { exit_handler 7 "${LINENO} - Failed to checkout main from $branch."; }
     git branch -D "$branch" || { exit_handler 13 "${LINENO} - Failed to delete local $branch."; }
   else
