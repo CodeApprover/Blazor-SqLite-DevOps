@@ -11,14 +11,14 @@ fi
 # Check if the JSON file exists
 if [[ ! -e "config.json" ]]; then
   echo "config.json does not exist."
-  exit 1
+  exit 2
 fi
 
 # Load the JSON config
 JSON_CONFIG=$(cat config.json)
 if ! jq empty <<< "$JSON_CONFIG" &>/dev/null; then
   echo "Invalid JSON in config.json."
-  exit 1
+  exit 3
 fi
 
 # Extract constants from JSON
@@ -54,7 +54,8 @@ done
 for branch in "${BRANCHES[@]}"; do
   git checkout -b "$branch"
   mkdir -p toolbox
-  cp -r "scripts/${branch#code-}/"* toolbox/ || { echo "Failed to copy scripts to toolbox"; exit 1; }
+  ls
+  cp -r "scripts/${branch#code-}/"* toolbox/ || { echo "Failed to copy scripts to toolbox"; exit 4; }
   rm -rf scripts
 
   # Directory cleanup based on branch
