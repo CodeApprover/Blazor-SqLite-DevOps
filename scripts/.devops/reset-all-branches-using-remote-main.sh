@@ -56,8 +56,8 @@ done
 # Create and setup each code- branch
 for branch in "${BRANCHES[@]}"; do
   git checkout -b "$branch"
-  mkdir -p Blazor-SqLite-DevOps/toolbox
-  cp -r "scripts/${branch#code-}/"* Blazor-SqLite-DevOps/toolbox/ || { echo "Failed to copy scripts to toolbox"; exit 4; }
+  mkdir -p toolbox/
+  cp -r "scripts/${branch#code-}/"* toolbox/ || { echo "Failed to copy scripts to toolbox"; exit 4; }
   rm -rf scripts
 
   # Directory cleanup based on branch
