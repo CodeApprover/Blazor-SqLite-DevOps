@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # Check dependencies
 if ! command -v jq &> /dev/null; then
   echo "jq is not installed."
@@ -57,13 +59,13 @@ for branch in "${BRANCHES[@]}"; do
 
   # Directory cleanup based on branch
   case "$branch" in
-    "${BRANCHES[0]}") # code-development
+    "code-development")
       rm -rf staging production
       ;;
-    "${BRANCHES[1]}") # code-production
+    "code-production")
       rm -rf development
       ;;
-    "${BRANCHES[2]}") # code-staging
+    "code-staging")
       rm -rf production
       ;;
   esac
@@ -74,6 +76,9 @@ for branch in "${BRANCHES[@]}"; do
   git push -u origin "$branch"
   git checkout main
 done
+
+# Checkout main
+git checkout main
 
 # Drop all stashes
 git stash clear
