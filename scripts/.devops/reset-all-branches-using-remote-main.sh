@@ -30,41 +30,32 @@ mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]' | tr -d '\
 git config user.name "$DEVOPS_USER"
 git config user.email "$DEVOPS_EMAIL"
 
-# Update main branch
-git checkout main
-git pull origin main
+# Stash changes and reset to remote main
+git stash
 git fetch origin
 git reset --hard origin/main
+git clean -fd
 
-# Process each code- branch
+# Delete all local branches except main
+for branch in $(git branch | grep -v "main"); do
+  git branch -D "$branch"
+done
+
+# Delete all remote branches except main
 for branch in "${BRANCHES[@]}"; do
-  echo "Processing branch: $branch"
-
-  # Delete local branch if exists
-  if git rev-parse --verify "$branch" > /dev/null 2>&1; then
-    git branch -D "$branch"
-  fi
-
-  # Delete remote branch if exists
   if git ls-remote --heads origin "$branch" | grep -q "$branch"; then
     git push origin --delete "$branch"
   fi
+done
 
-  # Create new branch from main
+# Create and setup each code- branch
+for branch in "${BRANCHES[@]}"; do
   git checkout -b "$branch"
   mkdir -p toolbox
-  script_dir="scripts/${branch#code-}"
-  
-  # Copy scripts and remove scripts directory
-  if [[ -d "$script_dir" ]]; then
-    cp -r "$script_dir/"* toolbox/ || { echo "Failed to copy from $script_dir to toolbox"; exit 1; }
-    git add toolbox/*
-  else
-    echo "Directory $script_dir does not exist or is empty."
-  fi
+  cp -r "scripts/${branch#code-}/"* toolbox/ || { echo "Failed to copy scripts to toolbox"; exit 1; }
   rm -rf scripts
 
-  # Branch-specific directory cleanup
+  # Directory cleanup based on branch
   case "$branch" in
     "${BRANCHES[0]}") # code-development
       rm -rf staging production
@@ -77,16 +68,10 @@ for branch in "${BRANCHES[@]}"; do
       ;;
   esac
 
-  # Commit and push changes
-  if ! git diff --quiet; then
-    git add .
-    git commit -m "Updated $branch from main"
-    git push -u origin "$branch"
-  else
-    echo "No changes to commit for $branch."
-  fi
-
-  # Return to main branch
+  # Commit and push
+  git add .
+  git commit -m "Set up $branch branch"
+  git push -u origin "$branch"
   git checkout main
 done
 
