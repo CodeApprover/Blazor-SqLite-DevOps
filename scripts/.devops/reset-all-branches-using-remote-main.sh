@@ -197,7 +197,7 @@ for branch in "${BRANCHES[@]}"; do
 
   # Create a new branch from main
   log_entry "Creating new local $branch branch from main."
-  git checkout -b "$branch" -v || { exit_handler 15 "${LINENO} - Failed to create new $branch from main."; }
+  git checkout -b "$branch" || { exit_handler 15 "${LINENO} - Failed to create new $branch from main."; }
   log_entry "New branch created: $(git branch --show-current)"
 
   # Create toolbox directory
