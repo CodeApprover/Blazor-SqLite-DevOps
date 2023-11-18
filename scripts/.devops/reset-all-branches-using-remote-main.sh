@@ -49,6 +49,9 @@ git reset --hard origin/main
 
 # Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
+  # Specify working branch
+  echo "Working on branch: ${BRANCHES[0]}"
+
   # Delete local branch if exists
   git branch | grep -q "$branch" && git branch -D "$branch"
 
