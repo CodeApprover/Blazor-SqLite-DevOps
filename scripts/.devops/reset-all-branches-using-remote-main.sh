@@ -174,26 +174,31 @@ git reset --hard origin/main || { exit_handler 10 "${LINENO}"; }
 
 # Process each code- branch as required
 for branch in "${BRANCHES[@]}"; do
-  # Checkout, stash and delete local branch
-  log_entry "Processing $branch branch..."
+  log_entry "Starting processing for $branch branch..."
+
+  # Checkout, stash, and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
-    git checkout "$branch" || { exit_handler 11 "${LINENO}"; }
-    git stash || { exit_handler 12 "${LINENO}"; }
-    git checkout main || { exit_handler 7 "${LINENO}"; }
-    git branch -D "$branch" || { exit_handler 13 "${LINENO}"; }
+    log_entry "Checking out $branch branch."
+    git checkout "$branch" -v || { exit_handler 11 "${LINENO} - Failed to checkout $branch."; }
+    git stash -v || { exit_handler 12 "${LINENO} - Failed to stash changes in $branch."; }
+    git checkout main -v || { exit_handler 7 "${LINENO} - Failed to checkout main from $branch."; }
+    git branch -D "$branch" -v || { exit_handler 13 "${LINENO} - Failed to delete local $branch."; }
+  else
+    log_entry "$branch does not exist locally. Skipping local deletion."
   fi
 
   # Delete remote branch if it exists
+  log_entry "Checking remote for $branch branch."
   if git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null; then
-    git push origin --delete "$branch" || { exit_handler 14 "${LINENO}"; }
+    git push origin --delete "$branch" -v || { exit_handler 14 "${LINENO} - Failed to delete remote $branch."; }
   else
-    log_entry "Remote branch $branch does not exist. Skipping deletion."
+    log_entry "Remote branch $branch does not exist. Skipping remote deletion."
   fi
 
   # Create a new branch from main
-  git checkout -b "$branch" || { exit_handler 15 "${LINENO}"; }
-  log_entry "Current branch: $(git branch --show-current)"
-  log_entry "Current directory: $(pwd)"
+  log_entry "Creating new local $branch branch from main."
+  git checkout -b "$branch" -v || { exit_handler 15 "${LINENO} - Failed to create new $branch from main."; }
+  log_entry "New branch created: $(git branch --show-current)"
 
   # Create toolbox directory
   mkdir -p toolbox || { exit_handler 16 "${LINENO}"; }
