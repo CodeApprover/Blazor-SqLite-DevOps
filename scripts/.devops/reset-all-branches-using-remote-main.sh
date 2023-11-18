@@ -179,10 +179,10 @@ for branch in "${BRANCHES[@]}"; do
   # Checkout, stash, and delete local branch
   if git show-ref --verify --quiet "refs/heads/$branch"; then
     log_entry "Checking out $branch branch."
-    git checkout "$branch" -v || { exit_handler 11 "${LINENO} - Failed to checkout $branch."; }
+    git checkout "$branch" || { exit_handler 11 "${LINENO} - Failed to checkout $branch."; }
     git stash -v || { exit_handler 12 "${LINENO} - Failed to stash changes in $branch."; }
-    git checkout main -v || { exit_handler 7 "${LINENO} - Failed to checkout main from $branch."; }
-    git branch -D "$branch" -v || { exit_handler 13 "${LINENO} - Failed to delete local $branch."; }
+    git checkout main || { exit_handler 7 "${LINENO} - Failed to checkout main from $branch."; }
+    git branch -D "$branch" || { exit_handler 13 "${LINENO} - Failed to delete local $branch."; }
   else
     log_entry "$branch does not exist locally. Skipping local deletion."
   fi
@@ -190,7 +190,7 @@ for branch in "${BRANCHES[@]}"; do
   # Delete remote branch if it exists
   log_entry "Checking remote for $branch branch."
   if git ls-remote --heads origin "$branch" | grep -sw "$branch" >/dev/null; then
-    git push origin --delete "$branch" -v || { exit_handler 14 "${LINENO} - Failed to delete remote $branch."; }
+    git push origin --delete "$branch" || { exit_handler 14 "${LINENO} - Failed to delete remote $branch."; }
   else
     log_entry "Remote branch $branch does not exist. Skipping remote deletion."
   fi
