@@ -22,13 +22,9 @@ fi
 # Extract constants from JSON
 DEVOPS_USER=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.name')
 DEVOPS_EMAIL=$(echo "$JSON_CONFIG" | jq -r '.DevOpsUser.email')
-EXPECTED_DIR=$(echo "$JSON_CONFIG" | jq -r '.ProjectConfig.dir')
 
 # Extract branch names from JSON keys
 mapfile -t BRANCHES < <(echo "$JSON_CONFIG" | jq -r '.Users | keys[]' | tr -d '\r')
-
-# Change to the expected directory
-cd "$EXPECTED_DIR" || { echo "Failed to navigate to expected directory: $EXPECTED_DIR"; exit 1; }
 
 # Set Git User
 git config user.name "$DEVOPS_USER"
