@@ -43,7 +43,7 @@ namespace Blazor_SqLite_Golf_Club.DbContext
         {
             if (!useInMemoryDatabase)
             {
-                optionsBuilder.UseSqlite(@"Data Source=Database//database.db");
+                optionsBuilder.UseSqlite(@"Data Source=Database//production-database.db");
             }
         }
     }
