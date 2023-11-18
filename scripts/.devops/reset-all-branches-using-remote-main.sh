@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 # Check dependencies
 if ! command -v jq &> /dev/null; then
   echo "jq is not installed."
