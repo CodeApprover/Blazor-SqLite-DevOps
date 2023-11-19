@@ -49,6 +49,7 @@ jobs:
     # Step 2: Configure the Git user.
     - name: Configure Git User
       run: |
+ 
         git config user.name "${{ github.repository_owner}}"
         git config user.email "${{ vars.EMAIL }}"
         echo "##[debug] Git user configured."
@@ -57,6 +58,7 @@ jobs:
     # This step resets the Gist that locks the SHA, preparing for the next deployment.
     - name: Unlock SHA Gist
       run: |
+ 
         gist_id="${{ vars.SHA_GIST }}"
         CURL_CMD=$(echo "curl -L \
           -X PATCH \
@@ -69,6 +71,7 @@ jobs:
     # Step 4: Determine which branches and directories to deploy to.
     - name: Set Deployment Branches and Directories
       run: |
+ 
         case "${{ env.SHA_BRANCH }}" in
           "code-development")
             deploy_branches=("code-staging" "code-production")
@@ -90,30 +93,19 @@ jobs:
         echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    # Step 5: Reset all branches to mirror `main` if the push is to the `main` branch.
-    - name: Reset all branches to mirror main if push is to main
-      run: |
-        for target_branch in code-development code-staging code-production; do
-            git fetch origin
-            git checkout $target_branch
-            git reset --hard ${{ env.SHA }}
-            git push origin $target_branch --force
-        done
-
-    # Step 6: Set the source directory and copy its contents to a temporary directory.
+    # Step 5: Set the source directory and copy its contents to a temporary directory.
     - name: Set and Copy Source Directory to Temp Dir
       run: |
+ 
         src_dir=${{ env.SHA_BRANCH }}
         src_dir=${src_dir#code-}
         dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir")
         rsync -av --delete --exclude=.git/ $dir_path/ /tmp/temp-dir/
 
-    # Step 7: Deploy the changes to target branches.
+    # Step 6: Deploy the changes to target branches.
     - name: Deploy to Target Branches
       run: |
-        latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
-        TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
-
+ 
         for target_branch in code-development code-staging code-production; do
             if [[ $target_branch != "${{ env.SHA_BRANCH }}" ]]; then
                 git fetch origin
@@ -123,10 +115,18 @@ jobs:
                 git add -A && git commit -m "$COMMIT_MSG" && git push origin $target_branch
             fi
         done
+ 
+    # Step 7: Set version tag
+    - name: Set Version tag
+      run: |
+ 
+        latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+        TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
 
     # Step 8: Trigger the next workflow if Git deployment is successful.
     - name: Trigger Next Workflow
       run: |
+ 
         CMD=$(echo "curl -L -X POST" \
           "-H \"Accept: application/vnd.github+json\"" \
           "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
