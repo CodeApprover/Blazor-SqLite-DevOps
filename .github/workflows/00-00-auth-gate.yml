@@ -221,62 +221,47 @@ jobs:
 
     - name: Check SHA Gist for Lock # Step 8
       run: |
-     
+ 
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
           # Fetch the content of the auth-gate.sha Gist
           content=$(curl -sL \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: token ${{ secrets.AUTH }}" \
-            "https://api.github.com/gists/${{ vars.SHA_GIST }}")
-          sha_content=$(echo "$content" | jq '.files["auth-gate.sha"].content' -r)
-          
-          # Check if Gist content is empty or null
-          if [[ "$sha_content" == "" || "$sha_content" == "null" ]]; then
-            break
-          else
-            echo "##[warn][gist-lock] SHA gist has content. Waiting and retrying..."
-            echo "##[warn][gist-lock] Blocked by SHA $sha_content"
-            sleep ${{ vars.WAIT_SECONDS }}
-            retries=$((retries+1))
-          fi
-        done
-    
-        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-          echo "##[error][gist-lock] SHA gist still has content after ${{ vars.MAX_RETRIES }} retries."
-          exit 31
-        fi
-
-    - name: Set SHA Gist as Locked # Step 9
-      run: |
-     
-        retries=0
-        while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-          # Prepare the data for the Gist update
-          GIST_DATA="{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}"
-    
-          # Send a PATCH request to update the Gist
-          response=$(curl -s -X PATCH \
             -H "Authorization: token ${{ secrets.AUTH }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d "$GIST_DATA" \
             "https://api.github.com/gists/${{ vars.SHA_GIST }}")
-    
-          # Check the response for success
-          echo "##[debug][gist-lock] $response"
-          if echo "$response" | grep -q "\"updated_at\":"; then
-            echo "##[info][gist-lock] Gist updated successfully with SHA."
+          sha_content=$(echo "$content" | jq '.files["auth-gate.sha"].content' -r)
+        
+          # Check if Gist content is 'unlocked' or 'null'
+          if [[ "$sha_content" == "unlocked" || "$sha_content" == "null" ]]; then
+            echo "##[info][gist-lock] No existing lock detected. Proceeding..."
             break
           else
-            echo "##[error][gist-lock] Failed to update the Gist with SHA. Retrying..."
-            sleep ${{ vars.WAIT_SECONDS }}
+            echo "##[warn][gist-lock] Lock detected. Waiting and retrying..."
+            sleep $((${{ vars.WAIT_MINUTES }} * 60))
             retries=$((retries+1))
           fi
         done
+      
+          if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
+            echo "##[error][gist-lock] Lock persisted after ${{ vars.MAX_RETRIES }} retries. Exiting."
+            exit 31
+          fi
     
-        if [[ $retries -eq ${{ vars.MAX_RETRIES }} ]]; then
-          echo "##[error][gist-lock] All retries exhausted. Failed to update Gist with SHA."
+    # Step 9 - Set Lock
+    - name: Set SHA Gist as Locked # Step 9
+      run: |
+ 
+        create_response=$(curl -s -X PATCH \
+          -H "Authorization: token ${{ secrets.AUTH }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d "{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}" \
+          "https://api.github.com/gists/${{ vars.SHA_GIST }}")
+        gist_id=$(echo "$create_response" | jq -r '.id')
+        if [[ -z "$gist_id" ]]; then
+          echo "Failed to set lock."
           exit 32
+        else
+          echo "Lock set successfully."
         fi
 
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
