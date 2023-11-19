@@ -9,8 +9,7 @@
 # 3. Fetch existing versioning tags.
 # 4. Clean up redundant versioning tags to keep the repository lean.
 # 5. Increment the version according to the SemVer 2.0 convention based on the branch.
-# 6. Set environment variable VERSION
-# 7. If all the above steps are successful, Trigger the next workflow in the pipeline.
+# 6. If all the above steps are successful, Trigger the next workflow in the pipeline.
 
 # Trigger: Activated upon receiving the event `Versioning`.
 
@@ -106,15 +105,8 @@ jobs:
         git tag $new_version ${{ env.SHA }}
         git push origin $new_version
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
-        
-    # Step 6: Set Environment Variable VERSION
-    - name: Set vars.VERSION
-      uses: FrancoisChabot/set-env-action@v0.2
-      with:
-        envs: |
-          VERSION=${{ env.NEW_VERSION }}
 
-    # Step 7: Trigger the next workflow if versioning is successful.
+    # Step 6: Trigger the next workflow if versioning is successful.
     - name: Trigger Next Workflow
       if: success()
       run: |
