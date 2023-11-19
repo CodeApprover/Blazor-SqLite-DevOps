@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    #if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
+    if: (github.actor != ${{ github.repository_owner }}) # Ignore DevOps
 
     steps:
 
@@ -268,9 +268,6 @@ jobs:
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
       run: |
- 
-        # HACK
-        exit 99
  
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
         SUCCESS_CMD=$(echo "curl -L -X POST \
