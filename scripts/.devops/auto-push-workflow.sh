@@ -13,3 +13,4 @@ git add -A || { echo "Git add error."; exit 1; }
 git commit -m "$commit_msg" || { echo "Git commit error."; exit 2; }
 git push || { echo "Git push error."; exit 1; }
 git checkout main || { echo "Git checkout error returning to main."; exit 3; }
+echo "$commit_msg"
