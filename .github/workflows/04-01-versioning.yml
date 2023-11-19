@@ -103,6 +103,8 @@ jobs:
             ;;
         esac
         new_version="v$major.$minor.$patch"
+        git tag $new_version ${{ env.SHA }}
+        git push origin $new_version
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
         
     # Step 6: Set Environment Variable VERSION
