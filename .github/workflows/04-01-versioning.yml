@@ -16,6 +16,9 @@
 # Exit Codes:
 # 90 - Failed to trigger the next workflow.
 
+# Note: New version tag determined here.
+# New version tag will be set if testing passes.
+
 ######################################
 
 ---
@@ -100,6 +103,13 @@ jobs:
         esac
         new_version="v$major.$minor.$patch"
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+
+    # Use the Set Environment Variables action
+    - name: Set vars.VERSION
+      uses: FrancoisChabot/set-env-action@v0.2
+      with:
+        envs: |
+          VERSION=${{ env.NEW_VERSION }}
 
     # Step 6: Trigger the next workflow if versioning is successful.
     - name: Trigger Next Workflow
