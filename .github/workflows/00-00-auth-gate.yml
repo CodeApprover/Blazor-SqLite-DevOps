@@ -224,7 +224,7 @@ jobs:
  
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
-          # Fetch the content of the auth-gate.sha Gist
+          # Fetch the content of the lockfile.lock Gist
           content=$(curl -sL \
             -H "Authorization: token ${{ secrets.AUTH }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -268,6 +268,9 @@ jobs:
     - name: Trigger Next Workflow and Dispatch Success Event # Step 10
       if: success()
       run: |
+ 
+        # HACK
+        exit 99
  
         echo "##[info][trigger] Initiating the next workflow: ${{ env.NEXT_WORKFLOW }}."
         SUCCESS_CMD=$(echo "curl -L -X POST \
