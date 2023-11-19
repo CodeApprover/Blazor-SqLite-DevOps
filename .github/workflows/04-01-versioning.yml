@@ -67,36 +67,25 @@ jobs:
     - name: Clean Redundant Versioning Tags
       run: |
  
-        echo "##[info] Deleting versioning tags skipping the 12 most recent."
-        DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n -12)
+        echo "##[info] Deleting versioning tags skipping the 36 most recent."
+        DELETE_TAGS=$(git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | head -n -36)
         for TAG in $DELETE_TAGS; do
           git tag -d $TAG
           git push origin --delete $TAG || (echo "##[error] Failed to push tag deletion." && exit 43)
         done
-
+    
     # Step 5: Increment version according to SemVer.
     - name: Increment SemVer 2.0 Versioning
       run: |
- 
-        echo "##[debug] Getting the latest tag based on SemVer 2.0."
         latest_tag=$(git tag -l 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
-        echo "##[info] Latest Tag = $latest_tag"
-
-        echo "##[debug] Striping prefix 'v' and splitting SemVer into major, minor, and patch."
         version=$(echo $latest_tag | sed 's/^v//')
         major=$(echo $version  | cut -d. -f1)
         minor=$(echo $version  | cut -d. -f2)
         patch=$(echo $version  | cut -d. -f3)
-
-        echo "##[debug] Incrementing SemVer for the given environment."
+    
         branch="${{ env.SHA_BRANCH }}"
         case "$branch" in
-          "main")
-            major=$(major)
-            minor=0
-            patch=0
-            ;;
-          "code-production")
+          "main"|"code-production")
             major=$((major + 1))
             minor=0
             patch=0
@@ -110,7 +99,6 @@ jobs:
             ;;
         esac
         new_version="v$major.$minor.$patch"
-        echo "##[debug] New version number = $new_version."
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
     # Step 6: Trigger the next workflow if versioning is successful.
