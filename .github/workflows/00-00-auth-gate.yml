@@ -237,7 +237,7 @@ jobs:
             echo "##[info][gist-lock] No existing lock detected. Proceeding..."
             break
           else
-            echo "##[warn][gist-lock] Lock detected. Waiting and retrying..."
+            echo "##[warn][gist-lock] Lock detected. Waiting and retrying in ${{vars.WAIT_MINUTES}} minutes."
             sleep $((${{ vars.WAIT_MINUTES }} * 60))
             retries=$((retries+1))
           fi
