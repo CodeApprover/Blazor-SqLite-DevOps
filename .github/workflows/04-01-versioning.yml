@@ -16,6 +16,10 @@
 # Exit Codes:
 # 90 - Failed to trigger the next workflow.
 
+# Note: Yaml determines new version tag
+# Next pipeline sets version tag after docker publication.
+# https://github.com/CodeApprover/Blazor-SqLite-DevOps/tags
+
 ######################################
 
 ---
@@ -99,8 +103,9 @@ jobs:
             ;;
         esac
         new_version="v$major.$minor.$patch"
-        git tag $new_version ${{ env.SHA }}
-        git push origin $new_version
+        # Docker yaml sets the new repository tag
+        # git tag $new_version ${{ env.SHA }} # see docker yaml
+        # git push origin $new_version # see docker yaml
         echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
 
     # Step 6: Trigger the next workflow if versioning is successful.
