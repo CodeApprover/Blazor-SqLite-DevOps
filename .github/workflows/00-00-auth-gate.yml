@@ -64,13 +64,23 @@ jobs:
  
         echo "##[info][sanitise] Starting security sanitisation and validation."
         echo "##[debug][sanitise] Sanitising username as github username."
-        regex_pattern="^([a-z0-9](-?[a-z0-9]){0,19})$"
+        # Allows lowercase letters, digits,
+        # optional hyphens within words
+        # and single spaces between words.
+        # Words must start with a letter or digit
+        # and hyphens can't be at the start or end.
+        regex_pattern="^([a-z0-9]+(-?[a-z0-9]+)*(\s[a-z0-9]+(-?[a-z0-9]+)*)*)$"
         username=$(echo ${{ github.event.head_commit.author.name }} | tr '[:upper:]' '[:lower:]')
         if ! [[ "$username" =~ ${regex_pattern} ]] || [[ "$username" == -* ]]; then
             echo "##[error][sanitise] Username contains invalid characters"
             exit 20
         fi
         echo "##[debug][sanitise] Sanitising email address."
+        # Allows uppercase and lowercase letters, digits, periods,
+        # underscores, percent signs, plus signs and hyphens in the user name part.
+        # Must contain an '@' symbol separating the user name and domain parts.
+        # Domain part allows letters, digits, periods and hyphens.
+        # Must end with top-level domain (TLD) 2 to 4 letters long.
         regex_pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
         if ! [[ "${{ github.event.head_commit.author.email }}" =~ ${regex_pattern} ]]; then
             echo "##[error][sanitise] Email format is invalid"
