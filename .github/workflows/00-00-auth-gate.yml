@@ -16,7 +16,7 @@
 # 5.  Validate the SHA checkout.
 # 6.  Ensure commit is unique to existing remote SHA branches.
 # 7.  Validate the existence of a .csproj file.
-# 8.  Check for pre-existent .lock files in the commit.
+# 8.  Check for an existing gist with an SHA i.e. a lockfile.
 # 9.  Update Gist with SHA.
 # 10. Trigger the next workflow if all checks pass.
 
@@ -263,6 +263,7 @@ jobs:
             "https://api.github.com/gists/${{ vars.SHA_GIST }}")
     
           # Check the response for success
+          echo "##[debug][gist-lock] $response"
           if echo "$response" | grep -q "\"updated_at\":"; then
             echo "##[info][gist-lock] Gist updated successfully with SHA."
             break
