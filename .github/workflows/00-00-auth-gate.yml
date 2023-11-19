@@ -243,15 +243,10 @@ jobs:
         retries=0
         while [[ $retries -lt ${{ vars.MAX_RETRIES }} ]]; do
           # Update the Gist with the current SHA to set the lock
-          response=$(curl -sL \
-            -X PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: token ${{ secrets.AUTH }}" \
-            "https://api.github.com/gists/${{ vars.SHA_GIST }}" \
-            -d "{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}")
-          
-          updated_sha=$(echo "$response" | jq '.files["auth-gate.sha"].content' -r)
-          
+          echo "${{ github.sha }}" > sha
+          gh auth login --with-token < "${{ secrets.AUTH }}"
+          update_result=$(gh gist edit ${{ vars.SHA_GIST }} --add sha)
+    
           if [[ "$updated_sha" == "${{ github.sha }}" ]]; then
             echo "##[info][gist-lock] Gist updated successfully with SHA."
             break
