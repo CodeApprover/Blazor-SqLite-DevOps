@@ -233,7 +233,7 @@ jobs:
           echo "##[debug][gist-lock] Lockfile content: ${sha_content}"
         
           # Check if Gist content is 'unlocked' or 'null'
-          if [[ "$sha_content" == "unlocked" || "$sha_content" == "null" ]]; then
+          if [[ "$sha_content" == "" || "$sha_content" == "null" ]]; then
             echo "##[info][gist-lock] No existing lock detected. Proceeding..."
             break
           else
