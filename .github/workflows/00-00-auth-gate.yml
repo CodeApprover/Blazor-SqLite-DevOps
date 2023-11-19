@@ -229,7 +229,8 @@ jobs:
             -H "Authorization: token ${{ secrets.AUTH }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/gists/${{ vars.SHA_GIST }}")
-          sha_content=$(echo "$content" | jq '.files["auth-gate.sha"].content' -r)
+          sha_content=$(echo "$content" | jq '.files["lockfile.lock"].content' -r)
+          echo "##[debug][gist-lock] Lockfile content: ${sha_content}"
         
           # Check if Gist content is 'unlocked' or 'null'
           if [[ "$sha_content" == "unlocked" || "$sha_content" == "null" ]]; then
@@ -254,7 +255,7 @@ jobs:
         create_response=$(curl -s -X PATCH \
           -H "Authorization: token ${{ secrets.AUTH }}" \
           -H "Accept: application/vnd.github.v3+json" \
-          -d "{\"files\": {\"auth-gate.sha\": {\"content\": \"${{ github.sha }}\"}}}" \
+          -d "{\"files\": {\"lockfile.lock\": {\"content\": \"${{ github.sha }}\"}}}" \
           "https://api.github.com/gists/${{ vars.SHA_GIST }}")
         gist_id=$(echo "$create_response" | jq -r '.id')
         if [[ -z "$gist_id" ]]; then
