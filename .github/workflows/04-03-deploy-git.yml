@@ -74,33 +74,40 @@ jobs:
  
         case "${{ env.SHA_BRANCH }}" in
           "code-development")
-            deploy_branches=("code-staging" "code-production")
+            # Push changes from development directory to staging and main branches
+            deploy_branches=("code-staging" "main")
             directory="development"
             ;;
           "code-staging")
-            deploy_branches=("code-development" "code-production")
+            # Push changes from staging directory to production and main branches
+            deploy_branches=("code-production" "main")
             directory="staging"
             ;;
           "code-production")
-            deploy_branches=("code-development" "code-staging")
-            directory="production"
-            ;;
-          "main")
-            deploy_branches=("code-development" "code-staging" "code-production")
+            # Push changes from production directory to main branch
+            deploy_branches=("main")
             directory="production"
             ;;
         esac
         echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
         echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-    # Step 5: Set the source directory and copy its contents to a temporary directory.
-    - name: Set and Copy Source Directory to Temp Dir
+    # Step 5: Deploy to Target Branches and Main
+    - name: Deploy to Target Branches and Main
       run: |
- 
-        src_dir=${{ env.SHA_BRANCH }}
-        src_dir=${src_dir#code-}
-        dir_path=$(find ${{ github.workspace }} -type d -name "$src_dir")
-        rsync -av --delete --exclude=.git/ $dir_path/ /tmp/temp-dir/
+     
+        # Deploy to the next target branch
+        git fetch origin
+        git checkout ${{ env.TARGET_BRANCH }}
+        rsync -av --delete --exclude=.git/ /tmp/temp-dir/${{ env.DIRECTORY }}/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+        COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to ${{ env.TARGET_BRANCH }} [skip ci]"
+        git add -A && git commit -m "$COMMIT_MSG" && git push origin ${{ env.TARGET_BRANCH }}
+    
+        # Deploy to main
+        git checkout main
+        rsync -av --delete --exclude=.git/ /tmp/temp-dir/${{ env.DIRECTORY }}/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+        COMMIT_MSG_MAIN="Updating main with changes from ${{ env.SHA_BRANCH }} [skip ci]"
+        git add -A && git commit -m "$COMMIT_MSG_MAIN" && git push origin main
 
     # Step 6: Deploy the changes to target branches.
     - name: Deploy to Target Branches
@@ -116,7 +123,7 @@ jobs:
             fi
         done
  
-    # Step 7: Set version tag
+    # Step 7: Set github tag to latest version
     - name: Set Version tag
       run: |
  
