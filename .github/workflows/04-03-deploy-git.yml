@@ -119,42 +119,43 @@ jobs:
         run: |
           latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
           TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
-    # Step 8: Set github tag to latest version
-    - name: Set Version tag
-      run: |
- 
-        latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
-        TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
+    
+      # Step 8: Set github tag to latest version
+      - name: Set Version tag
+        run: |
+  
+          latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
 
-    # Step 8 - Unset the lockfile
-    - name: Set SHA Gist as Locked
-      run: |
- 
-        create_response=$(curl -s -X PATCH \
-          -H "Authorization: token ${{ secrets.AUTH }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          -d "{\"files\": {\"lockfile.lock\": {\"content\": \"\"}}}" \
-          "https://api.github.com/gists/${{ vars.SHA_GIST }}")
-        gist_id=$(echo "$create_response" | jq -r '.id')
-        if [[ -z "$gist_id" ]]; then
-          echo "Failed to set lock."
-          exit 32
-        else
-          echo "Lock set successfully."
-        fi
+      # Step 8 - Unset the lockfile
+      - name: Set SHA Gist as Locked
+        run: |
+  
+          create_response=$(curl -s -X PATCH \
+            -H "Authorization: token ${{ secrets.AUTH }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{\"files\": {\"lockfile.lock\": {\"content\": \"\"}}}" \
+            "https://api.github.com/gists/${{ vars.SHA_GIST }}")
+          gist_id=$(echo "$create_response" | jq -r '.id')
+          if [[ -z "$gist_id" ]]; then
+            echo "Failed to set lock."
+            exit 32
+          else
+            echo "Lock set successfully."
+          fi
 
-    # Step 9: Trigger the next workflow if Git deployment is successful.
-    - name: Trigger Next Workflow
-      run: |
- 
-        CMD=$(echo "curl -L -X POST" \
-          "-H \"Accept: application/vnd.github+json\"" \
-          "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-          "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-          "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-          "\"client_payload\":{" \
-          "\"sha\":\"${{ env.SHA }}\"," \
-          "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-          "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
-          "\"csproj\":\"${{ env.CSPROJ }}\"}'")
-        eval "$CMD"
+      # Step 9: Trigger the next workflow if Git deployment is successful.
+      - name: Trigger Next Workflow
+        run: |
+  
+          CMD=$(echo "curl -L -X POST" \
+            "-H \"Accept: application/vnd.github+json\"" \
+            "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
+            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
+            "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
+            "\"client_payload\":{" \
+            "\"sha\":\"${{ env.SHA }}\"," \
+            "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
+            "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
+            "\"csproj\":\"${{ env.CSPROJ }}\"}'")
+          eval "$CMD"
