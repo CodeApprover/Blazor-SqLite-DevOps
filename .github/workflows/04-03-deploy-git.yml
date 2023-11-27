@@ -27,7 +27,6 @@
 # 90 - Failure to trigger the next workflow after all retry attempts.
 
 ######################################
-
 ---
 name: Deploy Git
 on:
@@ -47,90 +46,82 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      # Step 1: Checkout the repository using the specified SHA.
       - name: Checkout SHA Repository
         uses: actions/checkout@v3.6.0
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
 
-      # Step 2: Configure the Git user.
       - name: Configure Git User
         run: |
           git config user.name "${{ github.repository_owner}}"
           git config user.email "${{ vars.EMAIL }}"
           echo "##[debug] Git user configured."
 
-      # Step 3: Unlock SHA Gist.
       - name: Unlock SHA Gist
         run: |
           gist_id="${{ vars.SHA_GIST }}"
-          CURL_CMD=$(echo "curl -L \
+          CURL_CMD="curl -L \
             -X PATCH \
-            -H \"Accept: application/vnd.github+json\" \
-            -H \"Authorization: token ${{ secrets.AUTH }}\" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'Authorization: token ${{ secrets.AUTH }}' \
             https://api.github.com/gists/$gist_id \
-            -d '{\"files\": {\"auth-gate.sha\": {\"content\": \"\"}}}'")
+            -d '{\"files\": {\"auth-gate.sha\": {\"content\": \"\"}}}'"
           eval "$CURL_CMD"
 
-      # Step 4: Determine which branches and directories to deploy to.
       - name: Set Deployment Branches and Directories
         run: |
-          case "${{ env.SHA_BRANCH }}" in
-            "code-development")
-              deploy_branches=("code-staging" "main")
-              directory="development"
-              ;;
-            "code-staging")
-              deploy_branches=("code-production" "main")
-              directory="staging"
-              ;;
-            "code-production")
-              deploy_branches=("main")
-              directory="production"
-              ;;
-          esac
+          if [ "${{ env.SHA_BRANCH }}" == "main" ]; then
+            deploy_branches=("code-development" "code-staging" "code-production")
+          else
+            case "${{ env.SHA_BRANCH }}" in
+              "code-development")
+                deploy_branches=("code-staging" "main")
+                directory="development"
+                ;;
+              "code-staging")
+                deploy_branches=("code-production" "main")
+                directory="staging"
+                ;;
+              "code-production")
+                deploy_branches=("main")
+                directory="production"
+                ;;
+            esac
+          fi
           echo "deploy_branches=${deploy_branches[@]}" >> $GITHUB_ENV
           echo "DIRECTORY=$directory" >> $GITHUB_ENV
 
-      # Step 5: Prepare the Temporary Directory
       - name: Prepare Temporary Directory
         run: |
-          # Create the temporary directory
           mkdir -p /tmp/temp-dir/
+          if [ "${{ env.SHA_BRANCH }}" != "main" ]; then
+            cp -r ${{ github.workspace }}/${{ env.DIRECTORY }}/ /tmp/temp-dir/
+          else
+            cp -r ${{ github.workspace }}/* /tmp/temp-dir/
+          fi
 
-          # Copy the necessary files or directory to the temporary directory
-          cp -r ${{ github.workspace }}/${{ env.DIRECTORY }}/ /tmp/temp-dir/
-
-      # Step 6: Deploy to Target Branches and Main
       - name: Deploy to Target Branches and Main
         run: |
-          # Deploy to the next target branch
           for branch in ${{ join(env.deploy_branches, ' ') }}; do
             git fetch origin
             git checkout $branch
-            rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+            if [ "${{ env.SHA_BRANCH }}" != "main" ]; then
+              rsync -av --delete --exclude=.git/ /tmp/temp-dir/ ${{ github.workspace }}/${{ env.DIRECTORY }}/
+            else
+              rsync -av --delete --exclude=.git/ /tmp/temp-dir/* ${{ github.workspace }}/
+            fi
             COMMIT_MSG="Migrating changes from ${{ env.SHA_BRANCH }} to $branch [skip ci]"
             git add -A && git commit -m "$COMMIT_MSG" && git push origin $branch
           done
 
-      # Step 7: Set version tag
       - name: Set Version tag
         run: |
-          latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
-          TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
-    
-      # Step 8: Set github tag to latest version
-      - name: Set Version tag
-        run: |
-  
           latest_tag=$(git tag -l 'v*' | sort -V | tail -n1)
           TAG_MESSAGE=$(git tag -l --format='%(contents)' $latest_tag)
 
-      # Step 8 - Unset the lockfile
       - name: Set SHA Gist as Locked
         run: |
-  
           create_response=$(curl -s -X PATCH \
             -H "Authorization: token ${{ secrets.AUTH }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -144,18 +135,11 @@ jobs:
             echo "Lock set successfully."
           fi
 
-      # Step 9: Trigger the next workflow if Git deployment is successful.
       - name: Trigger Next Workflow
         run: |
-  
-          CMD=$(echo "curl -L -X POST" \
-            "-H \"Accept: application/vnd.github+json\"" \
-            "-H \"Authorization: Bearer ${{ secrets.AUTH }}\"" \
-            "https://api.github.com/repos/${{ github.repository }}/dispatches" \
-            "-d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\"," \
-            "\"client_payload\":{" \
-            "\"sha\":\"${{ env.SHA }}\"," \
-            "\"sha_branch\":\"${{ env.SHA_BRANCH }}\"," \
-            "\"new_version\":\"${{ env.NEW_VERSION }}\"," \
-            "\"csproj\":\"${{ env.CSPROJ }}\"}'")
-          eval "$CMD"
+          CMD="curl -L -X POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'Authorization: Bearer ${{ secrets.AUTH }}' \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{\"event_type\":\"${{ env.NEXT_WORKFLOW }}\", \
+              \"client_payload\":{ \
